@@ -1,0 +1,260 @@
+@import '../variables.css';
+
+.empresas-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+.page-title {
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  font-weight: 600;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background-color: var(--accent);
+  border-radius: 2px;
+}
+
+.service-card {
+  display: flex;
+  background-color: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--gray-light);
+  position: relative;
+}
+
+.service-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  width: 90%;
+  height: 1px;
+  background-color: var(--gray-light);
+}
+
+.service-info {
+  flex: 1;
+  padding: 25px;
+  border-right: 1px solid var(--gray-light);
+}
+
+.service-title {
+  color: var(--primary-dark);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.service-description {
+  color: var(--text-dark);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.ver-mas-btn {
+  background-color: var(--secondary);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 24px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ver-mas-btn:hover {
+  background-color: var(--primary);
+}
+
+.service-pricing {
+  width: 40%;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pricing-selector label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.select-wrapper {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.select-wrapper::after {
+  content: '▼';
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: var(--text-dark);
+}
+
+.ventas-range {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--gray);
+  border-radius: var(--radius-lg);
+  background-color: var(--white);
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  appearance: none;
+  cursor: pointer;
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin: 15px 0;
+}
+
+.qty-label {
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-right: 8px;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  background-color: var(--gray-light);
+  border: 1px solid var(--gray);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.minus-btn, .plus-btn {
+  font-size: 14px;
+}
+
+.qty-btn:hover:not(:disabled) {
+  background-color: var(--secondary-light);
+}
+
+.qty-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qty-input {
+  width: 40px;
+  height: 30px;
+  text-align: center;
+  border: 1px solid var(--gray);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.price-label {
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-right: 5px;
+  white-space: nowrap;
+}
+
+.price-amount-wrapper {
+  margin-right: 5px;
+  text-align: right;
+}
+
+.price-amount-input {
+  border: 1px solid var(--gray);
+  border-radius: var(--radius-lg);
+  padding: 5px 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--primary);
+  width: 80px;
+  background-color: var(--white);
+}
+
+.add-to-cart-btn {
+  width: 36px;
+  height: 36px;
+  background-color: var(--cart-btn);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  margin-left: 5px;
+}
+
+.add-to-cart-btn:hover {
+  background-color: var(--cart-btn-hover);
+  transform: scale(1.05);
+}
+
+.service-image {
+  width: 100%;
+  max-width: 300px;
+  display: block;
+  margin: 15px 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .service-card {
+    flex-direction: column;
+  }
+  
+  .service-info {
+    border-right: none;
+    border-bottom: 1px solid var(--gray-light);
+  }
+  
+  .service-pricing {
+    width: 100%;
+  }
+} 

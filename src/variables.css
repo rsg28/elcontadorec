@@ -1,0 +1,43 @@
+:root {
+  /* Basic colors */
+  --white: #ffffff;
+  --black: #000000;
+  --gray-light: #f5f5f5;
+  --gray: #e0e0e0;
+  --gray-dark: #717171;
+  
+  /* Brand colors */
+  --primary: #003b71;
+  --primary-dark: #00264a;
+  --primary-light: #3d7eac;
+  --secondary: #4d9de0;
+  --secondary-light: #a8d5fb;
+  --accent: #00b9f2;
+  --accent-dark: #0096c2;
+  
+  /* Cart button colors */
+  --cart-btn: #c00;
+  --cart-btn-hover: #a00;
+  
+  /* UI colors */
+  --background: #f7fafd;
+  --nav-bg: #8cb7e0;
+  --success: #28a745;
+  --error: #dc3545;
+  --warning: #ffc107;
+  
+  /* Text colors */
+  --text-dark: #001833;
+  --text-light: #ffffff;
+  --text-muted: #717171;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+} 
