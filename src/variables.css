@@ -8,7 +8,9 @@
   
   /* Brand colors */
   --primary: #003b71;
+  --primary-rgb: 0, 59, 113;
   --primary-dark: #00264a;
+  --primary-dark-rgb: 0, 38, 74;
   --primary-light: #3d7eac;
   --secondary: #4d9de0;
   --secondary-light: #a8d5fb;
