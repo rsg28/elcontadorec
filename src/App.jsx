@@ -28,6 +28,7 @@ import fullLogoImage from './assets/EL CONTADOR TEXTO A LA DERECHA.png';
 import Empresas from './pages/Empresas';
 import DeclaracionesDetalles from './pages/DeclaracionesDetalles';
 import Perfil from './pages/Perfil';
+import Carrito from './pages/Carrito';
 // Import components
 import Navbar from './components/Navbar';
 
@@ -132,12 +133,12 @@ function App() {
                 <span>Perfil</span>
               </div>
             </Link>
-            <button className="cart-button">
+            <Link to="/carrito" className="cart-button">
               <div className="button-content">
                 <FontAwesomeIcon icon={faShoppingCart} className="cart-icon" />
                 <span>Carrito</span>
               </div>
-            </button>
+            </Link>
           </div>
         </header>
         
@@ -148,6 +149,7 @@ function App() {
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/declaraciones-mensuales" element={<DeclaracionesDetalles />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/carrito" element={<Carrito />} />
           {/* Add more routes for other pages as they are created */}
         </Routes>
         
