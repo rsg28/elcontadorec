@@ -23,11 +23,11 @@ const PreciosServicios = sequelize.define('PreciosServicios', {
     }
   },
   precio: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: true
   }
 }, {
-  tableName: 'PreciosServicios',
+  tableName: 'preciosservicios',
   timestamps: false
 });
 

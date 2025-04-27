@@ -147,4 +147,31 @@ export const deleteServicio = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
-}; 
+};
+
+// @desc    Get servicios by categoria
+// @route   GET /api/servicios/categoria/:id
+// @access  Public
+export const getServiciosByCategoria = async (req, res) => {
+  try {
+    console.log(`Buscando servicios para la categoría: ${req.params.id}`);
+    const servicios = await Servicios.findAll({
+      where: {
+        id_categoria: req.params.id
+      }
+    });
+    
+    console.log(`Servicios encontrados: ${servicios.length}`);
+    res.json(servicios);
+  } catch (error) {
+    console.error('Error detallado:', error);
+    res.status(500).json({ 
+      message: 'Server Error', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? '🥞' : error.stack 
+    });
+  }
+};
+
+// Alias para getAllServicios para evitar duplicación de código
+export const getServicios = getAllServicios; 

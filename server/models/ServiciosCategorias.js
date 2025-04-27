@@ -8,11 +8,11 @@ const ServiciosCategorias = sequelize.define('Servicios_Categorias', {
     allowNull: false
   },
   nombre: {
-    type: DataTypes.STRING(150),
+    type: DataTypes.STRING(45),
     allowNull: true
   }
 }, {
-  tableName: 'Servicios_Categorias',
+  tableName: 'servicios_categorias',
   timestamps: false
 });
 

@@ -21,7 +21,7 @@ const Subcategorias = sequelize.define('Subcategorias', {
     allowNull: true
   }
 }, {
-  tableName: 'Subcategorias',
+  tableName: 'subcategorias',
   timestamps: false
 });
 

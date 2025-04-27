@@ -19,9 +19,17 @@ const Servicios = sequelize.define('Servicios', {
   nombre: {
     type: DataTypes.STRING(150),
     allowNull: true
+  },
+  descripcion: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  imagen: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   }
 }, {
-  tableName: 'Servicios',
+  tableName: 'servicios',
   timestamps: false
 });
 

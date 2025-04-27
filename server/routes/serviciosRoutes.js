@@ -4,11 +4,15 @@ import {
   getServicioById, 
   createServicio, 
   updateServicio, 
-  deleteServicio 
+  deleteServicio, 
+  getServiciosByCategoria 
 } from '../controllers/serviciosController.js';
 import { protect, admin } from '../config/authMiddleware.js';
 
 const router = express.Router();
+
+// Obtener servicios por categoría - DEBE IR ANTES DE LA RUTA CON :id
+router.get('/categoria/:id', getServiciosByCategoria);
 
 // Get all services and create a new service
 router.route('/')
