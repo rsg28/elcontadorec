@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faMinus, faShoppingCart, faBug } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faMinus, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 import defaultImage from '../assets/empresas/display1.jpeg';
 import useSubcategorias from '../hooks/useSubcategorias';
 
@@ -19,7 +19,6 @@ const ServiceCard = ({
   const { subcategorias, loading: loadingSubcategorias, error: subcategoriasError } = useSubcategorias(servicioId);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState('');
   const [price, setPrice] = useState(defaultPrice);
-  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     if (subcategoriasError) {
@@ -81,11 +80,6 @@ const ServiceCard = ({
     alert(`Servicio: ${title}\nSubcategoría: ${subcategoriaNombre}\nCantidad: ${count}\nPrecio: ${price}\nAgregado al carrito`);
   };
 
-  // Función para cambiar al modo de depuración
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
-  };
-
   // Usar imagen por defecto si no hay imagen
   const imageToShow = image || defaultImage;
 
@@ -99,28 +93,6 @@ const ServiceCard = ({
           <Link to={detailsPath} className="ver-mas-btn">VER MÁS</Link>
         ) : (
           <button className="ver-mas-btn">VER MÁS</button>
-        )}
-        <button 
-          onClick={toggleDebugMode} 
-          className="debug-btn"
-          style={{ marginTop: '10px', padding: '5px', fontSize: '12px', backgroundColor: '#f0f0f0', border: '1px solid #ccc' }}
-        >
-          <FontAwesomeIcon icon={faBug} /> {debugMode ? 'Ocultar Info Debug' : 'Mostrar Info Debug'}
-        </button>
-        
-        {debugMode && (
-          <div className="debug-info" style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f8f8', border: '1px solid #ddd', fontSize: '12px' }}>
-            <p><strong>Servicio ID:</strong> {servicioId}</p>
-            <p><strong>Loading:</strong> {loadingSubcategorias ? 'Sí' : 'No'}</p>
-            <p><strong>Error:</strong> {subcategoriasError || 'Ninguno'}</p>
-            <p><strong>Subcategorías:</strong> {subcategorias ? subcategorias.length : 0}</p>
-            {subcategorias && subcategorias.length > 0 && (
-              <div>
-                <p><strong>Datos primera subcategoría:</strong></p>
-                <pre>{JSON.stringify(subcategorias[0], null, 2)}</pre>
-              </div>
-            )}
-          </div>
         )}
       </div>
       <div className="service-pricing">
