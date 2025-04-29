@@ -19,7 +19,7 @@ const getImageUrl = (imagePath) => {
 };
 
 function DevolucionImpuestos() {
-  const { servicios, loading, error } = useServicios('CAT002');
+  const { servicios, loading, error } = useServicios('2');
   const [serviceCounts, setServiceCounts] = useState({});
 
   const handleCountChange = (servicioId, newCount) => {

@@ -19,7 +19,7 @@ const getImageUrl = (imagePath) => {
 };
 
 function Supercias() {
-  const { servicios, loading, error } = useServicios('CAT010');
+  const { servicios, loading, error } = useServicios('10');
   const [serviceCounts, setServiceCounts] = useState({});
 
   const handleCountChange = (servicioId, newCount) => {

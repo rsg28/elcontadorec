@@ -25,7 +25,7 @@ const getImageUrl = (imagePath) => {
 
 function Empresas() {
   // Obtenemos los servicios de la categoría CAT003
-  const { servicios, loading, error } = useServicios('CAT003');
+  const { servicios, loading, error } = useServicios('3');
   
   // Estado para manejar la cantidad de cada servicio
   const [serviceCounts, setServiceCounts] = useState({});

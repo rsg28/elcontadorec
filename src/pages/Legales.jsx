@@ -19,7 +19,7 @@ const getImageUrl = (imagePath) => {
 };
 
 function Legales() {
-  const { servicios, loading, error } = useServicios('CAT006');
+  const { servicios, loading, error } = useServicios('6');
   const [serviceCounts, setServiceCounts] = useState({});
 
   const handleCountChange = (servicioId, newCount) => {

@@ -19,7 +19,7 @@ const getImageUrl = (imagePath) => {
 };
 
 function AuditoriaExterna() {
-  const { servicios, loading, error } = useServicios('CAT001');
+  const { servicios, loading, error } = useServicios('1');
   const [serviceCounts, setServiceCounts] = useState({});
 
   const handleCountChange = (servicioId, newCount) => {

@@ -21,7 +21,7 @@ const getImageUrl = (imagePath) => {
 
 function Personas() {
   // Obtenemos los servicios de la categoría CAT007
-  const { servicios, loading, error } = useServicios('CAT007');
+  const { servicios, loading, error } = useServicios('7');
   const [serviceCounts, setServiceCounts] = useState({});
 
   const handleCountChange = (servicioId, newCount) => {
