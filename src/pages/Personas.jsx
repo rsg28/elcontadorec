@@ -51,7 +51,7 @@ function Personas() {
               image={servicio.imagen}
               count={serviceCounts[servicio.id_servicio] || 1}
               onCountChange={(newCount) => handleCountChange(servicio.id_servicio, newCount)}
-              price="$10"
+              price="$0"
               detailsPath={`/servicios/${servicio.id_servicio}`}
             />
           ))}

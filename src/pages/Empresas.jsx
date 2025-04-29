@@ -59,7 +59,7 @@ function Empresas() {
               image={servicio.imagen}
               count={serviceCounts[servicio.id_servicio] || 1}
               onCountChange={(newCount) => handleCountChange(servicio.id_servicio, newCount)}
-              price="$10" // Precio predeterminado, se actualizará según la subcategoría
+              price="$0" // Precio predeterminado, se actualizará según la subcategoría
               detailsPath={`/servicios/${servicio.id_servicio}`}
             />
           ))}
