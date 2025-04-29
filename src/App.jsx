@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import './index.css';
 // Import FontAwesome components
@@ -20,7 +20,8 @@ import {
   faClock,
   faFax,
   faGlobe,
-  faChevronRight
+  faChevronRight,
+  faCalculator
 } from '@fortawesome/free-solid-svg-icons';
 // Import logo
 import fullLogoImage from './assets/EL CONTADOR TEXTO A LA DERECHA.png';
@@ -29,18 +30,24 @@ import Empresas from './pages/Empresas';
 import DeclaracionesDetalles from './pages/DeclaracionesDetalles';
 import Perfil from './pages/Perfil';
 import Carrito from './pages/Carrito';
+import Personas from './pages/Personas';
+import AuditoriaExterna from './pages/AuditoriaExterna';
+import Legales from './pages/Legales';
+import DevolucionImpuestos from './pages/DevolucionImpuestos';
+import Supercias from './pages/Supercias';
 // Import components
 import Navbar from './components/Navbar';
 
 // Home component for the landing page
 const Home = () => {
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Handler for category card clicks
   const handleCategoryClick = (categoryId) => {
     switch(categoryId) {
       case 1: // Personas
-        navigate('/');
+        navigate('/personas');
         break;
       case 2: // Empresas
         navigate('/empresas');
@@ -57,6 +64,18 @@ const Home = () => {
       case 6: // Supercias
         navigate('/supercias');
         break;
+      case 7: // Planes Empresas
+        navigate('/planes-empresas');
+        break;
+      case 8: // Planes Personas
+        navigate('/planes-personas');
+        break;
+      case 9: // Firma Electrónica
+        navigate('/firma-electronica');
+        break;
+      case 10: // IESS y MT
+        navigate('/iess-mt');
+        break;
       default:
         navigate('/');
     }
@@ -69,34 +88,47 @@ const Home = () => {
     { id: 3, title: 'Auditoría Externa', icon: faFileAlt, color: '#00b9f2' },
     { id: 4, title: 'Legales', icon: faBalanceScale, color: '#4d9de0' },
     { id: 5, title: 'Devolución Impuestos', icon: faMoneyCheckAlt, color: '#3d7eac' },
-    { id: 6, title: 'Supercias', icon: faUserTie, color: '#00b9f2' }
+    { id: 6, title: 'Supercias', icon: faUserTie, color: '#00b9f2' },
+    { id: 7, title: 'Planes Empresas', icon: faBuilding, color: '#4d9de0' },
+    { id: 8, title: 'Planes Personas', icon: faUser, color: '#3d7eac' },
+    { id: 9, title: 'Firma Electrónica', icon: faIdCard, color: '#00b9f2' },
+    { id: 10, title: 'IESS y MT', icon: faFileAlt, color: '#4d9de0' }
   ];
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => (prev + 1) % 2);
+  };
 
   return (
     <main className="main-content">
       <section className="categories-section">
         <h2 className="section-title">Todas las Categorías</h2>
         
-        <div className="categories-grid">
-          {categories.map(category => (
-            <div 
-              key={category.id} 
-              className="category-card" 
-              style={{ borderColor: category.color }}
-              onClick={() => handleCategoryClick(category.id)}
-            >
-              <div className="category-icon" style={{ backgroundColor: category.color }}>
-                <FontAwesomeIcon icon={category.icon} />
+        <div className="categories-container">
+          <div className="categories-grid" style={{ transform: `translateX(-${currentPage * 60}%)` }}>
+            {categories.map(category => (
+              <div 
+                key={category.id} 
+                className="category-card" 
+                style={{ borderColor: category.color }}
+                onClick={() => handleCategoryClick(category.id)}
+              >
+                <div className="category-icon" style={{ backgroundColor: category.color }}>
+                  <FontAwesomeIcon icon={category.icon} />
+                </div>
+                <h3 className="category-title">{category.title}</h3>
+                <div className="category-overlay">
+                  <button className="category-button">
+                    <FontAwesomeIcon icon={faPlusCircle} />
+                    <span>Ver más</span>
+                  </button>
+                </div>
               </div>
-              <h3 className="category-title">{category.title}</h3>
-              <div className="category-overlay">
-                <button className="category-button">
-                  <FontAwesomeIcon icon={faPlusCircle} />
-                  <span>Ver más</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <button className="carousel-button next" onClick={handleNextPage}>
+            <FontAwesomeIcon icon={faChevronRight} />
+          </button>
         </div>
       </section>
     </main>
@@ -147,6 +179,11 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/empresas" element={<Empresas />} />
+          <Route path="/personas" element={<Personas />} />
+          <Route path="/auditoria-externa" element={<AuditoriaExterna />} />
+          <Route path="/legales" element={<Legales />} />
+          <Route path="/devolucion-impuestos" element={<DevolucionImpuestos />} />
+          <Route path="/supercias" element={<Supercias />} />
           <Route path="/declaraciones-mensuales" element={<DeclaracionesDetalles />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/carrito" element={<Carrito />} />

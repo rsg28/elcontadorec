@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/userModel.js';
+import Usuarios from '../models/Usuarios.js';
 
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: '30d', // Revisar tiempo de expiracion adecuado (practica recomendada)
   });
 };
 
@@ -13,29 +13,35 @@ const generateToken = (id) => {
 // @access  Public
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { nombres, apellidos, tipo_documento, numero_documento, telefono, correo, password } = req.body;
 
     // Check if user exists
-    const userExists = await User.findOne({ where: { email } });
+    const userExists = await Usuarios.findOne({ where: { correo } });
 
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create user
-    const user = await User.create({
-      name,
-      email,
+    const usuario = await Usuarios.create({
+      nombres,
+      apellidos,
+      tipo_documento,
+      numero_documento,
+      telefono,
+      correo,
       password,
+      isAdmind: '0'
     });
 
-    if (user) {
+    if (usuario) {
       res.status(201).json({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        token: generateToken(user.id),
+        id: usuario.idUsuarios,
+        nombres: usuario.nombres,
+        apellidos: usuario.apellidos,
+        correo: usuario.correo,
+        isAdmin: usuario.isAdmind === '1',
+        token: generateToken(usuario.idUsuarios),
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -51,18 +57,19 @@ export const registerUser = async (req, res) => {
 // @access  Public
 export const authUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { correo, password } = req.body;
 
     // Check for user email
-    const user = await User.findOne({ where: { email } });
+    const usuario = await Usuarios.findOne({ where: { correo } });
 
-    if (user && (await user.matchPassword(password))) {
+    if (usuario && (await usuario.matchPassword(password))) {
       res.json({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        token: generateToken(user.id),
+        id: usuario.idUsuarios,
+        nombres: usuario.nombres,
+        apellidos: usuario.apellidos,
+        correo: usuario.correo,
+        isAdmin: usuario.isAdmind === '1',
+        token: generateToken(usuario.idUsuarios),
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -78,15 +85,15 @@ export const authUser = async (req, res) => {
 // @access  Private
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
+    const usuario = await Usuarios.findByPk(req.user.id, {
       attributes: { exclude: ['password'] }
     });
 
-    if (!user) {
+    if (!usuario) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user);
+    res.json(usuario);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

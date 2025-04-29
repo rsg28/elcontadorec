@@ -1,5 +1,6 @@
 import Servicios from '../models/Servicios.js';
 import ServiciosCategorias from '../models/ServiciosCategorias.js';
+import Items from '../models/Items.js';
 import Subcategorias from '../models/Subcategorias.js';
 
 // @desc    Get all services
@@ -14,8 +15,13 @@ export const getAllServicios = async (req, res) => {
           attributes: ['nombre']
         },
         {
-          model: Subcategorias,
-          attributes: ['id_subcategoria', 'nombre']
+          model: Items,
+          include: [
+            {
+              model: Subcategorias,
+              attributes: ['id_subcategoria', 'nombre']
+            }
+          ]
         }
       ]
     });
@@ -39,8 +45,13 @@ export const getServicioById = async (req, res) => {
           attributes: ['nombre']
         },
         {
-          model: Subcategorias,
-          attributes: ['id_subcategoria', 'nombre']
+          model: Items,
+          include: [
+            {
+              model: Subcategorias,
+              attributes: ['id_subcategoria', 'nombre']
+            }
+          ]
         }
       ]
     });
@@ -61,14 +72,7 @@ export const getServicioById = async (req, res) => {
 // @access  Private/Admin
 export const createServicio = async (req, res) => {
   try {
-    const { id_servicio, id_categoria, nombre } = req.body;
-    
-    // Check if service already exists
-    const servicioExists = await Servicios.findByPk(id_servicio);
-    
-    if (servicioExists) {
-      return res.status(400).json({ message: 'Service already exists' });
-    }
+    const { id_categoria, nombre } = req.body;
     
     // Check if category exists
     const categoriaExists = await ServiciosCategorias.findByPk(id_categoria);
@@ -79,7 +83,6 @@ export const createServicio = async (req, res) => {
     
     // Create service
     const servicio = await Servicios.create({
-      id_servicio,
       id_categoria,
       nombre
     });

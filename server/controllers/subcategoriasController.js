@@ -1,6 +1,6 @@
 import Subcategorias from '../models/Subcategorias.js';
 import Servicios from '../models/Servicios.js';
-import PreciosServicios from '../models/PreciosServicios.js';
+import Items from '../models/Items.js';
 
 // @desc    Obtener todas las subcategorías
 // @route   GET /api/subcategorias
@@ -9,8 +9,11 @@ export const getAllSubcategorias = async (req, res) => {
   try {
     const subcategorias = await Subcategorias.findAll({
       include: [{
-        model: Servicios,
-        attributes: ['nombre']
+        model: Items,
+        include: [{
+          model: Servicios,
+          attributes: ['nombre']
+        }]
       }]
     });
     
@@ -28,11 +31,11 @@ export const getSubcategoriaById = async (req, res) => {
   try {
     const subcategoria = await Subcategorias.findByPk(req.params.id, {
       include: [{
-        model: Servicios,
-        attributes: ['nombre']
-      }, {
-        model: PreciosServicios,
-        attributes: ['precio']
+        model: Items,
+        include: [{
+          model: Servicios,
+          attributes: ['nombre']
+        }]
       }]
     });
     
@@ -54,14 +57,15 @@ export const getSubcategoriasByServicio = async (req, res) => {
   try {
     console.log(`Buscando subcategorías para el servicio con ID: ${req.params.id}`);
     
+    // Find all subcategories that have an item with the specified service ID
     const subcategorias = await Subcategorias.findAll({
-      where: {
-        id_servicio: req.params.id
-      },
       include: [
         {
-          model: PreciosServicios,
-          required: false,
+          model: Items,
+          required: true,
+          where: {
+            id_servicio: req.params.id
+          },
           attributes: ['precio']
         }
       ]
@@ -88,26 +92,10 @@ export const getSubcategoriasByServicio = async (req, res) => {
 // @access  Private/Admin
 export const createSubcategoria = async (req, res) => {
   try {
-    const { id_subcategoria, id_servicio, nombre } = req.body;
-    
-    // Verificar si la subcategoría ya existe
-    const subcategoriaExistente = await Subcategorias.findByPk(id_subcategoria);
-    
-    if (subcategoriaExistente) {
-      return res.status(400).json({ message: 'La subcategoría ya existe' });
-    }
-    
-    // Verificar si el servicio existe
-    const servicioExistente = await Servicios.findByPk(id_servicio);
-    
-    if (!servicioExistente) {
-      return res.status(400).json({ message: 'El servicio no existe' });
-    }
+    const { nombre } = req.body;
     
     // Crear subcategoría
     const subcategoria = await Subcategorias.create({
-      id_subcategoria,
-      id_servicio,
       nombre
     });
     
@@ -123,7 +111,7 @@ export const createSubcategoria = async (req, res) => {
 // @access  Private/Admin
 export const updateSubcategoria = async (req, res) => {
   try {
-    const { nombre, id_servicio } = req.body;
+    const { nombre } = req.body;
     
     // Buscar subcategoría por ID
     const subcategoria = await Subcategorias.findByPk(req.params.id);
@@ -132,19 +120,9 @@ export const updateSubcategoria = async (req, res) => {
       return res.status(404).json({ message: 'Subcategoría no encontrada' });
     }
     
-    // Verificar si el servicio existe, si se proporciona
-    if (id_servicio) {
-      const servicioExistente = await Servicios.findByPk(id_servicio);
-      
-      if (!servicioExistente) {
-        return res.status(400).json({ message: 'El servicio no existe' });
-      }
-    }
-    
     // Actualizar subcategoría
     await subcategoria.update({
-      nombre: nombre || subcategoria.nombre,
-      id_servicio: id_servicio || subcategoria.id_servicio
+      nombre: nombre || subcategoria.nombre
     });
     
     res.json(subcategoria);

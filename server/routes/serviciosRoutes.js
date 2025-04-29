@@ -21,8 +21,8 @@ router.route('/')
 
 // Get, update, and delete service by ID
 router.route('/:id')
-  .get(getServicioById)
+  .get(protect, getServicioById) //erase the protect later
   .put(protect, admin, updateServicio)
-  .delete(protect, admin, deleteServicio);
+  .delete(admin, deleteServicio);
 
 export default router; 
