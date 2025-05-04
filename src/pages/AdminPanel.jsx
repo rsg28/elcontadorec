@@ -10,13 +10,17 @@ import useAuth from '../hooks/useAuth';
 import './AdminPanel.css';
 
 // Item form modal component
-const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, editItem = null }) => {
+const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
   // Initialize form state
   const [formData, setFormData] = useState({
     precio: '',
     servicio: '',
-    subcategoria: ''
+    subcategoria: '',
+    categoria: '' // Add categoria field
   });
+
+  // State for filtered services based on selected category
+  const [filteredServicios, setFilteredServicios] = useState([]);
 
   // State for autocomplete suggestions
   const [suggestions, setSuggestions] = useState({
@@ -32,19 +36,34 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
   useEffect(() => {
     if (show) {
       if (editItem) {
+        // Find service to get its category
+        const service = servicios.find(s => s.servicio_nombre === editItem.servicio_nombre);
+        const categoryId = service ? service.id_categoria : '';
+        
         // Fill form with existing item data if editing
         setFormData({
           precio: editItem.precio?.toString() || '',
           servicio: editItem.servicio_nombre || '',
-          subcategoria: editItem.subcategoria_nombre || ''
+          subcategoria: editItem.subcategoria_nombre || '',
+          categoria: categoryId?.toString() || ''
         });
+        
+        // Filter services by the selected category
+        if (categoryId) {
+          const filtered = servicios.filter(s => s.id_categoria === categoryId);
+          setFilteredServicios(filtered);
+        } else {
+          setFilteredServicios([]);
+        }
       } else {
         // Reset form for new item
         setFormData({
           precio: '',
           servicio: '',
-          subcategoria: ''
+          subcategoria: '',
+          categoria: ''
         });
+        setFilteredServicios([]);
       }
       // Clear suggestions
       setSuggestions({
@@ -52,7 +71,34 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
         subcategorias: []
       });
     }
-  }, [show, editItem]);
+  }, [show, editItem, servicios]);
+
+  // Update filtered services when category changes
+  useEffect(() => {
+    if (formData.categoria) {
+      const categoryId = parseInt(formData.categoria);
+      const filtered = servicios.filter(s => s.id_categoria === categoryId);
+      setFilteredServicios(filtered);
+      
+      // Clear servicio if the selected servicio doesn't belong to the new category
+      if (formData.servicio) {
+        const servicioExists = filtered.some(s => 
+          s.nombre.toLowerCase() === formData.servicio.toLowerCase()
+        );
+        
+        if (!servicioExists) {
+          setFormData(prev => ({ ...prev, servicio: '' }));
+        }
+      }
+    } else {
+      setFilteredServicios([]);
+      
+      // Clear servicio when no category is selected
+      if (formData.servicio) {
+        setFormData(prev => ({ ...prev, servicio: '' }));
+      }
+    }
+  }, [formData.categoria, servicios]);
 
   // Handle click outside for suggestion dropdowns
   useEffect(() => {
@@ -95,10 +141,10 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
 
       // Update suggestions for servicio and subcategoria inputs
       if (name === 'servicio') {
-        const filteredServicios = servicios
+        const servicioSuggestions = filteredServicios
           .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
           .map(s => s.nombre);
-        setSuggestions(prev => ({ ...prev, servicios: filteredServicios }));
+        setSuggestions(prev => ({ ...prev, servicios: servicioSuggestions }));
       } else if (name === 'subcategoria') {
         const filteredSubcategorias = allSubcategorias
           .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
@@ -122,6 +168,11 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!formData.categoria) {
+      alert('Por favor seleccione una categoría');
+      return;
+    }
     
     // Find or create servicio ID
     let servicioId = null;
@@ -158,7 +209,8 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
       id_servicio: servicioId,
       id_subcategoria: subcategoriaId,
       servicio_nombre: formData.servicio,
-      subcategoria_nombre: formData.subcategoria
+      subcategoria_nombre: formData.subcategoria,
+      id_categoria: formData.categoria // Pass the selected category ID
     };
     
     onSave(processedData, editItem?.id_item);
@@ -169,7 +221,11 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       
-      if (fieldName === 'servicio' && subcategoriaInputRef.current) {
+      if (fieldName === 'categoria') {
+        if (servicioInputRef.current) {
+          servicioInputRef.current.querySelector('input').focus();
+        }
+      } else if (fieldName === 'servicio' && subcategoriaInputRef.current) {
         subcategoriaInputRef.current.querySelector('input').focus();
       } else if (fieldName === 'subcategoria') {
         // Trigger form submission
@@ -195,6 +251,28 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
         <form onSubmit={handleSubmit}>
           <div className="form-layout">
             <div className="form-group">
+              <label htmlFor="categoria">
+                Categoría <span className="required-mark">*</span>
+              </label>
+              <select
+                id="categoria"
+                name="categoria"
+                value={formData.categoria}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'categoria')}
+                required
+                className="form-control"
+              >
+                <option value="">Seleccione una categoría</option>
+                {allCategorias.map(categoria => (
+                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group">
               <label htmlFor="servicio">
                 Servicio <span className="required-mark">*</span>
               </label>
@@ -207,9 +285,9 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
                   onChange={handleChange}
                   onKeyDown={(e) => handleKeyDown(e, 'servicio')}
                   required
-                  placeholder="Escriba para buscar o agregar servicio"
+                  placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
                   className="form-control"
-                  autoFocus
+                  disabled={!formData.categoria}
                 />
                 {suggestions.servicios.length > 0 && (
                   <ul className="suggestions-list">
@@ -224,6 +302,9 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
                   </ul>
                 )}
               </div>
+              {!formData.categoria && (
+                <div className="field-description">Primero seleccione una categoría para ver servicios disponibles</div>
+              )}
             </div>
             
             <div className="form-group">
@@ -292,10 +373,44 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, edi
   );
 };
 
+// Add a function to get color based on category
+const getCategoryColor = (categoryId) => {
+  // Map category IDs to specific colors - you can customize these colors
+  const colorMap = {
+    1: '#4285F4', // Blue for Empresas
+    2: '#EA4335', // Red for Personas
+    3: '#FBBC05', // Yellow/Orange for Contabilidad
+    4: '#34A853', // Green for Impuestos
+    5: '#9C27B0', // Purple for Asesoría
+    6: '#FF9800', // Orange for Capacitación
+    7: '#795548', // Brown for Otros servicios
+    8: '#00BCD4', // Cyan for another category
+    9: '#607D8B', // Blue Grey for another category
+    10: '#009688', // Teal for another category
+  };
+  
+  // If category ID is not in the map, generate a color based on the ID
+  if (!colorMap[categoryId]) {
+    // Generate a color based on the category ID
+    const hue = (categoryId * 137) % 360; // Use golden ratio to spread colors
+    return `hsl(${hue}, 70%, 45%)`; // Good saturation and lightness for readability
+  }
+  
+  return colorMap[categoryId] || '#757575'; // Default gray if category is null
+};
+
 const AdminPanel = () => {
   const { isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const { items: itemsWithDetails, loading: itemsLoading, error: itemsError, deleteItem, addItem, updateItem } = useItems();
+  const { 
+    items: itemsWithDetails, 
+    loading: itemsLoading, 
+    error: itemsError, 
+    deleteItem, 
+    addItem, 
+    updateItem,
+    refreshItems 
+  } = useItems();
   const { 
     servicios: allServicios, 
     loading: serviciosLoading, 
@@ -327,8 +442,8 @@ const AdminPanel = () => {
     isLoading: false
   });
   
-  // Loading and error states
-  const loading = itemsLoading || serviciosLoading || subcategoriasLoading || categoriasLoading;
+  // Loading and error states - be less restrictive to prevent infinite loading
+  const loading = itemsLoading && (!itemsWithDetails || itemsWithDetails.length === 0);
   const error = itemsError || serviciosError || subcategoriasError || categoriasError;
   
   // Check if user is authenticated and admin
@@ -430,8 +545,9 @@ const AdminPanel = () => {
       const newExpandedItems = { ...expandedItems };
       
       filteredItems.slice(0, 3).forEach(item => {
-        if (item.id_item && !newExpandedItems[item.id_item]) {
-          newExpandedItems[item.id_item] = true;
+        const itemId = item.id_items || item.id_item;
+        if (itemId && !newExpandedItems[itemId]) {
+          newExpandedItems[itemId] = true;
         }
       });
       
@@ -492,7 +608,7 @@ const AdminPanel = () => {
   // Handler for editing an item
   const handleEdit = (type, id) => {
     if (type === 'item') {
-      const itemToEdit = itemsWithDetails.find(item => item.id_item === id);
+      const itemToEdit = itemsWithDetails.find(item => (item.id_items === id || item.id_item === id));
       if (itemToEdit) {
         setCurrentEditItem(itemToEdit);
         setShowItemForm(true);
@@ -504,10 +620,13 @@ const AdminPanel = () => {
 
   // Handler for saving or updating an item
   const handleSaveItem = async (itemData, itemId) => {
-    // If new service needs to be created
-    if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
-      try {
-        const result = await createServicio({ nombre: itemData.id_servicio });
+    try {
+      // If new service needs to be created
+      if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
+        const result = await createServicio({ 
+          nombre: itemData.id_servicio,
+          id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
+        });
         
         if (result.success) {
           // Update the item data with the new service ID
@@ -516,16 +635,11 @@ const AdminPanel = () => {
           alert(`Error al crear servicio: ${result.error}`);
           return;
         }
-      } catch (error) {
-        alert(`Error al crear servicio: ${error.message}`);
-        return;
       }
-    }
-    
-    // If new subcategory needs to be created
-    if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
-      // Try to create the subcategory first
-      try {
+      
+      // If new subcategory needs to be created
+      if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
+        // Try to create the subcategory first
         const result = await createSubcategoria({ 
           nombre: itemData.id_subcategoria,
           id_servicio: itemData.id_servicio
@@ -534,53 +648,62 @@ const AdminPanel = () => {
         if (result.success) {
           // Update the item data with the new subcategory ID
           itemData.id_subcategoria = result.data.id_subcategoria;
+          // Ensure the subcategoria_nombre is set
+          itemData.subcategoria_nombre = result.data.nombre;
         } else {
           alert(`Error al crear subcategoría: ${result.error}`);
           return;
         }
-      } catch (error) {
-        alert(`Error al crear subcategoría: ${error.message}`);
-        return;
       }
-    }
-    
-    // Now proceed with item creation/update
-    if (itemId) {
-      updateItem(itemId, itemData)
-        .then(result => {
-          if (result.success) {
-            alert("Ítem actualizado correctamente");
-            setShowItemForm(false);
-            setCurrentEditItem(null);
-          } else {
-            alert(`Error al actualizar ítem: ${result.error}`);
-          }
-        });
-    } else {
-      addItem(itemData)
-        .then(result => {
-          if (result.success) {
-            alert("Ítem agregado correctamente");
-            setShowItemForm(false);
-          } else {
-            alert(`Error al agregar ítem: ${result.error}`);
-          }
-        });
+      
+      // Now proceed with item creation/update
+      if (itemId) {
+        const result = await updateItem(itemId, itemData);
+        if (result.success) {
+          setShowItemForm(false);
+          setCurrentEditItem(null);
+          // Refresh items to show changes immediately
+          await refreshItems();
+        } else {
+          alert(`Error al actualizar ítem: ${result.error}`);
+        }
+      } else {
+        const result = await addItem(itemData);
+        if (result.success) {
+          setShowItemForm(false);
+          // Refresh items to show the new item immediately
+          await refreshItems();
+        } else {
+          alert(`Error al agregar ítem: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleSaveItem:', error);
+      alert(`Error inesperado: ${error.message}`);
     }
   };
 
   // Handler for deleting an item
   const handleDelete = (type, id) => {
-    if (type === 'item' && window.confirm(`¿Está seguro que desea eliminar el ítem con ID: ${id}?`)) {
-      // Call the deleteItem function from useItems hook
-      deleteItem(id)
-        .then(result => {
-          if (result.success) {
-            alert("Ítem eliminado correctamente");
-          } else {
-            alert(`Error al eliminar ítem: ${result.error}`);
-          }
-        });
+    if (type === 'item') {
+      console.log(`Attempting to delete item with ID: ${id}`);
+      if (window.confirm(`¿Está seguro que desea eliminar este ítem?`)) {
+        // Call the deleteItem function from useItems hook
+        deleteItem(id)
+          .then(result => {
+            if (result.success) {
+              // Refresh items to update the list immediately
+              refreshItems();
+            } else {
+              console.error("Delete error:", result.error);
+              alert(`Error al eliminar ítem: ${result.error}`);
+            }
+          })
+          .catch(error => {
+            console.error("Unhandled error in delete:", error);
+            alert(`Error inesperado: ${error.message}`);
+          });
+      }
     } else {
       alert(`Eliminar ${type} con ID: ${id}`);
     }
@@ -686,7 +809,7 @@ const AdminPanel = () => {
     });
     
     try {
-      const itemToUpdate = itemsWithDetails.find(item => item.id_item === itemId);
+      const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
       if (!itemToUpdate) return;
       
       const updatedItem = { ...itemToUpdate };
@@ -736,8 +859,11 @@ const AdminPanel = () => {
         }
       }
       
+      // Use the correct id for updating, preferring id_items
+      const idToUse = itemToUpdate.id_items || itemToUpdate.id_item;
+      
       // Save the updated item to the database
-      const result = await updateItem(itemId, updatedItem);
+      const result = await updateItem(idToUse, updatedItem);
       
       if (result.success) {
         // Reset editing state
@@ -747,6 +873,9 @@ const AdminPanel = () => {
           value: '',
           isLoading: false
         });
+        
+        // Refresh the items data to show the updated value immediately
+        await refreshItems();
       } else {
         alert(`Error al actualizar: ${result.error}`);
         setEditingState({
@@ -963,188 +1092,206 @@ const AdminPanel = () => {
             {filteredItems.length === 0 ? (
               <p className="no-data">No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
-              filteredItems.map(item => (
-                <div key={item.id_item} className="item-card">
-                  <div className="item-header">
-                    <div className="item-main-info">
-                      <div className="item-service">
-                        <span className="service-label">Servicio:</span>
-                        {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                          <div className="inline-edit-field">
-                            <input
-                              type="text"
-                              value={editingState.value}
-                              onChange={handleInlineEditChange}
-                              onKeyDown={handleInlineEditKeyDown}
-                              className="inline-edit-input"
-                              autoFocus
-                            />
-                            <div className="inline-edit-actions">
-                              {editingState.isLoading ? (
-                                <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                              ) : (
-                                <>
-                                  <button 
-                                    className="inline-edit-button save" 
-                                    onClick={handleInlineEditSave}
-                                    title="Guardar"
-                                  >
-                                    <FontAwesomeIcon icon={faCheck} />
-                                  </button>
-                                  <button 
-                                    className="inline-edit-button cancel" 
-                                    onClick={handleInlineEditCancel}
-                                    title="Cancelar"
-                                  >
-                                    <FontAwesomeIcon icon={faTimes} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span 
-                            className="service-name editable" 
-                            onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
-                            title="Doble clic para editar"
-                          >
-                            {highlightText(item.servicio_nombre)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="item-subcategory">
-                        <span className="subcategory-label">Subcategoría:</span>
-                        {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                          <div className="inline-edit-field">
-                            <input
-                              type="text"
-                              value={editingState.value}
-                              onChange={handleInlineEditChange}
-                              onKeyDown={handleInlineEditKeyDown}
-                              className="inline-edit-input"
-                              autoFocus
-                            />
-                            <div className="inline-edit-actions">
-                              {editingState.isLoading ? (
-                                <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                              ) : (
-                                <>
-                                  <button 
-                                    className="inline-edit-button save" 
-                                    onClick={handleInlineEditSave}
-                                    title="Guardar"
-                                  >
-                                    <FontAwesomeIcon icon={faCheck} />
-                                  </button>
-                                  <button 
-                                    className="inline-edit-button cancel" 
-                                    onClick={handleInlineEditCancel}
-                                    title="Cancelar"
-                                  >
-                                    <FontAwesomeIcon icon={faTimes} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span 
-                            className="subcategory-name editable" 
-                            onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
-                            title="Doble clic para editar"
-                          >
-                            {highlightText(item.subcategoria_nombre)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="item-price-display">
-                        <span className="price-label">Precio:</span>
-                        {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                          <div className="inline-edit-field">
-                            <div className="price-edit-container">
-                              <span className="price-edit-symbol">$</span>
+              filteredItems.map(item => {
+                // Find service to get its category
+                const service = allServicios.find(s => s.id_servicio === item.id_servicio);
+                const categoryId = service ? service.id_categoria : null;
+                const categoryColor = getCategoryColor(categoryId);
+                
+                // Find category name
+                const category = allCategorias.find(c => c.id_categoria === categoryId);
+                const categoryName = category ? category.nombre : 'Sin categoría';
+                
+                return (
+                  <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${categoryColor}` }}>
+                    <div className="item-header">
+                      <div className="item-main-info">
+                        <div className="item-service">
+                          <span className="service-label">Servicio:</span>
+                          {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
+                            <div className="inline-edit-field">
                               <input
                                 type="text"
                                 value={editingState.value}
                                 onChange={handleInlineEditChange}
                                 onKeyDown={handleInlineEditKeyDown}
-                                className="inline-edit-input price-input"
+                                className="inline-edit-input"
                                 autoFocus
                               />
+                              <div className="inline-edit-actions">
+                                {editingState.isLoading ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                ) : (
+                                  <>
+                                    <button 
+                                      className="inline-edit-button save" 
+                                      onClick={handleInlineEditSave}
+                                      title="Guardar"
+                                    >
+                                      <FontAwesomeIcon icon={faCheck} />
+                                    </button>
+                                    <button 
+                                      className="inline-edit-button cancel" 
+                                      onClick={handleInlineEditCancel}
+                                      title="Cancelar"
+                                    >
+                                      <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="inline-edit-actions">
-                              {editingState.isLoading ? (
-                                <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                              ) : (
-                                <>
-                                  <button 
-                                    className="inline-edit-button save" 
-                                    onClick={handleInlineEditSave}
-                                    title="Guardar"
-                                  >
-                                    <FontAwesomeIcon icon={faCheck} />
-                                  </button>
-                                  <button 
-                                    className="inline-edit-button cancel" 
-                                    onClick={handleInlineEditCancel}
-                                    title="Cancelar"
-                                  >
-                                    <FontAwesomeIcon icon={faTimes} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span 
-                            className="price-value editable" 
-                            onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
-                            title="Doble clic para editar"
-                          >
-                            ${formatPrice(item.precio)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="item-controls">
-                      <div className="item-actions">
-                        <button 
-                          className="action-button delete"
-                          onClick={() => handleDelete('item', item.id_item)}
-                          title="Eliminar ítem"
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {(item.descripcion || item.opciones) && (
-                    <div className={`item-details ${expandedItems[item.id_item] ? 'expanded' : ''}`}>
-                      <div className="item-section">
-                        <div className="item-section-row">
-                          {item.descripcion && (
-                            <div className="item-detail">
-                              <span className="detail-label">Descripción:</span>
-                              <span className="detail-value">{item.descripcion}</span>
-                            </div>
+                          ) : (
+                            <span 
+                              className="service-name editable" 
+                              onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
+                              title="Doble clic para editar"
+                            >
+                              {highlightText(item.servicio_nombre)}
+                            </span>
                           )}
-                          
-                          {item.opciones && (
-                            <div className="item-detail">
-                              <span className="detail-label">Opciones:</span>
-                              <span className="detail-value">{item.opciones}</span>
+                        </div>
+                        
+                        <div className="item-subcategory">
+                          <span className="subcategory-label">Subcategoría:</span>
+                          {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
+                            <div className="inline-edit-field">
+                              <input
+                                type="text"
+                                value={editingState.value}
+                                onChange={handleInlineEditChange}
+                                onKeyDown={handleInlineEditKeyDown}
+                                className="inline-edit-input"
+                                autoFocus
+                              />
+                              <div className="inline-edit-actions">
+                                {editingState.isLoading ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                ) : (
+                                  <>
+                                    <button 
+                                      className="inline-edit-button save" 
+                                      onClick={handleInlineEditSave}
+                                      title="Guardar"
+                                    >
+                                      <FontAwesomeIcon icon={faCheck} />
+                                    </button>
+                                    <button 
+                                      className="inline-edit-button cancel" 
+                                      onClick={handleInlineEditCancel}
+                                      title="Cancelar"
+                                    >
+                                      <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
+                          ) : (
+                            <span 
+                              className="subcategory-name editable" 
+                              onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
+                              title="Doble clic para editar"
+                            >
+                              {highlightText(item.subcategoria_nombre)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="item-price-display">
+                          <span className="price-label">Precio:</span>
+                          {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
+                            <div className="inline-edit-field">
+                              <div className="price-edit-container">
+                                <span className="price-edit-symbol">$</span>
+                                <input
+                                  type="text"
+                                  value={editingState.value}
+                                  onChange={handleInlineEditChange}
+                                  onKeyDown={handleInlineEditKeyDown}
+                                  className="inline-edit-input"
+                                  autoFocus
+                                />
+                              </div>
+                              <div className="inline-edit-actions">
+                                {editingState.isLoading ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                ) : (
+                                  <>
+                                    <button 
+                                      className="inline-edit-button save" 
+                                      onClick={handleInlineEditSave}
+                                      title="Guardar"
+                                    >
+                                      <FontAwesomeIcon icon={faCheck} />
+                                    </button>
+                                    <button 
+                                      className="inline-edit-button cancel" 
+                                      onClick={handleInlineEditCancel}
+                                      title="Cancelar"
+                                    >
+                                      <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span 
+                              className="price-value editable" 
+                              onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
+                              title="Doble clic para editar"
+                            >
+                              ${formatPrice(item.precio)}
+                            </span>
                           )}
                         </div>
                       </div>
+                      
+                      <div className="item-category-indicator" 
+                        style={{ backgroundColor: categoryColor }}
+                        title={`Categoría: ${categoryName}`}
+                      >
+                        {categoryName}
+                      </div>
+                      
+                      <div className="item-controls">
+                        <div className="item-actions">
+                          <button 
+                            className="action-button delete"
+                            onClick={() => handleDelete('item', item.id_items || item.id_item)}
+                            title="Eliminar ítem"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
+                    
+                    {(item.descripcion || item.opciones) && (
+                      <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
+                        <div className="item-section">
+                          <div className="item-section-row">
+                            {item.descripcion && (
+                              <div className="item-detail">
+                                <span className="detail-label">Descripción:</span>
+                                <span className="detail-value">{item.descripcion}</span>
+                              </div>
+                            )}
+                            
+                            {item.opciones && (
+                              <div className="item-detail">
+                                <span className="detail-label">Opciones:</span>
+                                <span className="detail-value">{item.opciones}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
@@ -1160,6 +1307,7 @@ const AdminPanel = () => {
           onSave={handleSaveItem}
           servicios={allServicios}
           allSubcategorias={allSubcategorias}
+          allCategorias={allCategorias}
           editItem={currentEditItem}
         />
       )}

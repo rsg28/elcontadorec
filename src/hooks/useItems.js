@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAllServicios } from './useServicios';
+import useSubcategorias from './useSubcategorias';
 
 // URL base de la API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -14,70 +15,75 @@ const useItems = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
+  const { subcategorias: allSubcategorias } = useSubcategorias();
 
-  // Obtener todos los items
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/items`);
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setItems(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching items:', err);
-        setError(err.message);
-        setItems([]);
-      } finally {
-        setLoading(false);
+  // Function to fetch items that can be called on demand
+  const fetchItems = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/items`);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-    };
-
-    fetchItems();
+      
+      const data = await response.json();
+      setItems(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching items:', err);
+      setError(err.message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Enriquecer los items con nombres de servicios y subcategorías
+  // Obtener todos los items cuando el componente se monta
   useEffect(() => {
-    if (items.length > 0 && !serviciosLoading && allServicios.length > 0) {
-      // Crear un mapa de servicios por ID para acceso rápido
-      const serviciosMap = new Map();
-      const subcategoriasMap = new Map();
-      
-      // Mapear todos los servicios y subcategorías por sus IDs
-      allServicios.forEach(servicio => {
-        serviciosMap.set(servicio.id_servicio, servicio);
-        
-        // Mapear subcategorías de este servicio
-        servicio.subcategorias.forEach(subcategoria => {
-          subcategoriasMap.set(subcategoria.id_subcategoria, {
-            ...subcategoria,
-            servicio: servicio
-          });
-        });
-      });
-      
-      // Enriquecer cada item con detalles de servicio y subcategoría
+    fetchItems();
+  }, [fetchItems]);
+
+  // Whenever items or servicios change, update the itemsWithDetails
+  // This ensures we have the most up-to-date information
+  useEffect(() => {
+    // Only proceed if we have items
+    if (items.length) {
+      // Combine item data with servicio and subcategoria details
       const enrichedItems = items.map(item => {
-        const subcategoria = subcategoriasMap.get(item.id_subcategoria);
-        const servicio = subcategoria?.servicio || serviciosMap.get(item.id_servicio);
+        // Find the corresponding servicio for this item
+        const servicio = allServicios.find(s => s.id_servicio === item.id_servicio);
         
+        // Find the corresponding subcategoria for this item
+        let subcategoriaNombre = 'Desconocido';
+        if (item.subcategoria_nombre) {
+          // If item already has subcategoria_nombre, use it
+          subcategoriaNombre = item.subcategoria_nombre;
+        } else if (allSubcategorias && allSubcategorias.length) {
+          // Try to find it in allSubcategorias
+          const subcategoria = allSubcategorias.find(s => s.id_subcategoria === item.id_subcategoria);
+          if (subcategoria) {
+            subcategoriaNombre = subcategoria.nombre;
+          } 
+        }
+        
+        // Return combined data
         return {
           ...item,
-          servicio_nombre: servicio?.nombre || 'Servicio no encontrado',
-          subcategoria_nombre: subcategoria?.nombre || 'Subcategoría no encontrada',
-          servicio: servicio || null,
-          subcategoria: subcategoria || null
+          // Add an alias for id_items as id_item to handle both field names
+          id_item: item.id_items || item.id_item,
+          // Include servicio details if available
+          servicio_nombre: servicio ? servicio.nombre : 'Desconocido',
+          // Use subcategoria name determined above
+          subcategoria_nombre: subcategoriaNombre,
+          // Include categoria details if available
+          id_categoria: servicio ? servicio.id_categoria : null,
         };
       });
       
       setItemsWithDetails(enrichedItems);
     }
-  }, [items, allServicios, serviciosLoading]);
+  }, [items, allServicios, allSubcategorias]);
 
   /**
    * Agregar un nuevo item
@@ -348,6 +354,9 @@ const useItems = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
+      // Log the itemId for debugging
+      console.log('Deleting item with ID:', itemId);
+      
       const response = await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
         method: 'DELETE',
         headers: {
@@ -356,11 +365,12 @@ const useItems = () => {
       });
       
       if (!response.ok) {
+        console.error('Delete response not OK:', response.status, response.statusText);
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
       
       // Actualizar la lista de items localmente
-      setItems(prevItems => prevItems.filter(item => item.id_item !== itemId));
+      setItems(prevItems => prevItems.filter(item => item.id_items !== itemId && item.id_item !== itemId));
       
       return { success: true, message: 'Item eliminado correctamente' };
     } catch (err) {
@@ -372,6 +382,7 @@ const useItems = () => {
     }
   };
 
+  // Return the refreshItems function so components can trigger a refresh
   return { 
     items: itemsWithDetails, 
     rawItems: items,
@@ -379,7 +390,8 @@ const useItems = () => {
     error,
     addItem,
     updateItem,
-    deleteItem
+    deleteItem,
+    refreshItems: fetchItems
   };
 };
 
