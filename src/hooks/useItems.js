@@ -88,12 +88,65 @@ const useItems = () => {
     try {
       setLoading(true);
       
-      // Crear una copia del objeto sin incluir descripción
+      // Check if we need to create a new servicio or subcategoria
+      let servicioId = newItem.id_servicio;
+      let subcategoriaId = newItem.id_subcategoria;
+      
+      // If servicio is a string (name), create a new servicio
+      if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
+        try {
+          const servicioResponse = await fetch(`${API_BASE_URL}/api/servicios`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nombre: servicioId }),
+          });
+          
+          if (!servicioResponse.ok) {
+            throw new Error(`Error creating servicio: ${servicioResponse.status}`);
+          }
+          
+          const newServicio = await servicioResponse.json();
+          servicioId = newServicio.id_servicio;
+        } catch (err) {
+          console.error('Error creating new servicio:', err);
+          throw new Error(`No se pudo crear el servicio: ${err.message}`);
+        }
+      }
+      
+      // If subcategoria is a string (name), create a new subcategoria
+      if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
+        try {
+          const subcategoriaResponse = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              nombre: subcategoriaId,
+              id_servicio: servicioId
+            }),
+          });
+          
+          if (!subcategoriaResponse.ok) {
+            throw new Error(`Error creating subcategoria: ${subcategoriaResponse.status}`);
+          }
+          
+          const newSubcategoria = await subcategoriaResponse.json();
+          subcategoriaId = newSubcategoria.id_subcategoria;
+        } catch (err) {
+          console.error('Error creating new subcategoria:', err);
+          throw new Error(`No se pudo crear la subcategoría: ${err.message}`);
+        }
+      }
+      
+      // Crear una copia del objeto con los IDs actualizados
       const itemData = {
         nombre: newItem.nombre,
         precio: newItem.precio,
-        id_servicio: newItem.id_servicio,
-        id_subcategoria: newItem.id_subcategoria
+        id_servicio: servicioId,
+        id_subcategoria: subcategoriaId
       };
       
       const response = await fetch(`${API_BASE_URL}/api/items`, {
@@ -133,12 +186,65 @@ const useItems = () => {
     try {
       setLoading(true);
       
-      // Crear una copia del objeto sin incluir descripción
+      // Check if we need to create a new servicio or subcategoria
+      let servicioId = updatedData.id_servicio;
+      let subcategoriaId = updatedData.id_subcategoria;
+      
+      // If servicio is a string (name), create a new servicio
+      if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
+        try {
+          const servicioResponse = await fetch(`${API_BASE_URL}/api/servicios`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nombre: servicioId }),
+          });
+          
+          if (!servicioResponse.ok) {
+            throw new Error(`Error creating servicio: ${servicioResponse.status}`);
+          }
+          
+          const newServicio = await servicioResponse.json();
+          servicioId = newServicio.id_servicio;
+        } catch (err) {
+          console.error('Error creating new servicio:', err);
+          throw new Error(`No se pudo crear el servicio: ${err.message}`);
+        }
+      }
+      
+      // If subcategoria is a string (name), create a new subcategoria
+      if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
+        try {
+          const subcategoriaResponse = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              nombre: subcategoriaId,
+              id_servicio: servicioId
+            }),
+          });
+          
+          if (!subcategoriaResponse.ok) {
+            throw new Error(`Error creating subcategoria: ${subcategoriaResponse.status}`);
+          }
+          
+          const newSubcategoria = await subcategoriaResponse.json();
+          subcategoriaId = newSubcategoria.id_subcategoria;
+        } catch (err) {
+          console.error('Error creating new subcategoria:', err);
+          throw new Error(`No se pudo crear la subcategoría: ${err.message}`);
+        }
+      }
+      
+      // Crear una copia del objeto con los IDs actualizados
       const itemData = {
         nombre: updatedData.nombre,
         precio: updatedData.precio,
-        id_servicio: updatedData.id_servicio,
-        id_subcategoria: updatedData.id_subcategoria
+        id_servicio: servicioId,
+        id_subcategoria: subcategoriaId
       };
       
       const response = await fetch(`${API_BASE_URL}/api/items/${itemId}`, {

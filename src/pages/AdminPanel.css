@@ -699,18 +699,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
+  padding: 20px;
 }
 
 .modal-content {
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
@@ -723,16 +724,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid #eaeaea;
   background-color: #f7f9fc;
-  border-radius: 8px 8px 0 0;
+  border-radius: 12px 12px 0 0;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   color: #333;
+  font-weight: 600;
 }
 
 .close-button {
@@ -743,8 +745,8 @@
   cursor: pointer;
   padding: 0;
   margin: 0;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -759,11 +761,11 @@
 
 /* Form styles */
 form {
-  padding: 20px;
+  padding: 24px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
@@ -776,19 +778,20 @@ form {
 
 .form-control {
   width: 100%;
-  padding: 12px 15px;
+  padding: 14px 16px;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 1rem;
   transition: all 0.2s ease;
   background-color: #f9f9f9;
   color: #333;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .form-control:focus {
   border-color: #4a6cf7;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
   background-color: #fff;
 }
 
@@ -804,15 +807,16 @@ form {
   display: flex;
   align-items: center;
   background-color: #f9f9f9;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid #ddd;
   transition: all 0.2s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .enhanced-price-input:focus-within {
   border-color: #4a6cf7;
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
   background-color: #fff;
 }
 
@@ -820,7 +824,7 @@ form {
   background-color: #ebebeb;
   color: #444;
   font-weight: 600;
-  padding: 12px 15px;
+  padding: 14px 16px;
   border-right: 1px solid #ddd;
   font-size: 1rem;
 }
@@ -828,7 +832,7 @@ form {
 .enhanced-price-input .price-control {
   border: none;
   background: transparent;
-  padding-left: 15px;
+  padding-left: 16px;
   flex-grow: 1;
   box-shadow: none;
 }
@@ -841,14 +845,14 @@ form {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
-  margin-top: 30px;
+  gap: 16px;
+  margin-top: 32px;
 }
 
 .cancel-button,
 .save-button {
-  padding: 12px 20px;
-  border-radius: 6px;
+  padding: 12px 24px;
+  border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -873,10 +877,13 @@ form {
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 2px 4px rgba(74, 108, 247, 0.25);
 }
 
 .save-button:hover {
   background-color: #3a5ad8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(74, 108, 247, 0.3);
 }
 
 /* Animations */
@@ -894,4 +901,153 @@ form {
     transform: translateY(0);
     opacity: 1;
   }
+}
+
+/* Autocomplete styles */
+.autocomplete-container {
+  position: relative;
+  width: 100%;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+}
+
+.suggestions-list li {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.15s;
+}
+
+.suggestions-list li:hover {
+  background-color: #f0f7ff;
+}
+
+.autocomplete-container input {
+  width: 100%;
+}
+
+/* Form layout styles */
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.required-mark {
+  color: #e51e3e;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+/* Improved input focus styles */
+.form-control:focus,
+.enhanced-price-input:focus-within {
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+  background-color: #fff;
+}
+
+/* Enhanced hover effects */
+.form-control:hover:not(:focus),
+.enhanced-price-input:hover:not(:focus-within) {
+  border-color: #c0c0c0;
+  background-color: #f5f7fa;
+}
+
+/* Form field description text */
+.field-description {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+/* Improved mobile responsiveness for form */
+@media (max-width: 576px) {
+  .modal-content {
+    width: 100%;
+    margin: 0 10px;
+    max-width: calc(100% - 20px);
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .modal-header {
+    padding: 16px 20px;
+  }
+  
+  form {
+    padding: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  
+  .cancel-button, 
+  .save-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Make suggestions more visually appealing */
+.suggestions-list li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.suggestions-list li:before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #4a6cf7;
+  opacity: 0.7;
+}
+
+.suggestions-list li:hover:before {
+  background-color: #3a5ad8;
+  opacity: 1;
+}
+
+/* Improve scrollbars for suggestion lists */
+.suggestions-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.suggestions-list::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.suggestions-list::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.suggestions-list::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
 } 

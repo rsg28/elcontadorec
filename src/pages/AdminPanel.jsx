@@ -3,20 +3,27 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
+import useSubcategorias from '../hooks/useSubcategorias';
 import './AdminPanel.css';
 
 // Item form modal component
-const ItemFormModal = ({ show, onClose, onSave, servicios, editItem = null }) => {
+const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, editItem = null }) => {
   // Initialize form state
   const [formData, setFormData] = useState({
-    nombre: '',
     precio: '',
-    id_servicio: '',
-    id_subcategoria: ''
+    servicio: '',
+    subcategoria: ''
   });
-  
-  // State for available subcategories based on selected service
-  const [availableSubcategorias, setAvailableSubcategorias] = useState([]);
+
+  // State for autocomplete suggestions
+  const [suggestions, setSuggestions] = useState({
+    servicios: [],
+    subcategorias: []
+  });
+
+  // References for input elements
+  const servicioInputRef = React.useRef(null);
+  const subcategoriaInputRef = React.useRef(null);
   
   // Reset form when modal is opened/closed or editItem changes
   useEffect(() => {
@@ -24,41 +31,52 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, editItem = null }) =>
       if (editItem) {
         // Fill form with existing item data if editing
         setFormData({
-          nombre: editItem.nombre || '',
           precio: editItem.precio?.toString() || '',
-          id_servicio: editItem.servicio?.id_servicio?.toString() || '',
-          id_subcategoria: editItem.id_subcategoria?.toString() || ''
+          servicio: editItem.servicio_nombre || '',
+          subcategoria: editItem.subcategoria_nombre || ''
         });
       } else {
         // Reset form for new item
         setFormData({
-          nombre: '',
           precio: '',
-          id_servicio: '',
-          id_subcategoria: ''
+          servicio: '',
+          subcategoria: ''
         });
       }
+      // Clear suggestions
+      setSuggestions({
+        servicios: [],
+        subcategorias: []
+      });
     }
   }, [show, editItem]);
-  
-  // Update available subcategories when service changes
+
+  // Handle click outside for suggestion dropdowns
   useEffect(() => {
-    if (formData.id_servicio) {
-      const selectedServicio = servicios.find(s => s.id_servicio.toString() === formData.id_servicio);
-      if (selectedServicio && selectedServicio.subcategorias) {
-        setAvailableSubcategorias(selectedServicio.subcategorias);
-      } else {
-        setAvailableSubcategorias([]);
+    function handleClickOutside(event) {
+      if (servicioInputRef.current && !servicioInputRef.current.contains(event.target)) {
+        setSuggestions(prev => ({ ...prev, servicios: [] }));
       }
-      
-      // Don't reset subcategory if we're editing and it belongs to this service
-      if (!editItem || editItem.servicio?.id_servicio?.toString() !== formData.id_servicio) {
-        setFormData(prev => ({ ...prev, id_subcategoria: '' }));
+      if (subcategoriaInputRef.current && !subcategoriaInputRef.current.contains(event.target)) {
+        setSuggestions(prev => ({ ...prev, subcategorias: [] }));
       }
-    } else {
-      setAvailableSubcategorias([]);
     }
-  }, [formData.id_servicio, servicios, editItem]);
+
+    // Handle ESC key press
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setSuggestions({ servicios: [], subcategorias: [] });
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   
   // Handle form input changes
   const handleChange = (e) => {
@@ -71,6 +89,30 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, editItem = null }) =>
       }
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+
+      // Update suggestions for servicio and subcategoria inputs
+      if (name === 'servicio') {
+        const filteredServicios = servicios
+          .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
+          .map(s => s.nombre);
+        setSuggestions(prev => ({ ...prev, servicios: filteredServicios }));
+      } else if (name === 'subcategoria') {
+        const filteredSubcategorias = allSubcategorias
+          .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
+          .map(s => s.nombre);
+        setSuggestions(prev => ({ ...prev, subcategorias: filteredSubcategorias }));
+      }
+    }
+  };
+
+  // Handle selection from suggestions
+  const handleSuggestionSelect = (type, value) => {
+    setFormData(prev => ({ ...prev, [type]: value }));
+    setSuggestions(prev => ({ ...prev, [type + 's']: [] }));
+    
+    // Focus on the next field
+    if (type === 'servicio' && subcategoriaInputRef.current) {
+      subcategoriaInputRef.current.querySelector('input').focus();
     }
   };
   
@@ -78,100 +120,159 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, editItem = null }) =>
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Convert precio to number and validate required fields
+    // Find or create servicio ID
+    let servicioId = null;
+    const existingServicio = servicios.find(s => 
+      s.nombre.toLowerCase() === formData.servicio.toLowerCase()
+    );
+    
+    if (existingServicio) {
+      servicioId = existingServicio.id_servicio;
+    } else {
+      // We'll need to create a new servicio on the backend
+      // For now, we'll pass the name and handle creation in the backend
+      servicioId = formData.servicio;
+    }
+    
+    // Find or create subcategoria ID
+    let subcategoriaId = null;
+    const existingSubcategoria = allSubcategorias.find(s => 
+      s.nombre.toLowerCase() === formData.subcategoria.toLowerCase()
+    );
+    
+    if (existingSubcategoria) {
+      subcategoriaId = existingSubcategoria.id_subcategoria;
+    } else {
+      // We'll need to create a new subcategoria on the backend
+      // For now, we'll pass the name and handle creation in the backend
+      subcategoriaId = formData.subcategoria;
+    }
+    
+    // Convert precio to number and process data
     const processedData = {
-      ...formData,
-      precio: parseFloat(formData.precio) || 0
+      nombre: formData.subcategoria, // Use subcategoria as the nombre
+      precio: parseFloat(formData.precio) || 0,
+      id_servicio: servicioId,
+      id_subcategoria: subcategoriaId,
+      servicio_nombre: formData.servicio,
+      subcategoria_nombre: formData.subcategoria
     };
     
     onSave(processedData, editItem?.id_item);
+  };
+
+  // Handle key event for navigating between fields
+  const handleKeyDown = (e, fieldName) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      
+      if (fieldName === 'servicio' && subcategoriaInputRef.current) {
+        subcategoriaInputRef.current.querySelector('input').focus();
+      } else if (fieldName === 'subcategoria') {
+        // Trigger form submission
+        handleSubmit(e);
+      }
+    }
   };
   
   if (!show) return null;
   
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
+    }}>
       <div className="modal-content">
         <div className="modal-header">
           <h2>{editItem ? 'Editar Ítem' : 'Agregar Nuevo Ítem'}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre del Ítem *</label>
-            <input
-              id="nombre"
-              type="text"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              required
-              placeholder="Ingrese nombre del ítem"
-              className="form-control"
-              autoFocus
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="precio">Precio *</label>
-            <div className="enhanced-price-input">
-              <span className="currency-symbol">$</span>
-              <input
-                id="precio"
-                type="text"
-                name="precio"
-                value={formData.precio}
-                onChange={handleChange}
-                required
-                placeholder="0.00"
-                inputMode="decimal"
-                className="form-control price-control"
-              />
+          <div className="form-layout">
+            <div className="form-group">
+              <label htmlFor="servicio">
+                Servicio <span className="required-mark">*</span>
+              </label>
+              <div className="autocomplete-container" ref={servicioInputRef}>
+                <input
+                  id="servicio"
+                  type="text"
+                  name="servicio"
+                  value={formData.servicio}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, 'servicio')}
+                  required
+                  placeholder="Escriba para buscar o agregar servicio"
+                  className="form-control"
+                  autoFocus
+                />
+                {suggestions.servicios.length > 0 && (
+                  <ul className="suggestions-list">
+                    {suggestions.servicios.map((suggestion, index) => (
+                      <li 
+                        key={index}
+                        onClick={() => handleSuggestionSelect('servicio', suggestion)}
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="id_servicio">Servicio *</label>
-            <select
-              id="id_servicio"
-              name="id_servicio"
-              value={formData.id_servicio}
-              onChange={handleChange}
-              required
-              className="form-control"
-            >
-              <option value="">Seleccione un servicio</option>
-              {servicios.map(servicio => (
-                <option key={servicio.id_servicio} value={servicio.id_servicio}>
-                  {servicio.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="id_subcategoria">Subcategoría *</label>
-            <select
-              id="id_subcategoria"
-              name="id_subcategoria"
-              value={formData.id_subcategoria}
-              onChange={handleChange}
-              required
-              disabled={!formData.id_servicio}
-              className="form-control"
-            >
-              <option value="">
-                {formData.id_servicio 
-                  ? "Seleccione una subcategoría" 
-                  : "Primero seleccione un servicio"}
-              </option>
-              {availableSubcategorias.map(subcategoria => (
-                <option key={subcategoria.id_subcategoria} value={subcategoria.id_subcategoria}>
-                  {subcategoria.nombre}
-                </option>
-              ))}
-            </select>
+            
+            <div className="form-group">
+              <label htmlFor="subcategoria">
+                Subcategoría <span className="required-mark">*</span>
+              </label>
+              <div className="autocomplete-container" ref={subcategoriaInputRef}>
+                <input
+                  id="subcategoria"
+                  type="text"
+                  name="subcategoria"
+                  value={formData.subcategoria}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, 'subcategoria')}
+                  required
+                  placeholder="Escriba para buscar o agregar subcategoría"
+                  className="form-control"
+                />
+                {suggestions.subcategorias.length > 0 && (
+                  <ul className="suggestions-list">
+                    {suggestions.subcategorias.map((suggestion, index) => (
+                      <li 
+                        key={index}
+                        onClick={() => handleSuggestionSelect('subcategoria', suggestion)}
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="precio">
+                Precio <span className="required-mark">*</span>
+              </label>
+              <div className="enhanced-price-input">
+                <span className="currency-symbol">$</span>
+                <input
+                  id="precio"
+                  type="text"
+                  name="precio"
+                  value={formData.precio}
+                  onChange={handleChange}
+                  required
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  className="form-control price-control"
+                />
+              </div>
+            </div>
           </div>
           
           <div className="form-actions">
@@ -191,6 +292,8 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, editItem = null }) =>
 const AdminPanel = () => {
   const { items, loading: itemsLoading, error: itemsError, deleteItem, addItem, updateItem } = useItems();
   const { servicios, loading: serviciosLoading, error: serviciosError } = useAllServicios();
+  const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError, createSubcategoria } = useSubcategorias();
+  
   const [expandedItems, setExpandedItems] = useState({});
   const [showItemForm, setShowItemForm] = useState(false);
   const [currentEditItem, setCurrentEditItem] = useState(null);
@@ -202,8 +305,8 @@ const AdminPanel = () => {
   });
   
   // Loading and error states
-  const loading = itemsLoading || serviciosLoading;
-  const error = itemsError || serviciosError;
+  const loading = itemsLoading || serviciosLoading || subcategoriasLoading;
+  const error = itemsError || serviciosError || subcategoriasError;
   
   // Use useMemo to calculate filtered items only when dependencies change
   const filteredItems = useMemo(() => {
@@ -324,8 +427,30 @@ const AdminPanel = () => {
   };
   
   // Handler for saving or updating an item
-  const handleSaveItem = (itemData, itemId) => {
-    // If itemId is provided, update existing item
+  const handleSaveItem = async (itemData, itemId) => {
+    // If new subcategory needs to be created
+    if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
+      // Try to create the subcategory first
+      try {
+        const result = await createSubcategoria({ 
+          nombre: itemData.subcategoria_nombre,
+          id_servicio: itemData.id_servicio
+        });
+        
+        if (result.success) {
+          // Update the item data with the new subcategory ID
+          itemData.id_subcategoria = result.data.id_subcategoria;
+        } else {
+          alert(`Error al crear subcategoría: ${result.error}`);
+          return;
+        }
+      } catch (error) {
+        alert(`Error al crear subcategoría: ${error.message}`);
+        return;
+      }
+    }
+    
+    // Now proceed with item creation/update
     if (itemId) {
       updateItem(itemId, itemData)
         .then(result => {
@@ -338,7 +463,6 @@ const AdminPanel = () => {
           }
         });
     } else {
-      // Otherwise add new item
       addItem(itemData)
         .then(result => {
           if (result.success) {
@@ -663,6 +787,7 @@ const AdminPanel = () => {
         }}
         onSave={handleSaveItem}
         servicios={servicios}
+        allSubcategorias={allSubcategorias}
         editItem={currentEditItem}
       />
     </div>
