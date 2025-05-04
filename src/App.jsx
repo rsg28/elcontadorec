@@ -35,6 +35,7 @@ import AuditoriaExterna from './pages/AuditoriaExterna';
 import Legales from './pages/Legales';
 import DevolucionImpuestos from './pages/DevolucionImpuestos';
 import Supercias from './pages/Supercias';
+import AdminPanel from './pages/AdminPanel';
 // Import components
 import Navbar from './components/Navbar';
 
@@ -187,6 +188,7 @@ function App() {
           <Route path="/declaraciones-mensuales" element={<DeclaracionesDetalles />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/carrito" element={<Carrito />} />
+          <Route path="/admin-panel" element={<AdminPanel />} />
           {/* Add more routes for other pages as they are created */}
         </Routes>
         

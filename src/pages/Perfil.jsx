@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faShoppingBag } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faShoppingBag, faTools, faUserCog } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
 import './Perfil.css';
 // Importar las imágenes directamente
 import displayImage from '../assets/empresas/display1.jpeg';
@@ -11,7 +12,8 @@ const Perfil = () => {
   const [userData, setUserData] = useState({
     apellidosNombres: 'Arias Navia Fernando David',
     email: 'ariasfernando11@gmail.com',
-    cedulaRuc: '0914915749'
+    cedulaRuc: '0914915749',
+    isManager: true // Asumimos que es manager para mostrar el botón
   });
 
   // Datos de pedidos simulados (normalmente vendrían de una API)
@@ -63,6 +65,22 @@ const Perfil = () => {
             <div className="campo-valor">{userData.cedulaRuc}</div>
             <button className="editar-btn">Editar</button>
           </div>
+          
+          {/* Botón de Panel de Administración solo para managers */}
+          {userData.isManager && (
+            <div className="admin-panel-access">
+              <div className="admin-panel-info">
+                <FontAwesomeIcon icon={faUserCog} className="admin-icon" />
+                <div>
+                  <h3>Panel de Administración</h3>
+                  <p>Accede a la gestión de servicios, subcategorías y precios</p>
+                </div>
+              </div>
+              <Link to="/admin-panel" className="admin-panel-btn">
+                <FontAwesomeIcon icon={faTools} /> Gestionar
+              </Link>
+            </div>
+          )}
         </div>
         
         {/* Sección de pedidos */}
