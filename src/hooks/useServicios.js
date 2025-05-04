@@ -100,7 +100,109 @@ export const useAllServicios = () => {
     fetchAllServicios();
   }, []);
 
-  return { servicios, loading, error };
+  /**
+   * Crear un nuevo servicio (requiere autenticación de administrador)
+   * @param {Object} servicioData - Datos del servicio a crear
+   * @returns {Promise<Object>} - Resultado de la operación
+   */
+  const createServicio = async (servicioData) => {
+    try {
+      setLoading(true);
+      
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/servicios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(servicioData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const newServicio = await response.json();
+      
+      // Actualizar la lista de servicios localmente
+      setServicios(prevServicios => [...prevServicios, {...newServicio, subcategorias: []}]);
+      
+      return { success: true, data: newServicio };
+    } catch (err) {
+      console.error('Error creating servicio:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Crear una nueva subcategoría (requiere autenticación de administrador)
+   * @param {Object} subcategoriaData - Datos de la subcategoría a crear
+   * @returns {Promise<Object>} - Resultado de la operación
+   */
+  const createSubcategoria = async (subcategoriaData) => {
+    try {
+      setLoading(true);
+      
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(subcategoriaData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const newSubcategoria = await response.json();
+      
+      // Actualizar la lista de servicios localmente añadiendo la subcategoría
+      setServicios(prevServicios => {
+        return prevServicios.map(servicio => {
+          if (servicio.id_servicio == subcategoriaData.id_servicio) {
+            return {
+              ...servicio,
+              subcategorias: [...servicio.subcategorias, newSubcategoria]
+            };
+          }
+          return servicio;
+        });
+      });
+      
+      return { success: true, data: newSubcategoria };
+    } catch (err) {
+      console.error('Error creating subcategoria:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { 
+    servicios, 
+    loading, 
+    error, 
+    createServicio, 
+    createSubcategoria 
+  };
 };
 
 export default useServicios; 

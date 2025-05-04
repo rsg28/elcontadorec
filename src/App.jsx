@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import './index.css';
 // Import FontAwesome components
@@ -21,7 +21,10 @@ import {
   faFax,
   faGlobe,
   faChevronRight,
-  faCalculator
+  faCalculator,
+  faSignInAlt,
+  faUserPlus,
+  faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons';
 // Import logo
 import fullLogoImage from './assets/EL CONTADOR TEXTO A LA DERECHA.png';
@@ -36,8 +39,13 @@ import Legales from './pages/Legales';
 import DevolucionImpuestos from './pages/DevolucionImpuestos';
 import Supercias from './pages/Supercias';
 import AdminPanel from './pages/AdminPanel';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ThankYou from './pages/ThankYou';
 // Import components
 import Navbar from './components/Navbar';
+// Import hooks
+import useAuth from './hooks/useAuth';
 
 // Home component for the landing page
 const Home = () => {
@@ -139,31 +147,56 @@ const Home = () => {
 // NavbarWrapper component to conditionally render the navbar
 const NavbarWrapper = () => {
   const location = useLocation();
-  // Only show navbar if we're not on the homepage
-  return location.pathname !== '/' && <Navbar />;
+  // Only show navbar if we're not on the homepage, login, register, or thank-you page
+  const excludePaths = ['/', '/login', '/register', '/thank-you'];
+  return !excludePaths.includes(location.pathname) && <Navbar />;
 };
 
-function App() {
+// Header component with authentication awareness
+const Header = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  
+  // Check authentication status when component mounts and when auth state changes
+  useEffect(() => {
+    // Check for auth token directly to ensure we catch the latest state
+    const authToken = localStorage.getItem('authToken');
+    const userObj = localStorage.getItem('user');
+    
+    // If we have both token and user data, consider user logged in
+    setIsUserLoggedIn(!!authToken && !!userObj);
+  }, [isAuthenticated, user, location.pathname]); // Re-run when location changes (after registration redirect)
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+  
+  // Force true on thank-you page since we know user just registered
+  const forceAuthenticated = location.pathname === '/thank-you' || isUserLoggedIn;
+  
   return (
-    <Router>
-      <div className="app">
-        <header className="header">
-          <div className="logo-container">
-            <Link to="/">
-              <img src={fullLogoImage} alt="El Contador EC" className="full-logo" />
-            </Link>
-          </div>
-          <div className="search-container">
-            <input type="text" placeholder="Busca en nuestro contenido..." className="search-input" />
-            <button className="search-button">
-              <FontAwesomeIcon icon={faSearch} className="search-icon" />
-            </button>
-          </div>
-          <div className="user-actions">
+    <header className="header">
+      <div className="logo-container">
+        <Link to="/">
+          <img src={fullLogoImage} alt="El Contador EC" className="full-logo" />
+        </Link>
+      </div>
+      <div className="search-container">
+        <input type="text" placeholder="Busca en nuestro contenido..." className="search-input" />
+        <button className="search-button">
+          <FontAwesomeIcon icon={faSearch} className="search-icon" />
+        </button>
+      </div>
+      <div className="user-actions">
+        {forceAuthenticated ? (
+          <>
             <Link to="/perfil" className="user-button">
               <div className="button-content">
                 <FontAwesomeIcon icon={faUser} className="user-icon" />
-                <span>Perfil</span>
+                <span>{user?.nombres?.split(' ')[0] || 'Perfil'}</span>
               </div>
             </Link>
             <Link to="/carrito" className="cart-button">
@@ -172,8 +205,39 @@ function App() {
                 <span>Carrito</span>
               </div>
             </Link>
-          </div>
-        </header>
+            <button onClick={handleLogout} className="logout-button">
+              <div className="button-content">
+                <FontAwesomeIcon icon={faSignOutAlt} className="logout-icon" />
+                <span>Salir</span>
+              </div>
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="user-button">
+              <div className="button-content">
+                <FontAwesomeIcon icon={faSignInAlt} className="user-icon" />
+                <span>Ingresar</span>
+              </div>
+            </Link>
+            <Link to="/register" className="register-button">
+              <div className="button-content">
+                <FontAwesomeIcon icon={faUserPlus} className="register-icon" />
+                <span>Registrarse</span>
+              </div>
+            </Link>
+          </>
+        )}
+      </div>
+    </header>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <div className="app">
+        <Header />
         
         <NavbarWrapper />
         
@@ -189,6 +253,9 @@ function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/carrito" element={<Carrito />} />
           <Route path="/admin-panel" element={<AdminPanel />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/thank-you" element={<ThankYou />} />
           {/* Add more routes for other pages as they are created */}
         </Routes>
         
@@ -249,7 +316,15 @@ function App() {
                 </li>
                 <li>
                   <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/empresas">Declaraciones de IVA</Link>
+                  <Link to="/empresas">Declaraciones Anuales</Link>
+                </li>
+                <li>
+                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+                  <Link to="/personas">Impuesto a la Renta</Link>
+                </li>
+                <li>
+                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+                  <Link to="/devolucion-impuestos">Devoluciones SRI</Link>
                 </li>
                 <li>
                   <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
@@ -257,34 +332,38 @@ function App() {
                 </li>
                 <li>
                   <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/devolucion-impuestos">Devolución de Impuestos</Link>
+                  <Link to="/legales">Servicios Legales</Link>
                 </li>
               </ul>
             </div>
             
             <div className="footer-column footer-contact">
-              <h4 className="footer-title">Contáctenos</h4>
-              <div className="contact-item">
-                <FontAwesomeIcon icon={faMapMarkerAlt} className="footer-icon" />
-                <p>Av. Principal 123, Quito, Ecuador</p>
-              </div>
-              <div className="contact-item">
-                <FontAwesomeIcon icon={faPhone} className="footer-icon" />
-                <p>+593 98 765 4321</p>
-              </div>
-              <div className="contact-item">
-                <FontAwesomeIcon icon={faEnvelope} className="footer-icon" />
-                <p>info@elcontadorec.com</p>
-              </div>
-              <div className="contact-item">
-                <FontAwesomeIcon icon={faClock} className="footer-icon" />
-                <p>Lun - Vie: 9:00 AM - 6:00 PM</p>
+              <h4 className="footer-title">Contáctanos</h4>
+              <div className="contact-info">
+                <p>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="contact-icon" />
+                  <span>Quito, Ecuador</span>
+                </p>
+                <p>
+                  <FontAwesomeIcon icon={faPhone} className="contact-icon" />
+                  <span>+593 98 765 4321</span>
+                </p>
+                <p>
+                  <FontAwesomeIcon icon={faEnvelope} className="contact-icon" />
+                  <span>info@elcontadorec.com</span>
+                </p>
+                <p>
+                  <FontAwesomeIcon icon={faClock} className="contact-icon" />
+                  <span>Lun - Vie: 9:00 - 17:00</span>
+                </p>
               </div>
             </div>
           </div>
           
           <div className="footer-bottom">
-            <p>&copy; {new Date().getFullYear()} El Contador EC. Todos los derechos reservados.</p>
+            <div className="copyright">
+              &copy; {new Date().getFullYear()} El Contador EC. Todos los derechos reservados.
+            </div>
             <div className="footer-bottom-links">
               <Link to="/terminos">Términos y Condiciones</Link>
               <Link to="/privacidad">Política de Privacidad</Link>
