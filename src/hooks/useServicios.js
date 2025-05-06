@@ -51,52 +51,61 @@ export const useAllServicios = () => {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchAllServicios = async () => {
-      try {
-        setLoading(true);
-        // Get all services
-        const serviciosResponse = await fetch(`${API_BASE_URL}/api/servicios`);
-        if (!serviciosResponse.ok) {
-          throw new Error(`Error fetching services: ${serviciosResponse.status}`);
-        }
-        const serviciosData = await serviciosResponse.json();
-        
-        // Add subcategories to each service
-        const serviciosWithDetails = await Promise.all(serviciosData.map(async (servicio) => {
-          // Get subcategories for this service
-          try {
-            const subcategoriasResponse = await fetch(`${API_BASE_URL}/api/subcategorias/servicio/${servicio.id_servicio}`);
-            if (subcategoriasResponse.ok) {
-              const subcategoriasData = await subcategoriasResponse.json();
-              return { 
-                ...servicio, 
-                subcategorias: subcategoriasData
-              };
-            }
-          } catch (err) {
-            console.error(`Error fetching subcategories for service ${servicio.id_servicio}:`, err);
-          }
-          
-          // Return service with empty subcategories if error
-          return { 
-            ...servicio, 
-            subcategorias: []
-          };
-        }));
-        
-        setServicios(serviciosWithDetails);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching all services:', err);
-        setError(err.message);
-        setServicios([]);
-      } finally {
-        setLoading(false);
+  
+  // Función para obtener todos los servicios con sus subcategorías
+  const fetchAllServicios = async () => {
+    try {
+      setLoading(true);
+      
+      // Get all services
+      const serviciosResponse = await fetch(`${API_BASE_URL}/api/servicios`);
+      if (!serviciosResponse.ok) {
+        throw new Error(`Error fetching services: ${serviciosResponse.status}`);
       }
-    };
-
+      const serviciosData = await serviciosResponse.json();
+      
+      // Add subcategories to each service
+      const serviciosWithDetails = await Promise.all(serviciosData.map(async (servicio) => {
+        // Get subcategories for this service
+        try {
+          const subcategoriasResponse = await fetch(`${API_BASE_URL}/api/subcategorias/servicio/${servicio.id_servicio}`);
+          if (subcategoriasResponse.ok) {
+            const subcategoriasData = await subcategoriasResponse.json();
+            return { 
+              ...servicio, 
+              subcategorias: subcategoriasData
+            };
+          }
+        } catch (err) {
+          console.error(`Error fetching subcategories for service ${servicio.id_servicio}:`, err);
+        }
+        
+        // Return service with empty subcategories if error
+        return { 
+          ...servicio, 
+          subcategorias: []
+        };
+      }));
+      
+      setServicios(serviciosWithDetails);
+      setError(null);
+      
+      // Return success for chaining
+      return { success: true, data: serviciosWithDetails };
+    } catch (err) {
+      console.error('Error fetching all services:', err);
+      setError(err.message);
+      setServicios([]);
+      
+      // Return failure for error handling
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Cargar servicios cuando se monta el componente
+  useEffect(() => {
     fetchAllServicios();
   }, []);
 
@@ -196,12 +205,81 @@ export const useAllServicios = () => {
     }
   };
 
+  /**
+   * Eliminar un servicio y todas sus subcategorías e ítems relacionados
+   * @param {number} servicioId - ID del servicio a eliminar
+   * @returns {Promise<Object>} - Resultado de la operación
+   */
+  const deleteServicio = async (servicioId) => {
+    try {
+      setLoading(true);
+      
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
+      // Call the backend to delete the service and all related records in a transaction
+      console.log(`Eliminando servicio: ${servicioId}`);
+      const deleteResponse = await fetch(`${API_BASE_URL}/api/servicios/${servicioId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json().catch(() => ({}));
+        throw new Error(`Error al eliminar servicio: ${deleteResponse.status} - ${errorData.message || deleteResponse.statusText}`);
+      }
+      
+      const result = await deleteResponse.json();
+      console.log('Respuesta del servidor:', result);
+      
+      // Update local state
+      setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));
+      
+      return { 
+        success: true, 
+        message: result.message || 'Servicio eliminado correctamente',
+        data: result
+      };
+    } catch (err) {
+      console.error('Error eliminando servicio:', err);
+      setError(err.message);
+      
+      // Try to update local state anyway
+      try {
+        setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));
+        console.log('Servicio eliminado localmente a pesar del error');
+        
+        return {
+          success: true,
+          message: `El servicio se eliminó localmente, pero hubo errores en la comunicación con el servidor: ${err.message}`,
+          warnings: [err.message]
+        };
+      } catch (stateError) {
+        console.error('Error adicional actualizando estado local:', stateError);
+      }
+      
+      return { 
+        success: false, 
+        error: err.message
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return { 
     servicios, 
     loading, 
     error, 
     createServicio, 
-    createSubcategoria 
+    createSubcategoria,
+    deleteServicio,
+    fetchAllServicios
   };
 };
 

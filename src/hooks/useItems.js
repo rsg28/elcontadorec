@@ -28,12 +28,19 @@ const useItems = () => {
       }
       
       const data = await response.json();
+      console.log('Items refreshed successfully', data.length);
       setItems(data);
       setError(null);
+      
+      // Return success to let callers know items were refreshed
+      return { success: true };
     } catch (err) {
       console.error('Error fetching items:', err);
       setError(err.message);
       setItems([]);
+      
+      // Return failure to let callers know refresh failed
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }

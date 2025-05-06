@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faCheck, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faCheck, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
@@ -8,6 +8,8 @@ import useSubcategorias from '../hooks/useSubcategorias';
 import useCategorias from '../hooks/useCategorias';
 import useAuth from '../hooks/useAuth';
 import './AdminPanel.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Item form modal component
 const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
@@ -141,9 +143,40 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
 
       // Update suggestions for servicio and subcategoria inputs
       if (name === 'servicio') {
+        // Get filtered suggestions based on the selected category
         const servicioSuggestions = filteredServicios
           .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
-          .map(s => s.nombre);
+          .map(s => ({
+            id: s.id_servicio,
+            nombre: s.nombre,
+            categoria: s.id_categoria
+          }));
+        
+        // Check if we have services with same name in other categories
+        if (value.trim() !== '') {
+          // Find services with same name in other categories
+          const servicesInOtherCategories = servicios
+            .filter(s => 
+              s.nombre.toLowerCase().includes(value.toLowerCase()) && 
+              s.id_categoria !== parseInt(formData.categoria)
+            )
+            .map(s => {
+              // Find category name
+              const cat = allCategorias.find(c => c.id_categoria === s.id_categoria);
+              return {
+                id: s.id_servicio,
+                nombre: s.nombre,
+                categoria: s.id_categoria,
+                categoriaName: cat ? cat.nombre : 'Otra categoría'
+              };
+            });
+          
+          // Add warning for duplicate names in other categories
+          if (servicesInOtherCategories.length > 0) {
+            console.log('Servicios con mismo nombre en otras categorías:', servicesInOtherCategories);
+          }
+        }
+        
         setSuggestions(prev => ({ ...prev, servicios: servicioSuggestions }));
       } else if (name === 'subcategoria') {
         const filteredSubcategorias = allSubcategorias
@@ -156,7 +189,27 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
 
   // Handle selection from suggestions
   const handleSuggestionSelect = (type, value) => {
-    setFormData(prev => ({ ...prev, [type]: value }));
+    if (type === 'servicio') {
+      // Find the service and ensure it matches the selected category
+      const selectedService = filteredServicios.find(s => s.nombre === value);
+      if (selectedService) {
+        setFormData(prev => ({ ...prev, [type]: value }));
+      } else {
+        // If not found in current category, check if it exists in another category
+        const serviceInOtherCategory = servicios.find(s => 
+          s.nombre === value && s.id_categoria !== parseInt(formData.categoria)
+        );
+        
+        if (serviceInOtherCategory) {
+          // Warn user about duplicate service name in another category
+          alert(`Nota: "${value}" ya existe en otra categoría. Creando nuevo servicio en la categoría actual.`);
+        }
+        setFormData(prev => ({ ...prev, [type]: value }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [type]: value }));
+    }
+    
     setSuggestions(prev => ({ ...prev, [type + 's']: [] }));
     
     // Focus on the next field
@@ -169,23 +222,42 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validar que tengamos datos requeridos
     if (!formData.categoria) {
       alert('Por favor seleccione una categoría');
+      return;
+    }
+    
+    if (!formData.servicio || !formData.servicio.trim()) {
+      alert('Por favor ingrese un servicio');
+      return;
+    }
+    
+    if (!formData.subcategoria || !formData.subcategoria.trim()) {
+      alert('Por favor ingrese una subcategoría');
+      return;
+    }
+    
+    if (!formData.precio || isNaN(parseFloat(formData.precio)) || parseFloat(formData.precio) < 0) {
+      alert('Por favor ingrese un precio válido');
       return;
     }
     
     // Find or create servicio ID
     let servicioId = null;
     const existingServicio = servicios.find(s => 
-      s.nombre.toLowerCase() === formData.servicio.toLowerCase()
+      s.nombre.toLowerCase() === formData.servicio.toLowerCase() &&
+      s.id_categoria === parseInt(formData.id_categoria || formData.categoria)
     );
     
     if (existingServicio) {
       servicioId = existingServicio.id_servicio;
+      console.log(`Usando servicio existente: ${existingServicio.nombre} (ID: ${servicioId})`);
     } else {
       // We'll need to create a new servicio on the backend
       // For now, we'll pass the name and handle creation in the backend
       servicioId = formData.servicio;
+      console.log(`Se creará un nuevo servicio: ${formData.servicio}`);
     }
     
     // Find or create subcategoria ID
@@ -196,10 +268,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
     
     if (existingSubcategoria) {
       subcategoriaId = existingSubcategoria.id_subcategoria;
+      console.log(`Usando subcategoría existente: ${existingSubcategoria.nombre} (ID: ${subcategoriaId})`);
     } else {
       // We'll need to create a new subcategoria on the backend
       // For now, we'll pass the name and handle creation in the backend
       subcategoriaId = formData.subcategoria;
+      console.log(`Se creará una nueva subcategoría: ${formData.subcategoria}`);
     }
     
     // Convert precio to number and process data
@@ -213,6 +287,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
       id_categoria: formData.categoria // Pass the selected category ID
     };
     
+    console.log('Enviando datos de ítem para guardar:', processedData);
     onSave(processedData, editItem?.id_item);
   };
 
@@ -234,13 +309,35 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
     }
   };
   
+  // Inside ItemFormModal component, add an effect for keydown events
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    // Only add the event listener when the modal is shown
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose]);
+  
+  // Render the modal
   if (!show) return null;
   
   return (
     <div className="modal-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
+      // Prevent closing when clicking outside
+      // Commented out to prevent modal from closing when clicking outside
+      // if (e.target === e.currentTarget) {
+      //   onClose();
+      // }
     }}>
       <div className="modal-content">
         <div className="modal-header">
@@ -294,9 +391,9 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     {suggestions.servicios.map((suggestion, index) => (
                       <li 
                         key={index}
-                        onClick={() => handleSuggestionSelect('servicio', suggestion)}
+                        onClick={() => handleSuggestionSelect('servicio', suggestion.nombre)}
                       >
-                        {suggestion}
+                        {suggestion.nombre}
                       </li>
                     ))}
                   </ul>
@@ -373,6 +470,80 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
   );
 };
 
+// Modal para confirmar la eliminación de un servicio
+const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount, subcategoriaCount }) => {
+  // Add effect for escape key
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    // Only add the event listener when the modal is shown
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose]);
+  
+  if (!show) return null;
+  
+  return (
+    <div className="modal-overlay" onClick={(e) => {
+      // Prevent closing when clicking outside
+      // if (e.target === e.currentTarget) {
+      //   onClose();
+      // }
+    }}>
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>Eliminar Servicio</h2>
+          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="warning-icon">
+            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
+          </div>
+          <p className="warning-message">
+            Está a punto de eliminar el servicio <strong>{servicioName}</strong> y todos sus elementos asociados.
+          </p>
+          <p className="warning-details">
+            Esta acción eliminará:
+          </p>
+          <ul className="warning-items">
+            <li>{subcategoriaCount} subcategoría(s)</li>
+            <li>{itemCount} ítem(s)</li>
+          </ul>
+          <p className="warning-permanent">
+            Esta acción no se puede deshacer. ¿Está seguro que desea continuar?
+          </p>
+        </div>
+        
+        <div className="modal-footer">
+          <button 
+            className="cancel-button" 
+            onClick={onClose}
+          >
+            Cancelar
+          </button>
+          <button 
+            className="delete-button" 
+            onClick={onConfirm}
+          >
+            <FontAwesomeIcon icon={faTrash} /> Eliminar Servicio
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Add a function to get color based on category
 const getCategoryColor = (categoryId) => {
   // Map category IDs to specific colors - you can customize these colors
@@ -416,7 +587,9 @@ const AdminPanel = () => {
     loading: serviciosLoading, 
     error: serviciosError, 
     createServicio, 
-    createSubcategoria 
+    createSubcategoria,
+    deleteServicio,
+    fetchAllServicios
   } = useAllServicios();
   const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
   const { categorias: allCategorias, loading: categoriasLoading, error: categoriasError } = useCategorias();
@@ -434,6 +607,16 @@ const AdminPanel = () => {
     categoriaId: 'all'
   });
   
+  // Estado para manejar la eliminación de servicios
+  const [deleteServiceState, setDeleteServiceState] = useState({
+    show: false,
+    servicioId: null,
+    servicioName: '',
+    itemCount: 0,
+    subcategoriaCount: 0,
+    isLoading: false
+  });
+  
   // Add state for tracking which field is being edited
   const [editingState, setEditingState] = useState({
     itemId: null,
@@ -441,6 +624,12 @@ const AdminPanel = () => {
     value: '',
     isLoading: false
   });
+  
+  // Add a new state to track expanded services
+  const [expandedServices, setExpandedServices] = useState({});
+  
+  // Add a ref to track if this is the initial load
+  const isInitialLoadRef = useRef(true);
   
   // Loading and error states - be less restrictive to prevent infinite loading
   const loading = itemsLoading && (!itemsWithDetails || itemsWithDetails.length === 0);
@@ -600,18 +789,51 @@ const AdminPanel = () => {
   const totalCount = itemsWithDetails.length;
 
   // Handler for adding a new item
-  const handleAddItem = () => {
-    setCurrentEditItem(null);
-    setShowItemForm(true);
+  const handleAddItem = async () => {
+    try {
+      // Save current expanded services state
+      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+      console.log('Saving expanded state before add item:', currentExpandedState);
+      
+      // Asegurarse de que tenemos los datos más actualizados
+      console.log('Actualizando listas antes de mostrar el formulario de ítem');
+      
+      // Actualizar la lista de servicios primero
+      await fetchAllServicios();
+      
+      // Restore the expanded services state exactly as it was
+      console.log('Restoring expanded state after fetch:', currentExpandedState);
+      setExpandedServices(currentExpandedState);
+      
+      // Luego configurar el estado para mostrar el formulario
+      setCurrentEditItem(null);
+      setShowItemForm(true);
+    } catch (error) {
+      console.error('Error al preparar formulario de ítem:', error);
+      alert('Hubo un problema al preparar el formulario. Por favor, intente nuevamente.');
+    }
   };
   
   // Handler for editing an item
-  const handleEdit = (type, id) => {
+  const handleEdit = async (type, id) => {
     if (type === 'item') {
-      const itemToEdit = itemsWithDetails.find(item => (item.id_items === id || item.id_item === id));
-      if (itemToEdit) {
-        setCurrentEditItem(itemToEdit);
-        setShowItemForm(true);
+      try {
+        // Refrescar datos primero
+        console.log('Actualizando listas antes de editar ítem');
+        await fetchAllServicios();
+        
+        // Buscar el ítem después de refrescar los datos
+        const itemToEdit = itemsWithDetails.find(item => (item.id_items === id || item.id_item === id));
+        if (itemToEdit) {
+          setCurrentEditItem(itemToEdit);
+          setShowItemForm(true);
+        } else {
+          console.error('No se encontró el ítem a editar con ID:', id);
+          alert('No se pudo encontrar el ítem a editar. Por favor, intente nuevamente.');
+        }
+      } catch (error) {
+        console.error('Error al preparar edición de ítem:', error);
+        alert('Hubo un problema al preparar la edición. Por favor, intente nuevamente.');
       }
     } else {
       alert(`Editar ${type} con ID: ${id}`);
@@ -621,60 +843,119 @@ const AdminPanel = () => {
   // Handler for saving or updating an item
   const handleSaveItem = async (itemData, itemId) => {
     try {
+      console.log('Guardando ítem con datos:', itemData);
+      
+      // Validar que tengamos datos básicos
+      if (!itemData.id_categoria) {
+        alert('Por favor seleccione una categoría');
+        return;
+      }
+      
+      if (!itemData.servicio_nombre || !itemData.subcategoria_nombre) {
+        alert('Por favor complete todos los campos requeridos');
+        return;
+      }
+      
       // If new service needs to be created
       if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
-        const result = await createServicio({ 
-          nombre: itemData.id_servicio,
-          id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
-        });
+        console.log('Creando nuevo servicio:', itemData.servicio_nombre);
         
-        if (result.success) {
-          // Update the item data with the new service ID
-          itemData.id_servicio = result.data.id_servicio;
-        } else {
-          alert(`Error al crear servicio: ${result.error}`);
+        try {
+          const result = await createServicio({ 
+            nombre: itemData.id_servicio,
+            id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
+          });
+          
+          if (result.success) {
+            // Update the item data with the new service ID
+            itemData.id_servicio = result.data.id_servicio;
+            console.log('Servicio creado con ID:', result.data.id_servicio);
+          } else {
+            alert(`Error al crear servicio: ${result.error}`);
+            return;
+          }
+        } catch (serviceError) {
+          console.error('Error al crear servicio:', serviceError);
+          alert(`Error al crear servicio: ${serviceError.message}`);
           return;
         }
       }
       
       // If new subcategory needs to be created
       if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
-        // Try to create the subcategory first
-        const result = await createSubcategoria({ 
-          nombre: itemData.id_subcategoria,
-          id_servicio: itemData.id_servicio
-        });
+        // Validar que el servicio exista antes de crear la subcategoría
+        if (!itemData.id_servicio || isNaN(parseInt(itemData.id_servicio))) {
+          alert('Error: El servicio no existe o no es válido');
+          return;
+        }
         
-        if (result.success) {
-          // Update the item data with the new subcategory ID
-          itemData.id_subcategoria = result.data.id_subcategoria;
-          // Ensure the subcategoria_nombre is set
-          itemData.subcategoria_nombre = result.data.nombre;
-        } else {
-          alert(`Error al crear subcategoría: ${result.error}`);
+        console.log('Creando nueva subcategoría:', itemData.subcategoria_nombre);
+        
+        try {
+          // Try to create the subcategory first
+          const result = await createSubcategoria({ 
+            nombre: itemData.id_subcategoria,
+            id_servicio: itemData.id_servicio
+          });
+          
+          if (result.success) {
+            // Update the item data with the new subcategory ID
+            itemData.id_subcategoria = result.data.id_subcategoria;
+            // Ensure the subcategoria_nombre is set
+            itemData.subcategoria_nombre = result.data.nombre;
+            console.log('Subcategoría creada con ID:', result.data.id_subcategoria);
+          } else {
+            alert(`Error al crear subcategoría: ${result.error}`);
+            return;
+          }
+        } catch (subcatError) {
+          console.error('Error al crear subcategoría:', subcatError);
+          alert(`Error al crear subcategoría: ${subcatError.message}`);
           return;
         }
       }
       
       // Now proceed with item creation/update
       if (itemId) {
+        console.log('Actualizando ítem existente con ID:', itemId);
         const result = await updateItem(itemId, itemData);
         if (result.success) {
           setShowItemForm(false);
           setCurrentEditItem(null);
+          
+          // Save current expanded state with deep copy
+          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+          
           // Refresh items to show changes immediately
           await refreshItems();
+          
+          // Restore expanded state
+          setExpandedServices(currentExpandedState);
+          
+          console.log('Ítem actualizado correctamente');
+          toast.success('Ítem actualizado correctamente');
         } else {
-          alert(`Error al actualizar ítem: ${result.error}`);
+          toast.error(`Error al actualizar ítem: ${result.error}`);
         }
       } else {
+        console.log('Creando nuevo ítem');
         const result = await addItem(itemData);
         if (result.success) {
           setShowItemForm(false);
+          
+          // Save current expanded state with deep copy
+          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+          
           // Refresh items to show the new item immediately
           await refreshItems();
+          
+          // Restore expanded state
+          setExpandedServices(currentExpandedState);
+          
+          console.log('Ítem creado correctamente');
+          toast.success('Ítem creado correctamente');
         } else {
-          alert(`Error al agregar ítem: ${result.error}`);
+          toast.error(`Error al agregar ítem: ${result.error}`);
         }
       }
     } catch (error) {
@@ -683,27 +964,232 @@ const AdminPanel = () => {
     }
   };
 
+  // Handler for deleting a service
+  const handleDeleteService = (servicioId) => {
+    // Encontrar el servicio que queremos eliminar
+    const servicioToDelete = allServicios.find(s => s.id_servicio === servicioId);
+    if (!servicioToDelete) return;
+    
+    // Contar ítems relacionados con este servicio
+    const relatedItems = itemsWithDetails.filter(item => item.id_servicio === servicioId);
+    
+    // Contar subcategorías relacionadas
+    const relatedSubcategorias = servicioToDelete.subcategorias || [];
+    
+    // Mostrar el modal de confirmación
+    setDeleteServiceState({
+      show: true,
+      servicioId: servicioId,
+      servicioName: servicioToDelete.nombre,
+      itemCount: relatedItems.length,
+      subcategoriaCount: relatedSubcategorias.length,
+      isLoading: false
+    });
+  };
+  
+  // Confirmar eliminación de servicio
+  const confirmDeleteService = async () => {
+    try {
+      setDeleteServiceState(prev => ({ ...prev, isLoading: true }));
+      
+      console.log('Eliminando servicio con ID:', deleteServiceState.servicioId);
+      const result = await deleteServicio(deleteServiceState.servicioId);
+      
+      // Cerrar el modal primero para mejorar la experiencia del usuario
+      setDeleteServiceState({
+        show: false,
+        servicioId: null,
+        servicioName: '',
+        itemCount: 0,
+        subcategoriaCount: 0,
+        isLoading: false
+      });
+      
+      // Save current expanded state with deep copy
+      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+      
+      if (result.success) {
+        // Refresh the lists to reflect the changes
+        await fetchAllServicios();
+        await refreshItems();
+        
+        // Restore expanded state exactly as it was
+        setExpandedServices(currentExpandedState);
+        
+        // Generate success message based on backend response
+        let successMessage = 'Servicio eliminado con éxito';
+        if (result.data) {
+          const { itemsDeleted, subcategoriasDeleted } = result.data;
+          if (itemsDeleted !== undefined && subcategoriasDeleted !== undefined) {
+            successMessage += ` junto con ${subcategoriasDeleted} subcategorías y ${itemsDeleted} ítems.`;
+          }
+        }
+        
+        toast.success(successMessage);
+      } else {
+        console.error('Error en la operación:', result.error);
+        toast.error(`Error al eliminar servicio: ${result.error}`);
+        
+        // Refresh data anyway to show current state
+        await fetchAllServicios();
+        await refreshItems();
+        
+        // Restore expanded state
+        setExpandedServices(currentExpandedState);
+      }
+    } catch (error) {
+      console.error('Error inesperado en confirmDeleteService:', error);
+      toast.error(`Error inesperado: ${error.message}`);
+      
+      // Ensure the state of the modal is reset in case of error
+      setDeleteServiceState({ 
+        show: false, 
+        servicioId: null,
+        servicioName: '',
+        itemCount: 0,
+        subcategoriaCount: 0,
+        isLoading: false 
+      });
+      
+      // Try to refresh list anyway while preserving expanded state
+      try {
+        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+        await fetchAllServicios();
+        await refreshItems();
+        setExpandedServices(currentExpandedState);
+      } catch (e) {
+        console.error('Error adicional al refrescar después de excepción:', e);
+      }
+    }
+  };
+  
+  // Cancelar eliminación de servicio
+  const cancelDeleteService = () => {
+    setDeleteServiceState({
+      show: false,
+      servicioId: null,
+      servicioName: '',
+      itemCount: 0,
+      subcategoriaCount: 0,
+      isLoading: false
+    });
+  };
+  
   // Handler for deleting an item
   const handleDelete = (type, id) => {
     if (type === 'item') {
       console.log(`Attempting to delete item with ID: ${id}`);
-      if (window.confirm(`¿Está seguro que desea eliminar este ítem?`)) {
-        // Call the deleteItem function from useItems hook
-        deleteItem(id)
-          .then(result => {
-            if (result.success) {
-              // Refresh items to update the list immediately
-              refreshItems();
-            } else {
-              console.error("Delete error:", result.error);
-              alert(`Error al eliminar ítem: ${result.error}`);
-            }
-          })
-          .catch(error => {
-            console.error("Unhandled error in delete:", error);
-            alert(`Error inesperado: ${error.message}`);
-          });
+      
+      // Find the item to get its service ID
+      const itemToDelete = itemsWithDetails.find(item => (item.id_items === id || item.id_item === id));
+      
+      if (!itemToDelete) {
+        console.error("Item not found for deletion");
+        alert("Error: No se pudo encontrar el ítem para eliminar");
+        return;
       }
+      
+      const servicioId = itemToDelete.id_servicio;
+      
+      // Check if this is the last item for this service
+      const itemsForService = itemsWithDetails.filter(item => 
+        item.id_servicio === servicioId && 
+        (item.id_items !== id && item.id_item !== id) // Exclude the item being deleted
+      );
+      
+      const isLastItemForService = itemsForService.length === 0;
+      
+      if (isLastItemForService) {
+        // If it's the last item, ask if they want to delete the entire service
+        if (window.confirm(`Este es el último ítem para este servicio. ¿Desea eliminar el servicio completo?`)) {
+          console.log(`Deleting the last item and the entire service with ID: ${servicioId}`);
+          // Call the deleteServicio function instead
+          deleteServicio(servicioId)
+            .then(result => {
+              if (result.success) {
+                // Show toast notification
+                toast.success('Servicio y todos sus ítems eliminados correctamente');
+                
+                // Save current expanded state with deep copy
+                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+                
+                // Refresh items and services to update the UI
+                refreshItems()
+                  .then(() => {
+                    fetchAllServicios()
+                      .then(() => {
+                        // Restore expanded state exactly as it was
+                        setExpandedServices(currentExpandedState);
+                      });
+                  });
+              } else {
+                console.error("Delete service error:", result.error);
+                toast.error(`Error al eliminar servicio: ${result.error}`);
+              }
+            })
+            .catch(error => {
+              console.error("Unhandled error in delete service:", error);
+              toast.error(`Error inesperado: ${error.message}`);
+            });
+        } else {
+          // User chose not to delete the service, proceed with just deleting the item
+          deleteItem(id)
+            .then(result => {
+              if (result.success) {
+                // Show toast notification
+                toast.success('Ítem eliminado correctamente');
+                
+                // Save current expanded state with deep copy
+                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+                
+                // Refresh items to update the list immediately
+                refreshItems()
+                  .then(() => {
+                    // Restore expanded state exactly as it was
+                    setExpandedServices(currentExpandedState);
+                  });
+              } else {
+                console.error("Delete error:", result.error);
+                toast.error(`Error al eliminar ítem: ${result.error}`);
+              }
+            })
+            .catch(error => {
+              console.error("Unhandled error in delete:", error);
+              toast.error(`Error inesperado: ${error.message}`);
+            });
+        }
+      } else {
+        // Not the last item, proceed normally with just item deletion
+        if (window.confirm(`¿Está seguro que desea eliminar este ítem?`)) {
+          // Call the deleteItem function from useItems hook
+          deleteItem(id)
+            .then(result => {
+              if (result.success) {
+                // Show toast notification
+                toast.success('Ítem eliminado correctamente');
+                
+                // Save current expanded state with deep copy
+                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+                
+                // Refresh items to update the list immediately
+                refreshItems()
+                  .then(() => {
+                    // Restore expanded state exactly as it was
+                    setExpandedServices(currentExpandedState);
+                  });
+              } else {
+                console.error("Delete error:", result.error);
+                toast.error(`Error al eliminar ítem: ${result.error}`);
+              }
+            })
+            .catch(error => {
+              console.error("Unhandled error in delete:", error);
+              toast.error(`Error inesperado: ${error.message}`);
+            });
+        }
+      }
+    } else if (type === 'servicio') {
+      handleDeleteService(id);
     } else {
       alert(`Eliminar ${type} con ID: ${id}`);
     }
@@ -780,8 +1266,27 @@ const AdminPanel = () => {
     return parseFloat(price || 0).toFixed(2);
   };
 
-  // Handler for double-click on editable fields
+  // Add state for dropdowns
+  const [inlineEditOptions, setInlineEditOptions] = useState([]);
+
+  // Update handleDoubleClick to load available options
   const handleDoubleClick = (itemId, field, value) => {
+    let options = [];
+    
+    // Prepare options based on field type
+    if (field === 'servicio') {
+      options = allServicios.map(s => ({
+        id: s.id_servicio,
+        name: s.nombre
+      }));
+    } else if (field === 'subcategoria') {
+      options = allSubcategorias.map(s => ({
+        id: s.id_subcategoria,
+        name: s.nombre
+      }));
+    }
+    
+    setInlineEditOptions(options);
     setEditingState({
       itemId,
       field,
@@ -789,16 +1294,8 @@ const AdminPanel = () => {
       isLoading: false
     });
   };
-  
-  // Handler for inline edit change
-  const handleInlineEditChange = (e) => {
-    setEditingState({
-      ...editingState,
-      value: e.target.value
-    });
-  };
-  
-  // Handler for saving inline edits
+
+  // Update the handleInlineEditSave to use the selected option
   const handleInlineEditSave = async () => {
     const { itemId, field, value } = editingState;
     if (!value.trim()) return;
@@ -829,34 +1326,36 @@ const AdminPanel = () => {
         updatedItem.precio = price;
       } 
       else if (field === 'servicio') {
-        updatedItem.servicio_nombre = value;
+        // Find the selected service from options
+        const selectedService = allServicios.find(s => s.nombre === value || s.id_servicio.toString() === value);
         
-        // Check if this service already exists
-        const existingService = allServicios.find(s => 
-          s.nombre.toLowerCase() === value.toLowerCase()
-        );
-        
-        if (existingService) {
-          updatedItem.id_servicio = existingService.id_servicio;
-        } else {
-          // Will create a new service on save
-          updatedItem.id_servicio = value;
+        if (!selectedService) {
+          alert('Por favor seleccione un servicio válido');
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+          return;
         }
+        
+        updatedItem.servicio_nombre = selectedService.nombre;
+        updatedItem.id_servicio = selectedService.id_servicio;
       } 
       else if (field === 'subcategoria') {
-        updatedItem.subcategoria_nombre = value;
+        // Find the selected subcategory from options
+        const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
         
-        // Check if this subcategory already exists
-        const existingSubcategory = allSubcategorias.find(s => 
-          s.nombre.toLowerCase() === value.toLowerCase()
-        );
-        
-        if (existingSubcategory) {
-          updatedItem.id_subcategoria = existingSubcategory.id_subcategoria;
-        } else {
-          // Will create a new subcategory on save
-          updatedItem.id_subcategoria = value;
+        if (!selectedSubcategory) {
+          alert('Por favor seleccione una subcategoría válida');
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+          return;
         }
+        
+        updatedItem.subcategoria_nombre = selectedSubcategory.nombre;
+        updatedItem.id_subcategoria = selectedSubcategory.id_subcategoria;
       }
       
       // Use the correct id for updating, preferring id_items
@@ -874,10 +1373,19 @@ const AdminPanel = () => {
           isLoading: false
         });
         
+        // Clear options
+        setInlineEditOptions([]);
+        
+        // Save current expanded state with deep copy
+        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+        
         // Refresh the items data to show the updated value immediately
         await refreshItems();
+        
+        // Restore expanded state
+        setExpandedServices(currentExpandedState);
       } else {
-        alert(`Error al actualizar: ${result.error}`);
+        toast.error(`Error al actualizar: ${result.error}`);
         setEditingState({
           ...editingState,
           isLoading: false
@@ -889,11 +1397,11 @@ const AdminPanel = () => {
         ...editingState,
         isLoading: false
       });
-      alert('Error al guardar los cambios');
+      toast.error('Error al guardar los cambios');
     }
   };
-  
-  // Handler for canceling inline edit
+
+  // Update handleInlineEditCancel to clear options
   const handleInlineEditCancel = () => {
     setEditingState({
       itemId: null,
@@ -901,9 +1409,55 @@ const AdminPanel = () => {
       value: '',
       isLoading: false
     });
+    setInlineEditOptions([]);
   };
-  
-  // Event handler for key press in inline edit field
+
+  // Update the handleDropdownChange function to auto-save when value changes
+  const handleDropdownChange = (e) => {
+    const newValue = e.target.value;
+    
+    // Update the state
+    setEditingState({
+      ...editingState,
+      value: newValue,
+      isLoading: true
+    });
+    
+    // Auto-save after a brief delay to allow state update
+    setTimeout(() => {
+      handleInlineEditSave();
+    }, 100);
+  };
+
+  // Add a function to toggle service expansion
+  const toggleServiceExpansion = (serviceId) => {
+    setExpandedServices(prev => {
+      // Create a copy of the previous state
+      const newState = { ...prev };
+      
+      // Toggle the state for this service
+      newState[serviceId] = !newState[serviceId];
+      
+      // For debugging
+      console.log(`Toggled service ${serviceId} to ${newState[serviceId] ? 'expanded' : 'collapsed'}`);
+      
+      return newState;
+    });
+  };
+
+  // Initialize expanded services based on allServicios data - only on first load
+  useEffect(() => {
+    // Initialize with all services collapsed - empty object
+    if (isInitialLoadRef.current && allServicios.length > 0) {
+      // Don't expand any services by default
+      setExpandedServices({});
+      
+      // Set the ref to false so this effect doesn't run again
+      isInitialLoadRef.current = false;
+    }
+  }, [allServicios]);
+
+  // Restore the keydown handler
   const handleInlineEditKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleInlineEditSave();
@@ -911,6 +1465,47 @@ const AdminPanel = () => {
       handleInlineEditCancel();
     }
   };
+
+  // Add back handleInlineEditChange for price editing
+  const handleInlineEditChange = (e) => {
+    // Special handling for price - only allow numbers and decimal point
+    if (editingState.field === 'precio') {
+      const value = e.target.value;
+      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+        setEditingState({
+          ...editingState,
+          value: value
+        });
+      }
+    } else {
+      setEditingState({
+        ...editingState,
+        value: e.target.value
+      });
+    }
+  };
+
+  // Add a useEffect to handle clicks outside the edit field
+  useEffect(() => {
+    // Only add the handler if we're in edit mode
+    if (editingState.itemId) {
+      function handleClickOutside(event) {
+        const editField = document.querySelector('.inline-edit-field');
+        if (editField && !editField.contains(event.target)) {
+          // If we clicked outside and it's not the price field (which needs manual save),
+          // cancel editing
+          if (editingState.field !== 'precio') {
+            handleInlineEditCancel();
+          }
+        }
+      }
+      
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [editingState.itemId, editingState.field]);
 
   if (adminChecking) {
     return (
@@ -930,8 +1525,9 @@ const AdminPanel = () => {
       
       <div className="search-filters">
         <div className="search-filters-content">
-          <div className="search-row">
-            <div className="search-field">
+          {/* Primera fila: barra de búsqueda ocupando todo el ancho */}
+          <div className="search-row search-row-full">
+            <div className="search-field search-field-full">
               <div className="search-group">
                 <label>
                   <FontAwesomeIcon icon={faSearch} className="label-icon" /> 
@@ -957,30 +1553,10 @@ const AdminPanel = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="search-field">
-              <div className="search-group">
-                <label>
-                  <FontAwesomeIcon icon={faDollarSign} className="label-icon" /> 
-                  Precio mínimo
-                </label>
-                <div className="price-input-container">
-                  <span className="price-symbol">$</span>
-                  <input
-                    type="text"
-                    name="minPrice"
-                    placeholder=""
-                    value={filters.minPrice}
-                    onChange={handlePriceChange}
-                    className="price-input"
-                    inputMode="decimal"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
           
-          <div className="search-row">
+          {/* Segunda fila: opciones de filtrado alineadas */}
+          <div className="search-row filter-options-row">
             <div className="search-field">
               <div className="search-group">
                 <label>
@@ -1028,9 +1604,28 @@ const AdminPanel = () => {
                 </div>
               </div>
             </div>
-          </div>
-          
-          <div className="search-row">
+
+            <div className="search-field">
+              <div className="search-group">
+                <label>
+                  <FontAwesomeIcon icon={faDollarSign} className="label-icon" /> 
+                  Precio mínimo
+                </label>
+                <div className="price-input-container">
+                  <span className="price-symbol">$</span>
+                  <input
+                    type="text"
+                    name="minPrice"
+                    placeholder=""
+                    value={filters.minPrice}
+                    onChange={handlePriceChange}
+                    className="price-input"
+                    inputMode="decimal"
+                  />
+                </div>
+              </div>
+            </div>
+            
             <div className="search-field">
               <div className="search-group">
                 <label>
@@ -1052,7 +1647,7 @@ const AdminPanel = () => {
               </div>
             </div>
             
-            <div className="search-field">
+            <div className="search-field actions-field">
               <div className="actions-row">
                 <button 
                   className={`clear-filters-btn ${isFilterActive ? 'active' : ''}`}
@@ -1092,206 +1687,237 @@ const AdminPanel = () => {
             {filteredItems.length === 0 ? (
               <p className="no-data">No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
-              filteredItems.map(item => {
-                // Find service to get its category
-                const service = allServicios.find(s => s.id_servicio === item.id_servicio);
-                const categoryId = service ? service.id_categoria : null;
-                const categoryColor = getCategoryColor(categoryId);
-                
-                // Find category name
-                const category = allCategorias.find(c => c.id_categoria === categoryId);
-                const categoryName = category ? category.nombre : 'Sin categoría';
-                
-                return (
-                  <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${categoryColor}` }}>
-                    <div className="item-header">
-                      <div className="item-main-info">
-                        <div className="item-service">
-                          <span className="service-label">Servicio:</span>
-                          {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                            <div className="inline-edit-field">
-                              <input
-                                type="text"
-                                value={editingState.value}
-                                onChange={handleInlineEditChange}
-                                onKeyDown={handleInlineEditKeyDown}
-                                className="inline-edit-input"
-                                autoFocus
-                              />
-                              <div className="inline-edit-actions">
-                                {editingState.isLoading ? (
-                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                ) : (
-                                  <>
-                                    <button 
-                                      className="inline-edit-button save" 
-                                      onClick={handleInlineEditSave}
-                                      title="Guardar"
-                                    >
-                                      <FontAwesomeIcon icon={faCheck} />
-                                    </button>
-                                    <button 
-                                      className="inline-edit-button cancel" 
-                                      onClick={handleInlineEditCancel}
-                                      title="Cancelar"
-                                    >
-                                      <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <span 
-                              className="service-name editable" 
-                              onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
-                              title="Doble clic para editar"
-                            >
-                              {highlightText(item.servicio_nombre)}
-                            </span>
-                          )}
+              // Agrupar ítems por servicio para mostrarlos organizados
+              allServicios
+                .filter(servicio => {
+                  // Solo incluir servicios que coincidan con el filtro de categoría
+                  if (filters.categoriaId !== 'all') {
+                    return servicio.id_categoria === parseInt(filters.categoriaId);
+                  }
+                  return true;
+                })
+                .filter(servicio => {
+                  // Solo incluir servicios que coincidan con el filtro de servicio
+                  if (filters.servicioId !== 'all') {
+                    return servicio.id_servicio === parseInt(filters.servicioId);
+                  }
+                  return true;
+                })
+                .filter(servicio => {
+                  // Solo incluir servicios que tienen ítems que coinciden con el filtro
+                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === servicio.id_servicio);
+                  return hasMatchingItems;
+                })
+                .map(servicio => {
+                  // Obtener ítems relacionados con este servicio
+                  const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
+                  
+                  // Obtener categoría para este servicio
+                  const category = allCategorias.find(c => c.id_categoria === servicio.id_categoria);
+                  const categoryName = category ? category.nombre : 'Sin categoría';
+                  const categoryColor = getCategoryColor(servicio.id_categoria);
+                  
+                  return (
+                    <div key={servicio.id_servicio} className="service-group">
+                      <div className={`service-header ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}
+                        style={{ borderLeft: `4px solid ${categoryColor}` }}
+                        onClick={() => toggleServiceExpansion(servicio.id_servicio)}>
+                        <FontAwesomeIcon 
+                          icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
+                          className="expand-icon" 
+                        />
+                        <div className="service-info">
+                          <h3 className="service-name">{servicio.nombre}</h3>
+                          <div className="service-category">{categoryName}</div>
                         </div>
-                        
-                        <div className="item-subcategory">
-                          <span className="subcategory-label">Subcategoría:</span>
-                          {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                            <div className="inline-edit-field">
-                              <input
-                                type="text"
-                                value={editingState.value}
-                                onChange={handleInlineEditChange}
-                                onKeyDown={handleInlineEditKeyDown}
-                                className="inline-edit-input"
-                                autoFocus
-                              />
-                              <div className="inline-edit-actions">
-                                {editingState.isLoading ? (
-                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                ) : (
-                                  <>
-                                    <button 
-                                      className="inline-edit-button save" 
-                                      onClick={handleInlineEditSave}
-                                      title="Guardar"
-                                    >
-                                      <FontAwesomeIcon icon={faCheck} />
-                                    </button>
-                                    <button 
-                                      className="inline-edit-button cancel" 
-                                      onClick={handleInlineEditCancel}
-                                      title="Cancelar"
-                                    >
-                                      <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <span 
-                              className="subcategory-name editable" 
-                              onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
-                              title="Doble clic para editar"
-                            >
-                              {highlightText(item.subcategoria_nombre)}
-                            </span>
-                          )}
+                        <div className="service-stats">
+                          <span className="service-items-count">{servicioItems.length} ítem(s)</span>
                         </div>
-                        
-                        <div className="item-price-display">
-                          <span className="price-label">Precio:</span>
-                          {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                            <div className="inline-edit-field">
-                              <div className="price-edit-container">
-                                <span className="price-edit-symbol">$</span>
-                                <input
-                                  type="text"
-                                  value={editingState.value}
-                                  onChange={handleInlineEditChange}
-                                  onKeyDown={handleInlineEditKeyDown}
-                                  className="inline-edit-input"
-                                  autoFocus
-                                />
-                              </div>
-                              <div className="inline-edit-actions">
-                                {editingState.isLoading ? (
-                                  <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                ) : (
-                                  <>
-                                    <button 
-                                      className="inline-edit-button save" 
-                                      onClick={handleInlineEditSave}
-                                      title="Guardar"
-                                    >
-                                      <FontAwesomeIcon icon={faCheck} />
-                                    </button>
-                                    <button 
-                                      className="inline-edit-button cancel" 
-                                      onClick={handleInlineEditCancel}
-                                      title="Cancelar"
-                                    >
-                                      <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <span 
-                              className="price-value editable" 
-                              onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
-                              title="Doble clic para editar"
-                            >
-                              ${formatPrice(item.precio)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="item-category-indicator" 
-                        style={{ backgroundColor: categoryColor }}
-                        title={`Categoría: ${categoryName}`}
-                      >
-                        {categoryName}
-                      </div>
-                      
-                      <div className="item-controls">
-                        <div className="item-actions">
+                        <div className="service-actions">
                           <button 
                             className="action-button delete"
-                            onClick={() => handleDelete('item', item.id_items || item.id_item)}
-                            title="Eliminar ítem"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent triggering the header click
+                              handleDelete('servicio', servicio.id_servicio);
+                            }}
+                            title="Eliminar servicio completo"
                           >
                             <FontAwesomeIcon icon={faTrash} />
                           </button>
                         </div>
                       </div>
-                    </div>
-                    
-                    {(item.descripcion || item.opciones) && (
-                      <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
-                        <div className="item-section">
-                          <div className="item-section-row">
-                            {item.descripcion && (
-                              <div className="item-detail">
-                                <span className="detail-label">Descripción:</span>
-                                <span className="detail-value">{item.descripcion}</span>
+                      
+                      <div className={`service-items ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}>
+                        {servicioItems.map(item => (
+                          <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${categoryColor}` }}>
+                            <div className="item-header">
+                              <div className="item-main-info">
+                                <div className="item-service">
+                                  <span className="service-label">Servicio:</span>
+                                  {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
+                                    <div className="inline-edit-field">
+                                      <select
+                                        value={editingState.value}
+                                        onChange={handleDropdownChange}
+                                        className="inline-edit-select"
+                                        autoFocus
+                                      >
+                                        <option value="">Seleccione un servicio</option>
+                                        {inlineEditOptions.map(option => (
+                                          <option key={option.id} value={option.name}>
+                                            {option.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {editingState.isLoading && (
+                                        <div className="loading-indicator-small">
+                                          <FontAwesomeIcon icon={faSpinner} spin />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span 
+                                      className="service-name editable" 
+                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
+                                      title="Doble clic para editar"
+                                    >
+                                      {highlightText(item.servicio_nombre)}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="item-subcategory">
+                                  <span className="subcategory-label">Subcategoría:</span>
+                                  {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
+                                    <div className="inline-edit-field">
+                                      <select
+                                        value={editingState.value}
+                                        onChange={handleDropdownChange}
+                                        className="inline-edit-select"
+                                        autoFocus
+                                      >
+                                        <option value="">Seleccione una subcategoría</option>
+                                        {inlineEditOptions.map(option => (
+                                          <option key={option.id} value={option.name}>
+                                            {option.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {editingState.isLoading && (
+                                        <div className="loading-indicator-small">
+                                          <FontAwesomeIcon icon={faSpinner} spin />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span 
+                                      className="subcategory-name editable" 
+                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
+                                      title="Doble clic para editar"
+                                    >
+                                      {highlightText(item.subcategoria_nombre)}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="item-price-display">
+                                  <span className="price-label">Precio:</span>
+                                  {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
+                                    <div className="inline-edit-field">
+                                      <div className="price-edit-container">
+                                        <span className="price-edit-symbol">$</span>
+                                        <input
+                                          type="text"
+                                          value={editingState.value}
+                                          onChange={handleInlineEditChange}
+                                          onKeyDown={handleInlineEditKeyDown}
+                                          className="inline-edit-input"
+                                          autoFocus
+                                          placeholder="0.00"
+                                        />
+                                        <div className="inline-edit-actions">
+                                          {editingState.isLoading ? (
+                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                          ) : (
+                                            <>
+                                              <button 
+                                                className="inline-edit-button save" 
+                                                onClick={handleInlineEditSave}
+                                                title="Guardar"
+                                              >
+                                                <FontAwesomeIcon icon={faCheck} />
+                                              </button>
+                                              <button 
+                                                className="inline-edit-button cancel" 
+                                                onClick={handleInlineEditCancel}
+                                                title="Cancelar"
+                                              >
+                                                <FontAwesomeIcon icon={faTimes} />
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span 
+                                      className="price-value editable" 
+                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
+                                      title="Doble clic para editar"
+                                    >
+                                      ${formatPrice(item.precio)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            )}
+                              
+                              <div className="item-category-indicator" 
+                                style={{ backgroundColor: categoryColor }}
+                                title={`Categoría: ${categoryName}`}
+                              >
+                                {categoryName}
+                              </div>
+                              
+                              <div className="item-controls">
+                                <div className="item-actions">
+                                  <button 
+                                    className="action-button delete"
+                                    onClick={() => handleDelete('item', item.id_items || item.id_item)}
+                                    title="Eliminar ítem"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                             
-                            {item.opciones && (
-                              <div className="item-detail">
-                                <span className="detail-label">Opciones:</span>
-                                <span className="detail-value">{item.opciones}</span>
+                            {(item.descripcion || item.opciones) && (
+                              <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
+                                <div className="item-section">
+                                  <div className="item-section-row">
+                                    {item.descripcion && (
+                                      <div className="item-detail">
+                                        <span className="detail-label">Descripción:</span>
+                                        <span className="detail-value">{item.descripcion}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {item.opciones && (
+                                      <div className="item-detail">
+                                        <span className="detail-label">Opciones:</span>
+                                        <span className="detail-value">{item.opciones}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                );
-              })
+                    </div>
+                  );
+                })
             )}
           </div>
         )}
@@ -1311,6 +1937,30 @@ const AdminPanel = () => {
           editItem={currentEditItem}
         />
       )}
+      
+      {deleteServiceState.show && (
+        <DeleteServiceModal
+          show={deleteServiceState.show}
+          onClose={cancelDeleteService}
+          onConfirm={confirmDeleteService}
+          servicioName={deleteServiceState.servicioName}
+          itemCount={deleteServiceState.itemCount}
+          subcategoriaCount={deleteServiceState.subcategoriaCount}
+        />
+      )}
+      
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 };
