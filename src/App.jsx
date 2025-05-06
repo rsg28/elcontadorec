@@ -21,10 +21,12 @@ import {
   faFax,
   faGlobe,
   faChevronRight,
+  faChevronLeft,
   faCalculator,
   faSignInAlt,
   faUserPlus,
-  faSignOutAlt
+  faSignOutAlt,
+  faCircle
 } from '@fortawesome/free-solid-svg-icons';
 // Import logo
 import fullLogoImage from './assets/EL CONTADOR TEXTO A LA DERECHA.png';
@@ -51,6 +53,12 @@ import useAuth from './hooks/useAuth';
 const Home = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const maxPages = 2; // Total number of pages in carousel
+  
+  // Helper to determine if buttons should be visible
+  const isPrevButtonVisible = currentPage > 0;
+  const isNextButtonVisible = currentPage < maxPages - 1;
 
   // Handler for category card clicks
   const handleCategoryClick = (categoryId) => {
@@ -104,8 +112,21 @@ const Home = () => {
     { id: 10, title: 'IESS y MT', icon: faFileAlt, color: '#4d9de0' }
   ];
 
+  // Improved navigation handlers with transition effect
   const handleNextPage = () => {
-    setCurrentPage(prev => (prev + 1) % 2);
+    if (!isTransitioning && currentPage < maxPages - 1) {
+      setIsTransitioning(true);
+      setCurrentPage(prev => prev + 1);
+      setTimeout(() => setIsTransitioning(false), 500); // Match transition time in CSS
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (!isTransitioning && currentPage > 0) {
+      setIsTransitioning(true);
+      setCurrentPage(prev => prev - 1);
+      setTimeout(() => setIsTransitioning(false), 500); // Match transition time in CSS
+    }
   };
 
   return (
@@ -114,7 +135,17 @@ const Home = () => {
         <h2 className="section-title">Todas las Categorías</h2>
         
         <div className="categories-container">
-          <div className="categories-grid" style={{ transform: `translateX(-${currentPage * 60}%)` }}>
+          {isPrevButtonVisible && (
+            <button 
+              className="carousel-button prev" 
+              onClick={handlePrevPage}
+              aria-label="Categorías anteriores"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+          )}
+          
+          <div className="categories-grid" style={{ transform: `translateX(-${currentPage * 41}%)` }}>
             {categories.map(category => (
               <div 
                 key={category.id} 
@@ -135,9 +166,74 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <button className="carousel-button next" onClick={handleNextPage}>
-            <FontAwesomeIcon icon={faChevronRight} />
-          </button>
+          
+          {isNextButtonVisible && (
+            <button 
+              className="carousel-button next" 
+              onClick={handleNextPage}
+              aria-label="Categorías siguientes"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          )}
+          
+          <div className="carousel-dots">
+            {Array.from({ length: maxPages }).map((_, index) => (
+              <button 
+                key={index}
+                className={`carousel-dot ${currentPage === index ? 'active' : ''}`}
+                onClick={() => {
+                  if (!isTransitioning && currentPage !== index) {
+                    setIsTransitioning(true);
+                    setCurrentPage(index);
+                    setTimeout(() => setIsTransitioning(false), 500);
+                  }
+                }}
+                aria-label={`Ir a página ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="featured-services">
+        <h2 className="section-title">Servicios Destacados</h2>
+        <div className="featured-grid">
+          <div className="featured-card">
+            <div className="featured-icon">
+              <FontAwesomeIcon icon={faCalculator} />
+            </div>
+            <h3>Declaraciones Mensuales</h3>
+            <p>Mantén al día tus obligaciones fiscales mensuales con nuestro servicio profesional.</p>
+            <Link to="/empresas" className="featured-link">
+              Ver detalles
+              <FontAwesomeIcon icon={faChevronRight} className="featured-arrow" />
+            </Link>
+          </div>
+          
+          <div className="featured-card">
+            <div className="featured-icon">
+              <FontAwesomeIcon icon={faUser} />
+            </div>
+            <h3>Declaración de Impuesto a la Renta</h3>
+            <p>Optimiza tu declaración anual y maximiza las deducciones legales posibles.</p>
+            <Link to="/personas" className="featured-link">
+              Ver detalles
+              <FontAwesomeIcon icon={faChevronRight} className="featured-arrow" />
+            </Link>
+          </div>
+          
+          <div className="featured-card">
+            <div className="featured-icon">
+              <FontAwesomeIcon icon={faMoneyCheckAlt} />
+            </div>
+            <h3>Devolución de Impuestos</h3>
+            <p>Recupera los valores pagados en exceso con nuestro servicio especializado.</p>
+            <Link to="/devolucion-impuestos" className="featured-link">
+              Ver detalles
+              <FontAwesomeIcon icon={faChevronRight} className="featured-arrow" />
+            </Link>
+          </div>
         </div>
       </section>
     </main>

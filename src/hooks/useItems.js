@@ -389,6 +389,24 @@ const useItems = () => {
     }
   };
 
+  /**
+   * Actualizar localmente los items para reflejar cambios sin necesidad de refrescar desde el servidor
+   * @param {Function} updateFn - Función que recibe los items actuales y devuelve los items actualizados
+   */
+  const updateLocalItems = (updateFn) => {
+    // Update the raw items
+    setItems(prevItems => {
+      const newItems = updateFn(prevItems);
+      return newItems;
+    });
+    
+    // Also directly update the enriched items for immediate UI reflection
+    setItemsWithDetails(prevItems => {
+      const newItems = updateFn(prevItems);
+      return newItems;
+    });
+  };
+
   // Return the refreshItems function so components can trigger a refresh
   return { 
     items: itemsWithDetails, 
@@ -398,7 +416,8 @@ const useItems = () => {
     addItem,
     updateItem,
     deleteItem,
-    refreshItems: fetchItems
+    refreshItems: fetchItems,
+    updateLocalItems
   };
 };
 

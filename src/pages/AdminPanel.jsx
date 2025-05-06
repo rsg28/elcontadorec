@@ -580,7 +580,9 @@ const AdminPanel = () => {
     deleteItem, 
     addItem, 
     updateItem,
-    refreshItems 
+    refreshItems,
+    updateLocalItems,
+    setItemsWithDetails
   } = useItems();
   const { 
     servicios: allServicios, 
@@ -589,7 +591,9 @@ const AdminPanel = () => {
     createServicio, 
     createSubcategoria,
     deleteServicio,
-    fetchAllServicios
+    updateServicio,
+    fetchAllServicios,
+    setServicios: setAllServicios 
   } = useAllServicios();
   const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
   const { categorias: allCategorias, loading: categoriasLoading, error: categoriasError } = useCategorias();
@@ -628,6 +632,13 @@ const AdminPanel = () => {
   
   // Add a new state to track expanded services
   const [expandedServices, setExpandedServices] = useState({});
+  
+  // Add a state to track the most recently updated service names
+  const [updatedServiceNames, setUpdatedServiceNames] = useState({});
+  
+  // Add states to track updated subcategory names and prices
+  const [updatedSubcategoryNames, setUpdatedSubcategoryNames] = useState({});
+  const [updatedPrices, setUpdatedPrices] = useState({});
   
   // Add a ref to track if this is the initial load
   const isInitialLoadRef = useRef(true);
@@ -841,6 +852,28 @@ const AdminPanel = () => {
     }
   };
 
+  // Add a function to force refresh filteredItems
+  const forceRefresh = () => {
+    // Force a recomputation of filteredItems by toggling a filter value back and forth
+    // This is a workaround to ensure newly added items are included in search results
+    if (filters.searchTerm) {
+      const currentSearch = filters.searchTerm;
+      // Add a space to the search term to force a change
+      setFilters(prev => ({...prev, searchTerm: currentSearch + ' '}));
+      // Then quickly revert back to the original search term
+      setTimeout(() => {
+        setFilters(prev => ({...prev, searchTerm: currentSearch}));
+      }, 10);
+    } else {
+      // If no search term, briefly toggle min price
+      const currentMinPrice = filters.minPrice;
+      setFilters(prev => ({...prev, minPrice: '0'}));
+      setTimeout(() => {
+        setFilters(prev => ({...prev, minPrice: currentMinPrice}));
+      }, 10);
+    }
+  };
+
   // Handler for saving or updating an item
   const handleSaveItem = async (itemData, itemId) => {
     try {
@@ -862,22 +895,35 @@ const AdminPanel = () => {
         console.log('Creando nuevo servicio:', itemData.servicio_nombre);
         
         try {
-          const result = await createServicio({ 
-            nombre: itemData.id_servicio,
-            id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
-          });
+          // Check if service with same name already exists in this category
+          const existingService = allServicios.find(s => 
+            s.nombre.toLowerCase() === itemData.id_servicio.toLowerCase() && 
+            s.id_categoria === parseInt(itemData.id_categoria)
+          );
           
-          if (result.success) {
-            // Update the item data with the new service ID
-            itemData.id_servicio = result.data.id_servicio;
-            console.log('Servicio creado con ID:', result.data.id_servicio);
+          if (existingService) {
+            // We'll use the existing service instead of creating a new one
+            warning(`Ya existe un servicio con el nombre "${itemData.id_servicio}" en esta categoría. Se usará el servicio existente.`);
+            itemData.id_servicio = existingService.id_servicio;
           } else {
-            alert(`Error al crear servicio: ${result.error}`);
-            return;
+            // Create the new service
+            const result = await createServicio({ 
+              nombre: itemData.id_servicio,
+              id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
+            });
+            
+            if (result.success) {
+              // Update the item data with the new service ID
+              itemData.id_servicio = result.data.id_servicio;
+              console.log('Servicio creado con ID:', result.data.id_servicio);
+            } else {
+              showError(`Error al crear servicio: ${result.error}`);
+              return;
+            }
           }
         } catch (serviceError) {
           console.error('Error al crear servicio:', serviceError);
-          alert(`Error al crear servicio: ${serviceError.message}`);
+          showError(`Error al crear servicio: ${serviceError.message}`);
           return;
         }
       }
@@ -886,34 +932,60 @@ const AdminPanel = () => {
       if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
         // Validar que el servicio exista antes de crear la subcategoría
         if (!itemData.id_servicio || isNaN(parseInt(itemData.id_servicio))) {
-          alert('Error: El servicio no existe o no es válido');
+          showError('Error: El servicio no existe o no es válido');
           return;
         }
         
         console.log('Creando nueva subcategoría:', itemData.subcategoria_nombre);
         
         try {
-          // Try to create the subcategory first
-          const result = await createSubcategoria({ 
-            nombre: itemData.id_subcategoria,
-            id_servicio: itemData.id_servicio
-          });
+          // Check if subcategory with same name already exists for this service
+          const existingSubcategory = allSubcategorias.find(s => 
+            s.nombre.toLowerCase() === itemData.id_subcategoria.toLowerCase() &&
+            s.id_servicio === itemData.id_servicio
+          );
           
-          if (result.success) {
-            // Update the item data with the new subcategory ID
-            itemData.id_subcategoria = result.data.id_subcategoria;
-            // Ensure the subcategoria_nombre is set
-            itemData.subcategoria_nombre = result.data.nombre;
-            console.log('Subcategoría creada con ID:', result.data.id_subcategoria);
+          if (existingSubcategory) {
+            // Use existing subcategory
+            warning(`Ya existe una subcategoría con el nombre "${itemData.id_subcategoria}" para este servicio. Se usará la subcategoría existente.`);
+            itemData.id_subcategoria = existingSubcategory.id_subcategoria;
+            itemData.subcategoria_nombre = existingSubcategory.nombre;
           } else {
-            alert(`Error al crear subcategoría: ${result.error}`);
-            return;
+            // Try to create the subcategory
+            const result = await createSubcategoria({ 
+              nombre: itemData.id_subcategoria,
+              id_servicio: itemData.id_servicio
+            });
+            
+            if (result.success) {
+              // Update the item data with the new subcategory ID
+              itemData.id_subcategoria = result.data.id_subcategoria;
+              // Ensure the subcategoria_nombre is set
+              itemData.subcategoria_nombre = result.data.nombre;
+              console.log('Subcategoría creada con ID:', result.data.id_subcategoria);
+            } else {
+              showError(`Error al crear subcategoría: ${result.error}`);
+              return;
+            }
           }
         } catch (subcatError) {
           console.error('Error al crear subcategoría:', subcatError);
-          alert(`Error al crear subcategoría: ${subcatError.message}`);
+          showError(`Error al crear subcategoría: ${subcatError.message}`);
           return;
         }
+      }
+      
+      // Check if an item with this combination already exists
+      const existingItem = itemsWithDetails.find(item => 
+        item.id_servicio === itemData.id_servicio &&
+        item.id_subcategoria === itemData.id_subcategoria &&
+        (itemId ? (item.id_items !== itemId && item.id_item !== itemId) : true)
+      );
+      
+      if (existingItem) {
+        // Show an error message about the duplicate
+        warning(`Ya existe un ítem con este servicio (${itemData.servicio_nombre}) y subcategoría (${itemData.subcategoria_nombre}). No se puede crear un duplicado.`);
+        return;
       }
       
       // Now proceed with item creation/update
@@ -930,6 +1002,9 @@ const AdminPanel = () => {
           // Refresh items to show changes immediately
           await refreshItems();
           
+          // Force a refresh of the filtered items
+          forceRefresh();
+          
           // Restore expanded state
           setExpandedServices(currentExpandedState);
           
@@ -944,11 +1019,57 @@ const AdminPanel = () => {
         if (result.success) {
           setShowItemForm(false);
           
+          // Store the new item's service name for immediate display
+          if (result.data && result.data.id_servicio) {
+            // Update updatedServiceNames to ensure the UI shows the correct name immediately
+            setUpdatedServiceNames(prev => ({
+              ...prev,
+              [result.data.id_servicio]: itemData.servicio_nombre
+            }));
+            
+            // Also update the local items immediately instead of waiting for refresh
+            const newItem = {
+              ...result.data,
+              servicio_nombre: itemData.servicio_nombre,
+              subcategoria_nombre: itemData.subcategoria_nombre,
+              // Ensure these fields exist for search functionality
+              id_items: result.data.id_items || result.data.id_item,
+              id_item: result.data.id_items || result.data.id_item,
+              id_categoria: parseInt(itemData.id_categoria)
+            };
+            
+            // Update local items to include this new item with correct service name
+            updateLocalItems(items => [...items, newItem]);
+            
+            // Expand the service group for the new item
+            setExpandedServices(prev => ({
+              ...prev,
+              [result.data.id_servicio]: true
+            }));
+            
+            // If there's a search term that should match this item, refresh filters to show it
+            const searchTerm = filters.searchTerm.toLowerCase().trim();
+            if (searchTerm && (
+                enrichedNewItem.servicio_nombre.toLowerCase().includes(searchTerm) ||
+                enrichedNewItem.subcategoria_nombre.toLowerCase().includes(searchTerm)
+            )) {
+              // Force a re-application of filters by slightly changing and restoring the search term
+              const currentSearch = filters.searchTerm;
+              setFilters(prev => ({...prev, searchTerm: currentSearch + ' '}));
+              setTimeout(() => {
+                setFilters(prev => ({...prev, searchTerm: currentSearch}));
+              }, 50);
+            }
+          }
+          
           // Save current expanded state with deep copy
           const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
           
           // Refresh items to show the new item immediately
           await refreshItems();
+          
+          // Force a refresh of the filtered items to ensure the new item is searchable
+          forceRefresh();
           
           // Restore expanded state
           setExpandedServices(currentExpandedState);
@@ -961,7 +1082,7 @@ const AdminPanel = () => {
       }
     } catch (error) {
       console.error('Error in handleSaveItem:', error);
-      alert(`Error inesperado: ${error.message}`);
+      showError(`Error inesperado: ${error.message}`);
     }
   };
 
@@ -1253,35 +1374,72 @@ const AdminPanel = () => {
   // Add state for dropdowns
   const [inlineEditOptions, setInlineEditOptions] = useState([]);
 
-  // Update handleDoubleClick to load available options
+  // Update handleDoubleClick to allow free-text entry for services
   const handleDoubleClick = (itemId, field, value) => {
-    let options = [];
-    
-    // Prepare options based on field type
+    // For service field, we'll use text input instead of dropdown
     if (field === 'servicio') {
-      options = allServicios.map(s => ({
-        id: s.id_servicio,
-        name: s.nombre
-      }));
-    } else if (field === 'subcategoria') {
-      options = allSubcategorias.map(s => ({
+      setEditingState({
+        itemId,
+        field,
+        value: value || '',
+        isLoading: false,
+        originalValue: value // Store the original value for comparison
+      });
+    } 
+    // For subcategoria, we still use dropdown
+    else if (field === 'subcategoria') {
+      const options = allSubcategorias.map(s => ({
         id: s.id_subcategoria,
         name: s.nombre
       }));
+      
+      setInlineEditOptions(options);
+      setEditingState({
+        itemId,
+        field,
+        value: value || '',
+        isLoading: false
+      });
     }
-    
-    setInlineEditOptions(options);
-    setEditingState({
-      itemId,
-      field,
-      value: value || '',
-      isLoading: false
-    });
+    // For price, we use the existing text input
+    else {
+      setEditingState({
+        itemId,
+        field,
+        value: value || '',
+        isLoading: false
+      });
+    }
   };
 
-  // Update the handleInlineEditSave to use the selected option
+  // Update handleDropdownChange for subcategory selection
+  const handleDropdownChange = (e) => {
+    const newValue = e.target.value;
+    
+    // Update the state
+    setEditingState({
+      ...editingState,
+      value: newValue
+    });
+    
+    // Only auto-save for subcategory dropdown, not for service (which is now a text input)
+    if (editingState.field === 'subcategoria') {
+      setEditingState(prev => ({
+        ...prev,
+        value: newValue,
+        isLoading: true
+      }));
+      
+      // Auto-save after a brief delay to allow state update
+      setTimeout(() => {
+        handleInlineEditSave();
+      }, 100);
+    }
+  };
+
+  // Update handleInlineEditSave to track all updated fields
   const handleInlineEditSave = async () => {
-    const { itemId, field, value } = editingState;
+    const { itemId, field, value, originalValue } = editingState;
     if (!value.trim()) return;
     
     setEditingState({
@@ -1293,14 +1451,122 @@ const AdminPanel = () => {
       const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
       if (!itemToUpdate) return;
       
+      // Handle service name editing differently
+      if (field === 'servicio') {
+        // Only proceed if the name has changed
+        if (value === originalValue) {
+          setEditingState({
+            itemId: null,
+            field: null,
+            value: '',
+            isLoading: false
+          });
+          return;
+        }
+        
+        // Find the service to get its ID and category
+        const currentService = allServicios.find(s => s.id_servicio === itemToUpdate.id_servicio);
+        if (!currentService) {
+          showError('No se pudo encontrar el servicio actual');
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+          return;
+        }
+        
+        const categoryId = currentService.id_categoria;
+        const servicioId = currentService.id_servicio;
+        
+        // Check if another service with the same name exists in this category
+        const serviceWithSameNameInCategory = allServicios.find(s => 
+          s.nombre.toLowerCase() === value.toLowerCase() && 
+          s.id_categoria === categoryId &&
+          s.id_servicio !== itemToUpdate.id_servicio
+        );
+        
+        if (serviceWithSameNameInCategory) {
+          warning(`Ya existe un servicio con el nombre "${value}" en la categoría "${categoryId}". Por favor, use un nombre diferente.`);
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+          return;
+        }
+        
+        // Update the service name in the backend
+        const updateResult = await updateServicio(itemToUpdate.id_servicio, value);
+        
+        if (updateResult.success) {
+          // First, store the updated service name for UI consistency
+          setUpdatedServiceNames(prev => ({
+            ...prev,
+            [servicioId]: value
+          }));
+          
+          // Update both data models first before resetting the editing state
+          
+          // 1. Update all items that reference this service ID
+          updateLocalItems(items => {
+            return items.map(item => {
+              if (item.id_servicio === servicioId) {
+                return { 
+                  ...item, 
+                  servicio_nombre: value,
+                  // Make sure all references to the service name are updated
+                  servicio: value
+                };
+              }
+              return item;
+            });
+          });
+          
+          // 2. Update the services list in memory
+          const updatedServicios = allServicios.map(s => {
+            if (s.id_servicio === servicioId) {
+              return { ...s, nombre: value };
+            }
+            return s;
+          });
+          setAllServicios(updatedServicios);
+          
+          // Only after updating the UI state, clear the editing state
+          setEditingState({
+            itemId: null,
+            field: null,
+            value: '',
+            isLoading: false
+          });
+          
+          // Save current expanded state with deep copy
+          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+          
+          // Also refresh services from the server to ensure consistency
+          await fetchAllServicios();
+          
+          // Restore expanded state
+          setExpandedServices(currentExpandedState);
+          
+          success('Nombre de servicio actualizado correctamente');
+        } else {
+          showError(`Error al actualizar servicio: ${updateResult.error}`);
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+        }
+        
+        return;
+      }
+      
+      // For other fields (precio, subcategoria), continue with the existing logic
       const updatedItem = { ...itemToUpdate };
       
-      // Handle different fields
       if (field === 'precio') {
         // Validate that the price is a valid number
         const price = parseFloat(value);
         if (isNaN(price) || price < 0) {
-          alert('Por favor ingrese un precio válido');
+          warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
           setEditingState({
             ...editingState,
             isLoading: false
@@ -1309,12 +1575,12 @@ const AdminPanel = () => {
         }
         updatedItem.precio = price;
       } 
-      else if (field === 'servicio') {
-        // Find the selected service from options
-        const selectedService = allServicios.find(s => s.nombre === value || s.id_servicio.toString() === value);
+      else if (field === 'subcategoria') {
+        // For subcategory, we still use the dropdown selection
+        const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
         
-        if (!selectedService) {
-          alert('Por favor seleccione un servicio válido');
+        if (!selectedSubcategory) {
+          warning('Por favor seleccione una subcategoría válida');
           setEditingState({
             ...editingState,
             isLoading: false
@@ -1322,15 +1588,30 @@ const AdminPanel = () => {
           return;
         }
         
-        updatedItem.servicio_nombre = selectedService.nombre;
-        updatedItem.id_servicio = selectedService.id_servicio;
-      } 
-      else if (field === 'subcategoria') {
-        // Find the selected subcategory from options
-        const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
+        // Check if this item already has this subcategory name
+        if (itemToUpdate.subcategoria_nombre === selectedSubcategory.nombre) {
+          // No change needed
+          setEditingState({
+            itemId: null,
+            field: null,
+            value: '',
+            isLoading: false
+          });
+          return;
+        }
         
-        if (!selectedSubcategory) {
-          alert('Por favor seleccione una subcategoría válida');
+        // Check if another item in the same service already has this subcategory
+        const itemsWithSameService = itemsWithDetails.filter(item => 
+          item.id_servicio === itemToUpdate.id_servicio &&
+          (item.id_items !== itemId && item.id_item !== itemId)
+        );
+        
+        const duplicateSubcategory = itemsWithSameService.find(item => 
+          item.subcategoria_nombre.toLowerCase() === selectedSubcategory.nombre.toLowerCase()
+        );
+        
+        if (duplicateSubcategory) {
+          warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio. Por favor, seleccione otra subcategoría.`);
           setEditingState({
             ...editingState,
             isLoading: false
@@ -1349,6 +1630,44 @@ const AdminPanel = () => {
       const result = await updateItem(idToUse, updatedItem);
       
       if (result.success) {
+        // Store updated values for UI consistency
+        if (field === 'precio') {
+          setUpdatedPrices(prev => ({
+            ...prev,
+            [idToUse]: value
+          }));
+          
+          // Update local items for immediate UI reflection
+          updateLocalItems(items => {
+            return items.map(item => {
+              if ((item.id_items === idToUse) || (item.id_item === idToUse)) {
+                return { ...item, precio: parseFloat(value) };
+              }
+              return item;
+            });
+          });
+        } 
+        else if (field === 'subcategoria') {
+          setUpdatedSubcategoryNames(prev => ({
+            ...prev,
+            [idToUse]: selectedSubcategory.nombre
+          }));
+          
+          // Update local items for immediate UI reflection
+          updateLocalItems(items => {
+            return items.map(item => {
+              if ((item.id_items === idToUse) || (item.id_item === idToUse)) {
+                return { 
+                  ...item, 
+                  subcategoria_nombre: selectedSubcategory.nombre,
+                  id_subcategoria: selectedSubcategory.id_subcategoria 
+                };
+              }
+              return item;
+            });
+          });
+        }
+        
         // Reset editing state
         setEditingState({
           itemId: null,
@@ -1368,6 +1687,8 @@ const AdminPanel = () => {
         
         // Restore expanded state
         setExpandedServices(currentExpandedState);
+        
+        success(`${field === 'subcategoria' ? 'Subcategoría' : 'Precio'} actualizado correctamente`);
       } else {
         showError(`Error al actualizar: ${result.error}`);
         setEditingState({
@@ -1394,23 +1715,6 @@ const AdminPanel = () => {
       isLoading: false
     });
     setInlineEditOptions([]);
-  };
-
-  // Update the handleDropdownChange function to auto-save when value changes
-  const handleDropdownChange = (e) => {
-    const newValue = e.target.value;
-    
-    // Update the state
-    setEditingState({
-      ...editingState,
-      value: newValue,
-      isLoading: true
-    });
-    
-    // Auto-save after a brief delay to allow state update
-    setTimeout(() => {
-      handleInlineEditSave();
-    }, 100);
   };
 
   // Add a function to toggle service expansion
@@ -1735,7 +2039,7 @@ const AdminPanel = () => {
                               className="expand-icon" 
                             />
                             <div className="service-info">
-                              <h3 className="service-name">{servicio.nombre}</h3>
+                              <h3 className="service-name">{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
                               <div className="service-category">{category.name}</div>
                             </div>
                             <div className="service-stats">
@@ -1764,32 +2068,48 @@ const AdminPanel = () => {
                                       <span className="service-label">Servicio:</span>
                                       {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
                                         <div className="inline-edit-field">
-                                          <select
+                                          <input
+                                            type="text"
                                             value={editingState.value}
-                                            onChange={handleDropdownChange}
-                                            className="inline-edit-select"
+                                            onChange={(e) => setEditingState({...editingState, value: e.target.value})}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleInlineEditSave();
+                                              if (e.key === 'Escape') handleInlineEditCancel();
+                                            }}
+                                            className="inline-edit-input"
                                             autoFocus
-                                          >
-                                            <option value="">Seleccione un servicio</option>
-                                            {inlineEditOptions.map(option => (
-                                              <option key={option.id} value={option.name}>
-                                                {option.name}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          {editingState.isLoading && (
-                                            <div className="loading-indicator-small">
-                                              <FontAwesomeIcon icon={faSpinner} spin />
-                                            </div>
-                                          )}
+                                            placeholder="Nombre del servicio"
+                                          />
+                                          <div className="inline-edit-actions">
+                                            {editingState.isLoading ? (
+                                              <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                            ) : (
+                                              <>
+                                                <button 
+                                                  className="inline-edit-button save" 
+                                                  onClick={handleInlineEditSave}
+                                                  title="Guardar"
+                                                >
+                                                  <FontAwesomeIcon icon={faCheck} />
+                                                </button>
+                                                <button 
+                                                  className="inline-edit-button cancel" 
+                                                  onClick={handleInlineEditCancel}
+                                                  title="Cancelar"
+                                                >
+                                                  <FontAwesomeIcon icon={faTimes} />
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       ) : (
                                         <span 
                                           className="service-name editable" 
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
                                           title="Doble clic para editar"
                                         >
-                                          {highlightText(item.servicio_nombre)}
+                                          {highlightText(updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
                                         </span>
                                       )}
                                     </div>
@@ -1820,10 +2140,10 @@ const AdminPanel = () => {
                                       ) : (
                                         <span 
                                           className="subcategory-name editable" 
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
                                           title="Doble clic para editar"
                                         >
-                                          {highlightText(item.subcategoria_nombre)}
+                                          {highlightText(updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
                                         </span>
                                       )}
                                     </div>
@@ -1870,10 +2190,10 @@ const AdminPanel = () => {
                                       ) : (
                                         <span 
                                           className="price-value editable" 
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', updatedPrices[item.id_item] || item.precio)}
                                           title="Doble clic para editar"
                                         >
-                                          ${formatPrice(item.precio)}
+                                          ${formatPrice(updatedPrices[item.id_item] || item.precio)}
                                         </span>
                                       )}
                                     </div>

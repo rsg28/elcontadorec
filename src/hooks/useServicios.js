@@ -261,6 +261,96 @@ export const useAllServicios = () => {
     }
   };
 
+  /**
+   * Actualizar el nombre de un servicio existente
+   * @param {number} servicioId - ID del servicio a actualizar
+   * @param {string} newName - Nuevo nombre para el servicio
+   * @returns {Promise<Object>} - Resultado de la operación
+   */
+  const updateServicio = async (servicioId, newName) => {
+    try {
+      setLoading(true);
+      
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
+      // First update the service in the backend
+      const response = await fetch(`${API_BASE_URL}/api/servicios/${servicioId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ nombre: newName }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const updatedServicio = await response.json();
+      
+      // Now we need to update all items that reference this service
+      // Get all items first
+      const itemsResponse = await fetch(`${API_BASE_URL}/api/items`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!itemsResponse.ok) {
+        console.warn('Could not fetch items to update service references');
+      } else {
+        const allItems = await itemsResponse.json();
+        
+        // Filter items that use this service
+        const itemsToUpdate = allItems.filter(item => item.id_servicio === servicioId);
+        
+        // Update each item's service_nombre field
+        for (const item of itemsToUpdate) {
+          try {
+            const itemId = item.id_items || item.id_item;
+            
+            await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ 
+                ...item,
+                servicio_nombre: newName
+              }),
+            });
+          } catch (itemError) {
+            console.warn(`Could not update item ${item.id_items || item.id_item} with new service name:`, itemError);
+          }
+        }
+      }
+      
+      // Actualizar la lista de servicios localmente
+      setServicios(prevServicios => 
+        prevServicios.map(servicio => {
+          if (servicio.id_servicio === servicioId) {
+            return { ...servicio, nombre: newName };
+          }
+          return servicio;
+        })
+      );
+      
+      return { success: true, data: updatedServicio };
+    } catch (err) {
+      console.error('Error updating servicio:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return { 
     servicios, 
     loading, 
@@ -268,7 +358,9 @@ export const useAllServicios = () => {
     createServicio, 
     createSubcategoria,
     deleteServicio,
-    fetchAllServicios
+    updateServicio,
+    fetchAllServicios,
+    setServicios
   };
 };
 
