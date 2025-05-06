@@ -237,7 +237,7 @@ export const useAllServicios = () => {
       const result = await deleteResponse.json();
       console.log('Respuesta del servidor:', result);
       
-      // Update local state
+      // Update local state ONLY when server deletion was successful
       setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));
       
       return { 
@@ -249,19 +249,8 @@ export const useAllServicios = () => {
       console.error('Error eliminando servicio:', err);
       setError(err.message);
       
-      // Try to update local state anyway
-      try {
-        setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));
-        console.log('Servicio eliminado localmente a pesar del error');
-        
-        return {
-          success: true,
-          message: `El servicio se eliminó localmente, pero hubo errores en la comunicación con el servidor: ${err.message}`,
-          warnings: [err.message]
-        };
-      } catch (stateError) {
-        console.error('Error adicional actualizando estado local:', stateError);
-      }
+      // Do NOT update local state if server deletion failed
+      // This way UI will stay in sync with the actual server state
       
       return { 
         success: false, 

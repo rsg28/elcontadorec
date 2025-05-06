@@ -7,8 +7,8 @@ import { useAllServicios } from '../hooks/useServicios';
 import useSubcategorias from '../hooks/useSubcategorias';
 import useCategorias from '../hooks/useCategorias';
 import useAuth from '../hooks/useAuth';
+import useNotifications from '../hooks/useNotifications';
 import './AdminPanel.css';
-import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Item form modal component
@@ -593,6 +593,7 @@ const AdminPanel = () => {
   } = useAllServicios();
   const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
   const { categorias: allCategorias, loading: categoriasLoading, error: categoriasError } = useCategorias();
+  const { success, error: showError, warning, info, ToastContainer } = useNotifications();
   
   const [adminChecking, setAdminChecking] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -932,10 +933,10 @@ const AdminPanel = () => {
           // Restore expanded state
           setExpandedServices(currentExpandedState);
           
-          console.log('Ítem actualizado correctamente');
-          toast.success('Ítem actualizado correctamente');
+          console.log('Item actualizado correctamente');
+          success('Item actualizado correctamente');
         } else {
-          toast.error(`Error al actualizar ítem: ${result.error}`);
+          showError(`Error al actualizar ítem: ${result.error}`);
         }
       } else {
         console.log('Creando nuevo ítem');
@@ -952,10 +953,10 @@ const AdminPanel = () => {
           // Restore expanded state
           setExpandedServices(currentExpandedState);
           
-          console.log('Ítem creado correctamente');
-          toast.success('Ítem creado correctamente');
+          console.log('Item creado correctamente');
+          success('Item creado correctamente');
         } else {
-          toast.error(`Error al agregar ítem: ${result.error}`);
+          showError(`Error al agregar ítem: ${result.error}`);
         }
       }
     } catch (error) {
@@ -1005,10 +1006,10 @@ const AdminPanel = () => {
         isLoading: false
       });
       
-      // Save current expanded state with deep copy
-      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-      
       if (result.success) {
+        // Save current expanded state with deep copy
+        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+        
         // Refresh the lists to reflect the changes
         await fetchAllServicios();
         await refreshItems();
@@ -1025,21 +1026,14 @@ const AdminPanel = () => {
           }
         }
         
-        toast.success(successMessage);
+        success(successMessage);
       } else {
         console.error('Error en la operación:', result.error);
-        toast.error(`Error al eliminar servicio: ${result.error}`);
-        
-        // Refresh data anyway to show current state
-        await fetchAllServicios();
-        await refreshItems();
-        
-        // Restore expanded state
-        setExpandedServices(currentExpandedState);
+        showError(`Error al eliminar servicio: ${result.error}`);
       }
     } catch (error) {
       console.error('Error inesperado en confirmDeleteService:', error);
-      toast.error(`Error inesperado: ${error.message}`);
+      showError(`Error inesperado: ${error.message}`);
       
       // Ensure the state of the modal is reset in case of error
       setDeleteServiceState({ 
@@ -1050,16 +1044,6 @@ const AdminPanel = () => {
         subcategoriaCount: 0,
         isLoading: false 
       });
-      
-      // Try to refresh list anyway while preserving expanded state
-      try {
-        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-        await fetchAllServicios();
-        await refreshItems();
-        setExpandedServices(currentExpandedState);
-      } catch (e) {
-        console.error('Error adicional al refrescar después de excepción:', e);
-      }
     }
   };
   
@@ -1085,7 +1069,7 @@ const AdminPanel = () => {
       
       if (!itemToDelete) {
         console.error("Item not found for deletion");
-        alert("Error: No se pudo encontrar el ítem para eliminar");
+        showError("Error: No se pudo encontrar el ítem para eliminar");
         return;
       }
       
@@ -1108,7 +1092,7 @@ const AdminPanel = () => {
             .then(result => {
               if (result.success) {
                 // Show toast notification
-                toast.success('Servicio y todos sus ítems eliminados correctamente');
+                success('Servicio y todos sus ítems eliminados correctamente');
                 
                 // Save current expanded state with deep copy
                 const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
@@ -1124,12 +1108,12 @@ const AdminPanel = () => {
                   });
               } else {
                 console.error("Delete service error:", result.error);
-                toast.error(`Error al eliminar servicio: ${result.error}`);
+                showError(`Error al eliminar servicio: ${result.error}`);
               }
             })
             .catch(error => {
               console.error("Unhandled error in delete service:", error);
-              toast.error(`Error inesperado: ${error.message}`);
+              showError(`Error inesperado: ${error.message}`);
             });
         } else {
           // User chose not to delete the service, proceed with just deleting the item
@@ -1137,7 +1121,7 @@ const AdminPanel = () => {
             .then(result => {
               if (result.success) {
                 // Show toast notification
-                toast.success('Ítem eliminado correctamente');
+                success('Ítem eliminado correctamente');
                 
                 // Save current expanded state with deep copy
                 const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
@@ -1150,12 +1134,12 @@ const AdminPanel = () => {
                   });
               } else {
                 console.error("Delete error:", result.error);
-                toast.error(`Error al eliminar ítem: ${result.error}`);
+                showError(`Error al eliminar ítem: ${result.error}`);
               }
             })
             .catch(error => {
               console.error("Unhandled error in delete:", error);
-              toast.error(`Error inesperado: ${error.message}`);
+              showError(`Error inesperado: ${error.message}`);
             });
         }
       } else {
@@ -1166,7 +1150,7 @@ const AdminPanel = () => {
             .then(result => {
               if (result.success) {
                 // Show toast notification
-                toast.success('Ítem eliminado correctamente');
+                success('Ítem eliminado correctamente');
                 
                 // Save current expanded state with deep copy
                 const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
@@ -1179,19 +1163,19 @@ const AdminPanel = () => {
                   });
               } else {
                 console.error("Delete error:", result.error);
-                toast.error(`Error al eliminar ítem: ${result.error}`);
+                showError(`Error al eliminar ítem: ${result.error}`);
               }
             })
             .catch(error => {
               console.error("Unhandled error in delete:", error);
-              toast.error(`Error inesperado: ${error.message}`);
+              showError(`Error inesperado: ${error.message}`);
             });
         }
       }
     } else if (type === 'servicio') {
       handleDeleteService(id);
     } else {
-      alert(`Eliminar ${type} con ID: ${id}`);
+      showError(`Operación no soportada: eliminar ${type} con ID: ${id}`);
     }
   };
 
@@ -1385,7 +1369,7 @@ const AdminPanel = () => {
         // Restore expanded state
         setExpandedServices(currentExpandedState);
       } else {
-        toast.error(`Error al actualizar: ${result.error}`);
+        showError(`Error al actualizar: ${result.error}`);
         setEditingState({
           ...editingState,
           isLoading: false
@@ -1397,7 +1381,7 @@ const AdminPanel = () => {
         ...editingState,
         isLoading: false
       });
-      toast.error('Error al guardar los cambios');
+      showError('Error al guardar los cambios');
     }
   };
 
@@ -1687,237 +1671,264 @@ const AdminPanel = () => {
             {filteredItems.length === 0 ? (
               <p className="no-data">No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
-              // Agrupar ítems por servicio para mostrarlos organizados
-              allServicios
-                .filter(servicio => {
-                  // Solo incluir servicios que coincidan con el filtro de categoría
-                  if (filters.categoriaId !== 'all') {
-                    return servicio.id_categoria === parseInt(filters.categoriaId);
+              // Reorganize to group by category first, then by service
+              Object.values(
+                // First, group all services by category ID
+                allServicios.reduce((categories, service) => {
+                  // Skip services that don't match our filters
+                  if (filters.servicioId !== 'all' && service.id_servicio !== parseInt(filters.servicioId)) {
+                    return categories;
                   }
-                  return true;
-                })
-                .filter(servicio => {
-                  // Solo incluir servicios que coincidan con el filtro de servicio
-                  if (filters.servicioId !== 'all') {
-                    return servicio.id_servicio === parseInt(filters.servicioId);
+                  
+                  // Skip if no items match this service
+                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
+                  if (!hasMatchingItems) {
+                    return categories;
                   }
-                  return true;
-                })
-                .filter(servicio => {
-                  // Solo incluir servicios que tienen ítems que coinciden con el filtro
-                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === servicio.id_servicio);
-                  return hasMatchingItems;
-                })
-                .map(servicio => {
-                  // Obtener ítems relacionados con este servicio
-                  const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
                   
-                  // Obtener categoría para este servicio
-                  const category = allCategorias.find(c => c.id_categoria === servicio.id_categoria);
-                  const categoryName = category ? category.nombre : 'Sin categoría';
-                  const categoryColor = getCategoryColor(servicio.id_categoria);
+                  // Get category info
+                  const categoryId = service.id_categoria;
+                  const category = allCategorias.find(c => c.id_categoria === categoryId);
                   
-                  return (
-                    <div key={servicio.id_servicio} className="service-group">
-                      <div className={`service-header ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}
-                        style={{ borderLeft: `4px solid ${categoryColor}` }}
-                        onClick={() => toggleServiceExpansion(servicio.id_servicio)}>
-                        <FontAwesomeIcon 
-                          icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
-                          className="expand-icon" 
-                        />
-                        <div className="service-info">
-                          <h3 className="service-name">{servicio.nombre}</h3>
-                          <div className="service-category">{categoryName}</div>
-                        </div>
-                        <div className="service-stats">
-                          <span className="service-items-count">{servicioItems.length} ítem(s)</span>
-                        </div>
-                        <div className="service-actions">
-                          <button 
-                            className="action-button delete"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent triggering the header click
-                              handleDelete('servicio', servicio.id_servicio);
-                            }}
-                            title="Eliminar servicio completo"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        </div>
-                      </div>
+                  // Skip if we're filtering by category and this doesn't match
+                  if (filters.categoriaId !== 'all' && categoryId !== parseInt(filters.categoriaId)) {
+                    return categories;
+                  }
+                  
+                  // Add category if it doesn't exist yet
+                  if (!categories[categoryId]) {
+                    categories[categoryId] = {
+                      id: categoryId,
+                      name: category ? category.nombre : 'Sin categoría',
+                      color: getCategoryColor(categoryId),
+                      services: []
+                    };
+                  }
+                  
+                  // Add this service to the category
+                  categories[categoryId].services.push(service);
+                  return categories;
+                }, {})
+              ).map(category => (
+                <div key={`category-${category.id}`} className="category-group">
+                  <div className="category-header" style={{ backgroundColor: category.color }}>
+                    <h2 className="category-name">{category.name}</h2>
+                    <div className="category-stats">
+                      {category.services.length} servicio(s)
+                    </div>
+                  </div>
+                  
+                  <div className="category-services">
+                    {category.services.map(servicio => {
+                      // Get items for this service
+                      const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
                       
-                      <div className={`service-items ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}>
-                        {servicioItems.map(item => (
-                          <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${categoryColor}` }}>
-                            <div className="item-header">
-                              <div className="item-main-info">
-                                <div className="item-service">
-                                  <span className="service-label">Servicio:</span>
-                                  {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                                    <div className="inline-edit-field">
-                                      <select
-                                        value={editingState.value}
-                                        onChange={handleDropdownChange}
-                                        className="inline-edit-select"
-                                        autoFocus
-                                      >
-                                        <option value="">Seleccione un servicio</option>
-                                        {inlineEditOptions.map(option => (
-                                          <option key={option.id} value={option.name}>
-                                            {option.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      {editingState.isLoading && (
-                                        <div className="loading-indicator-small">
-                                          <FontAwesomeIcon icon={faSpinner} spin />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span 
-                                      className="service-name editable" 
-                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
-                                      title="Doble clic para editar"
-                                    >
-                                      {highlightText(item.servicio_nombre)}
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                <div className="item-subcategory">
-                                  <span className="subcategory-label">Subcategoría:</span>
-                                  {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                                    <div className="inline-edit-field">
-                                      <select
-                                        value={editingState.value}
-                                        onChange={handleDropdownChange}
-                                        className="inline-edit-select"
-                                        autoFocus
-                                      >
-                                        <option value="">Seleccione una subcategoría</option>
-                                        {inlineEditOptions.map(option => (
-                                          <option key={option.id} value={option.name}>
-                                            {option.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      {editingState.isLoading && (
-                                        <div className="loading-indicator-small">
-                                          <FontAwesomeIcon icon={faSpinner} spin />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span 
-                                      className="subcategory-name editable" 
-                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
-                                      title="Doble clic para editar"
-                                    >
-                                      {highlightText(item.subcategoria_nombre)}
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                <div className="item-price-display">
-                                  <span className="price-label">Precio:</span>
-                                  {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                                    <div className="inline-edit-field">
-                                      <div className="price-edit-container">
-                                        <span className="price-edit-symbol">$</span>
-                                        <input
-                                          type="text"
-                                          value={editingState.value}
-                                          onChange={handleInlineEditChange}
-                                          onKeyDown={handleInlineEditKeyDown}
-                                          className="inline-edit-input"
-                                          autoFocus
-                                          placeholder="0.00"
-                                        />
-                                        <div className="inline-edit-actions">
-                                          {editingState.isLoading ? (
-                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                          ) : (
-                                            <>
-                                              <button 
-                                                className="inline-edit-button save" 
-                                                onClick={handleInlineEditSave}
-                                                title="Guardar"
-                                              >
-                                                <FontAwesomeIcon icon={faCheck} />
-                                              </button>
-                                              <button 
-                                                className="inline-edit-button cancel" 
-                                                onClick={handleInlineEditCancel}
-                                                title="Cancelar"
-                                              >
-                                                <FontAwesomeIcon icon={faTimes} />
-                                              </button>
-                                            </>
+                      return (
+                        <div key={servicio.id_servicio} className="service-group">
+                          <div 
+                            className={`service-header ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}
+                            style={{ borderLeft: `4px solid ${category.color}` }}
+                            onClick={() => toggleServiceExpansion(servicio.id_servicio)}
+                          >
+                            <FontAwesomeIcon 
+                              icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
+                              className="expand-icon" 
+                            />
+                            <div className="service-info">
+                              <h3 className="service-name">{servicio.nombre}</h3>
+                              <div className="service-category">{category.name}</div>
+                            </div>
+                            <div className="service-stats">
+                              <span className="service-items-count">{servicioItems.length} ítem(s)</span>
+                            </div>
+                            <div className="service-actions">
+                              <button 
+                                className="action-button delete"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent triggering the header click
+                                  handleDelete('servicio', servicio.id_servicio);
+                                }}
+                                title="Eliminar servicio completo"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className={`service-items ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}>
+                            {servicioItems.map(item => (
+                              <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${category.color}` }}>
+                                <div className="item-header">
+                                  <div className="item-main-info">
+                                    <div className="item-service">
+                                      <span className="service-label">Servicio:</span>
+                                      {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
+                                        <div className="inline-edit-field">
+                                          <select
+                                            value={editingState.value}
+                                            onChange={handleDropdownChange}
+                                            className="inline-edit-select"
+                                            autoFocus
+                                          >
+                                            <option value="">Seleccione un servicio</option>
+                                            {inlineEditOptions.map(option => (
+                                              <option key={option.id} value={option.name}>
+                                                {option.name}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          {editingState.isLoading && (
+                                            <div className="loading-indicator-small">
+                                              <FontAwesomeIcon icon={faSpinner} spin />
+                                            </div>
                                           )}
                                         </div>
-                                      </div>
+                                      ) : (
+                                        <span 
+                                          className="service-name editable" 
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', item.servicio_nombre)}
+                                          title="Doble clic para editar"
+                                        >
+                                          {highlightText(item.servicio_nombre)}
+                                        </span>
+                                      )}
                                     </div>
-                                  ) : (
-                                    <span 
-                                      className="price-value editable" 
-                                      onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
-                                      title="Doble clic para editar"
-                                    >
-                                      ${formatPrice(item.precio)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <div className="item-category-indicator" 
-                                style={{ backgroundColor: categoryColor }}
-                                title={`Categoría: ${categoryName}`}
-                              >
-                                {categoryName}
-                              </div>
-                              
-                              <div className="item-controls">
-                                <div className="item-actions">
-                                  <button 
-                                    className="action-button delete"
-                                    onClick={() => handleDelete('item', item.id_items || item.id_item)}
-                                    title="Eliminar ítem"
-                                  >
-                                    <FontAwesomeIcon icon={faTrash} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {(item.descripcion || item.opciones) && (
-                              <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
-                                <div className="item-section">
-                                  <div className="item-section-row">
-                                    {item.descripcion && (
-                                      <div className="item-detail">
-                                        <span className="detail-label">Descripción:</span>
-                                        <span className="detail-value">{item.descripcion}</span>
-                                      </div>
-                                    )}
                                     
-                                    {item.opciones && (
-                                      <div className="item-detail">
-                                        <span className="detail-label">Opciones:</span>
-                                        <span className="detail-value">{item.opciones}</span>
-                                      </div>
-                                    )}
+                                    <div className="item-subcategory">
+                                      <span className="subcategory-label">Subcategoría:</span>
+                                      {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
+                                        <div className="inline-edit-field">
+                                          <select
+                                            value={editingState.value}
+                                            onChange={handleDropdownChange}
+                                            className="inline-edit-select"
+                                            autoFocus
+                                          >
+                                            <option value="">Seleccione una subcategoría</option>
+                                            {inlineEditOptions.map(option => (
+                                              <option key={option.id} value={option.name}>
+                                                {option.name}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          {editingState.isLoading && (
+                                            <div className="loading-indicator-small">
+                                              <FontAwesomeIcon icon={faSpinner} spin />
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span 
+                                          className="subcategory-name editable" 
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', item.subcategoria_nombre)}
+                                          title="Doble clic para editar"
+                                        >
+                                          {highlightText(item.subcategoria_nombre)}
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="item-price-display">
+                                      <span className="price-label">Precio:</span>
+                                      {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
+                                        <div className="inline-edit-field">
+                                          <div className="price-edit-container">
+                                            <span className="price-edit-symbol">$</span>
+                                            <input
+                                              type="text"
+                                              value={editingState.value}
+                                              onChange={handleInlineEditChange}
+                                              onKeyDown={handleInlineEditKeyDown}
+                                              className="inline-edit-input"
+                                              autoFocus
+                                              placeholder="0.00"
+                                            />
+                                            <div className="inline-edit-actions">
+                                              {editingState.isLoading ? (
+                                                <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                              ) : (
+                                                <>
+                                                  <button 
+                                                    className="inline-edit-button save" 
+                                                    onClick={handleInlineEditSave}
+                                                    title="Guardar"
+                                                  >
+                                                    <FontAwesomeIcon icon={faCheck} />
+                                                  </button>
+                                                  <button 
+                                                    className="inline-edit-button cancel" 
+                                                    onClick={handleInlineEditCancel}
+                                                    title="Cancelar"
+                                                  >
+                                                    <FontAwesomeIcon icon={faTimes} />
+                                                  </button>
+                                                </>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <span 
+                                          className="price-value editable" 
+                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', item.precio)}
+                                          title="Doble clic para editar"
+                                        >
+                                          ${formatPrice(item.precio)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="item-category-indicator" 
+                                    style={{ backgroundColor: category.color }}
+                                    title={`Categoría: ${category.name}`}
+                                  >
+                                    {category.name}
+                                  </div>
+                                  
+                                  <div className="item-controls">
+                                    <div className="item-actions">
+                                      <button 
+                                        className="action-button delete"
+                                        onClick={() => handleDelete('item', item.id_items || item.id_item)}
+                                        title="Eliminar ítem"
+                                      >
+                                        <FontAwesomeIcon icon={faTrash} />
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
+                                
+                                {(item.descripcion || item.opciones) && (
+                                  <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
+                                    <div className="item-section">
+                                      <div className="item-section-row">
+                                        {item.descripcion && (
+                                          <div className="item-detail">
+                                            <span className="detail-label">Descripción:</span>
+                                            <span className="detail-value">{item.descripcion}</span>
+                                          </div>
+                                        )}
+                                        
+                                        {item.opciones && (
+                                          <div className="item-detail">
+                                            <span className="detail-label">Opciones:</span>
+                                            <span className="detail-value">{item.opciones}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         )}
@@ -1949,18 +1960,7 @@ const AdminPanel = () => {
         />
       )}
       
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
+      <ToastContainer />
     </div>
   );
 };
