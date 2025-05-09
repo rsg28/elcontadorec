@@ -385,6 +385,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
                   className="form-control"
                   disabled={!formData.categoria}
+                  autoComplete="off"
                 />
                 {suggestions.servicios.length > 0 && (
                   <ul className="suggestions-list">
@@ -419,6 +420,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   required
                   placeholder="Escriba para buscar o agregar subcategoría"
                   className="form-control"
+                  autoComplete="off"
                 />
                 {suggestions.subcategorias.length > 0 && (
                   <ul className="suggestions-list">
@@ -451,6 +453,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   placeholder="0.00"
                   inputMode="decimal"
                   className="form-control price-control"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -1830,6 +1833,7 @@ const AdminPanel = () => {
                     onChange={handleFilterChange}
                     className="search-input"
                     autoFocus
+                    autoComplete="off"
                   />
                   {filters.searchTerm && (
                     <FontAwesomeIcon 

@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 import defaultImage from '../assets/empresas/display1.jpeg';
 import useSubcategorias from '../hooks/useSubcategorias';
+import useItems from '../hooks/useItems';
 
 const ServiceCard = ({ 
   title, 
@@ -16,49 +17,30 @@ const ServiceCard = ({
   servicioId
 }) => {
   const navigate = useNavigate();
+  const { items } = useItems();
   const { subcategorias, loading: loadingSubcategorias, error: subcategoriasError } = useSubcategorias(servicioId);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState('');
-  const [price, setPrice] = useState(defaultPrice);
 
-  useEffect(() => {
-    if (subcategoriasError) {
-      console.error('Error loading subcategorias:', subcategoriasError);
+  // Find the price from items for the selected service and subcategory
+  let price = defaultPrice;
+  if (servicioId && selectedSubcategoria) {
+    const matchedItem = items.find(
+      item => String(item.id_servicio) === String(servicioId) && String(item.id_subcategoria) === String(selectedSubcategoria)
+    );
+    if (matchedItem && matchedItem.precio !== undefined && matchedItem.precio !== null) {
+      price = `$${matchedItem.precio}`;
     }
-  }, [subcategoriasError]);
+  }
 
-  // Efecto para establecer la primera subcategoría como seleccionada cuando se cargan
   useEffect(() => {
     if (subcategorias && subcategorias.length > 0 && !selectedSubcategoria) {
-      console.log('Setting first subcategoria:', subcategorias[0]);
       setSelectedSubcategoria(subcategorias[0].id_subcategoria);
-      
-      // Si la subcategoría tiene un precio, actualizarlo
-      if (subcategorias[0].PreciosServicios && subcategorias[0].PreciosServicios.length > 0) {
-        const precio = subcategorias[0].PreciosServicios[0]?.precio;
-        if (precio) {
-          setPrice(`$${precio}`);
-        }
-      }
     }
   }, [subcategorias, selectedSubcategoria]);
 
   // Handler para cambiar la subcategoría seleccionada
   const handleSubcategoriaChange = (e) => {
-    const selected = e.target.value;
-    setSelectedSubcategoria(selected);
-    
-    // Encontrar el precio correspondiente a la subcategoría seleccionada
-    const selectedSubcat = subcategorias.find(sub => sub.id_subcategoria === selected);
-    if (selectedSubcat && selectedSubcat.PreciosServicios && selectedSubcat.PreciosServicios.length > 0) {
-      const precio = selectedSubcat.PreciosServicios[0]?.precio;
-      if (precio) {
-        setPrice(`$${precio}`);
-      } else {
-        setPrice(defaultPrice);
-      }
-    } else {
-      setPrice(defaultPrice);
-    }
+    setSelectedSubcategoria(e.target.value);
   };
 
   // Handler para increasing or decreasing quantity
@@ -84,20 +66,26 @@ const ServiceCard = ({
   const imageToShow = image || defaultImage;
 
   return (
-    <div className="service-card">
-      <div className="service-info">
-        <h2 className="service-title">{title}</h2>
-        <p className="service-description">{description}</p>
+    <div className="service-card horizontal">
+      <div className="service-left">
+        <h2 className="service-title">
+          {detailsPath ? (
+            <Link to={detailsPath} className="service-title-link">{title}</Link>
+          ) : title}
+        </h2>
+        <p className="service-description ellipsis">{description}</p>
         <img src={imageToShow} alt={title} className="service-image" />
-        {detailsPath ? (
-          <Link to={detailsPath} className="ver-mas-btn">VER MÁS</Link>
-        ) : (
-          <button className="ver-mas-btn">VER MÁS</button>
-        )}
+        <div className="service-link-row">
+          {detailsPath ? (
+            <Link to={detailsPath} className="ver-mas-btn">VER MAS</Link>
+          ) : (
+            <button className="ver-mas-btn">VER MAS</button>
+          )}
+        </div>
       </div>
-      <div className="service-pricing">
-        <div className="pricing-selector">
-          <label>Seleccione un rango de ventas mensuales para obtener un precio</label>
+      <div className="service-right">
+        <div className="service-dropdown-row">
+          <label className="dropdown-label">Seleccione un rango de ventas mensuales para obtener un precio</label>
           <div className="select-wrapper">
             {loadingSubcategorias ? (
               <p className="loading-subcategorias">Cargando opciones...</p>
@@ -123,11 +111,12 @@ const ServiceCard = ({
             )}
           </div>
         </div>
-        <div className="quantity-selector">
+        <div className="quantity-selector horizontal-qty">
           <button 
             className="qty-btn minus-btn" 
             onClick={() => handleCount('decrease')}
             disabled={count <= 1}
+            title="Disminuir cantidad"
           >
             <FontAwesomeIcon icon={faMinus} />
           </button>
@@ -140,20 +129,17 @@ const ServiceCard = ({
           <button 
             className="qty-btn plus-btn" 
             onClick={() => handleCount('increase')}
+            title="Aumentar cantidad"
           >
             <FontAwesomeIcon icon={faPlus} />
           </button>
         </div>
-        <div className="price-section">
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-            <div className="price-label">PRECIO:</div>
-            <div className="price-amount-wrapper">
-              <input type="text" value={price} readOnly className="price-amount-input" />
-            </div>
-            <button className="add-to-cart-btn" onClick={handleAddToCart}>
-              <FontAwesomeIcon icon={faShoppingCart} />
-            </button>
-          </div>
+        <div className="price-section horizontal-price">
+          <span className="price-label">PRECIO:</span>
+          <span className="price-amount">{price}</span>
+          <button className="add-to-cart-btn horizontal-cart" onClick={handleAddToCart} title="Agregar al carrito">
+            <FontAwesomeIcon icon={faShoppingCart} />
+          </button>
         </div>
       </div>
     </div>
