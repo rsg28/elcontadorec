@@ -3,7 +3,7 @@ import { useAllServicios } from './useServicios';
 import useSubcategorias from './useSubcategorias';
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = '/api';
 
 /**
  * Hook personalizado para obtener items con información relacionada
@@ -21,7 +21,7 @@ const useItems = () => {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/items`);
+      const response = await fetch(`${API_BASE_URL}/items`);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
@@ -114,7 +114,7 @@ const useItems = () => {
       // If servicio is a string (name), create a new servicio
       if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
         try {
-          const servicioResponse = await fetch(`${API_BASE_URL}/api/servicios`, {
+          const servicioResponse = await fetch(`${API_BASE_URL}/servicios`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ const useItems = () => {
       // If subcategoria is a string (name), create a new subcategoria
       if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
         try {
-          const subcategoriaResponse = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+          const subcategoriaResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ const useItems = () => {
         id_subcategoria: subcategoriaId
       };
       
-      const response = await fetch(`${API_BASE_URL}/api/items`, {
+      const response = await fetch(`${API_BASE_URL}/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ const useItems = () => {
       if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
         try {
           // First check if servicio exists
-          const serviciosResponse = await fetch(`${API_BASE_URL}/api/servicios`, {
+          const serviciosResponse = await fetch(`${API_BASE_URL}/servicios`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -239,7 +239,7 @@ const useItems = () => {
             servicioId = existingServicio.id_servicio;
           } else {
             // Create new servicio if not found
-            const servicioResponse = await fetch(`${API_BASE_URL}/api/servicios`, {
+            const servicioResponse = await fetch(`${API_BASE_URL}/servicios`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -265,7 +265,7 @@ const useItems = () => {
       if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
         try {
           // First check if subcategoria exists
-          const subcategoriasResponse = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+          const subcategoriasResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -282,7 +282,7 @@ const useItems = () => {
             subcategoriaId = existingSubcategoria.id_subcategoria;
           } else {
             // Create new subcategoria if not found
-            const subcategoriaResponse = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+            const subcategoriaResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -314,7 +314,7 @@ const useItems = () => {
         id_subcategoria: subcategoriaId
       };
       
-      const response = await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
+      const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -364,7 +364,7 @@ const useItems = () => {
       // Log the itemId for debugging
       console.log('Deleting item with ID:', itemId);
       
-      const response = await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
+      const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -421,4 +421,4 @@ const useItems = () => {
   };
 };
 
-export default useItems; 
+export default useItems;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = '/api';
 
 /**
  * Hook personalizado para obtener servicios por categoría
@@ -17,7 +17,7 @@ const useServicios = (categoriaId) => {
     const fetchServicios = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/servicios/categoria/${categoriaId}`);
+        const response = await fetch(`${API_BASE_URL}/servicios/categoria/${categoriaId}`);
         
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
@@ -58,7 +58,7 @@ export const useAllServicios = () => {
       setLoading(true);
       
       // Get all services
-      const serviciosResponse = await fetch(`${API_BASE_URL}/api/servicios`);
+      const serviciosResponse = await fetch(`${API_BASE_URL}/servicios`);
       if (!serviciosResponse.ok) {
         throw new Error(`Error fetching services: ${serviciosResponse.status}`);
       }
@@ -68,7 +68,7 @@ export const useAllServicios = () => {
       const serviciosWithDetails = await Promise.all(serviciosData.map(async (servicio) => {
         // Get subcategories for this service
         try {
-          const subcategoriasResponse = await fetch(`${API_BASE_URL}/api/subcategorias/servicio/${servicio.id_servicio}`);
+          const subcategoriasResponse = await fetch(`${API_BASE_URL}/subcategorias/servicio/${servicio.id_servicio}`);
           if (subcategoriasResponse.ok) {
             const subcategoriasData = await subcategoriasResponse.json();
             return { 
@@ -124,7 +124,7 @@ export const useAllServicios = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/servicios`, {
+      const response = await fetch(`${API_BASE_URL}/servicios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ export const useAllServicios = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ export const useAllServicios = () => {
       
       // Call the backend to delete the service and all related records in a transaction
       console.log(`Eliminando servicio: ${servicioId}`);
-      const deleteResponse = await fetch(`${API_BASE_URL}/api/servicios/${servicioId}`, {
+      const deleteResponse = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -278,7 +278,7 @@ export const useAllServicios = () => {
       }
       
       // First update the service in the backend
-      const response = await fetch(`${API_BASE_URL}/api/servicios/${servicioId}`, {
+      const response = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -295,7 +295,7 @@ export const useAllServicios = () => {
       
       // Now we need to update all items that reference this service
       // Get all items first
-      const itemsResponse = await fetch(`${API_BASE_URL}/api/items`, {
+      const itemsResponse = await fetch(`${API_BASE_URL}/items`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -314,7 +314,7 @@ export const useAllServicios = () => {
           try {
             const itemId = item.id_items || item.id_item;
             
-            await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
+            await fetch(`${API_BASE_URL}/items/${itemId}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',

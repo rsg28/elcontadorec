@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = '/api';
 
 /**
  * Hook personalizado para manejar autenticación de usuarios
@@ -45,7 +45,7 @@ const useAuth = () => {
         return false;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/users/verify-admin`, {
+      const response = await fetch(`${API_BASE_URL}/users/verify-admin`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,7 +80,7 @@ const useAuth = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+      const response = await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ const useAuth = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ const useAuth = () => {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

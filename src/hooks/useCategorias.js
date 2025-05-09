@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = '/api';
 
 /**
  * Hook personalizado para obtener todas las categorías de servicios
@@ -16,7 +16,7 @@ const useCategorias = () => {
     const fetchCategorias = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/categorias`);
+        const response = await fetch(`${API_BASE_URL}/categorias`);
         
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
@@ -52,7 +52,7 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/categorias`, {
+      const response = await fetch(`${API_BASE_URL}/categorias`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/categorias/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/categorias/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -179,4 +179,4 @@ const useCategorias = () => {
   };
 };
 
-export default useCategorias; 
+export default useCategorias;

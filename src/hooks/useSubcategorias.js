@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = '/api';
 
 /**
  * Hook personalizado para obtener subcategorías por servicio
@@ -17,7 +17,7 @@ const useSubcategorias = (servicioId = null) => {
   const fetchAllSubcategorias = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias`, {
         credentials: 'include' // Include cookies for authentication
       });
       
@@ -48,9 +48,9 @@ const useSubcategorias = (servicioId = null) => {
     try {
       setLoading(true);
       console.log(`Fetching subcategorias for service ID: ${id}`);
-      console.log(`URL: ${API_BASE_URL}/api/subcategorias/servicio/${id}`);
+      console.log(`URL: ${API_BASE_URL}/subcategorias/servicio/${id}`);
       
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias/servicio/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias/servicio/${id}`, {
         credentials: 'include' // Include cookies for authentication
       });
       
@@ -88,7 +88,7 @@ const useSubcategorias = (servicioId = null) => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ const useSubcategorias = (servicioId = null) => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias/${id}`, {
         method: 'DELETE',
         credentials: 'include' // Para enviar cookies de autenticación
       });
@@ -157,7 +157,7 @@ const useSubcategorias = (servicioId = null) => {
     try {
       setLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/api/subcategorias/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/subcategorias/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
