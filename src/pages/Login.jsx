@@ -19,13 +19,6 @@ const Login = () => {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in but only if allowed
-  useEffect(() => {
-    if (isAuthenticated() && allowRedirect) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate, allowRedirect]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
