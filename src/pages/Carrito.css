@@ -379,4 +379,12 @@
   .tarjeta-row {
     flex-direction: column;
   }
+}
+
+.payment-methods-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 } 

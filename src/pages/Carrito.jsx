@@ -10,6 +10,8 @@ import {
 import './Carrito.css';
 import displayImage from '../assets/empresas/display1.jpeg';
 import TokenizationForm from '../components/TokenizationForm';
+import Cards from '../components/Cards';
+
 const Carrito = () => {
   // Estado para los items del carrito
   const [cartItems, setCartItems] = useState([
@@ -233,7 +235,10 @@ const Carrito = () => {
               </div>
               {/* todo bien hasta este punto */}
               {formData.metodoPago === 'tarjeta' && (
-                <TokenizationForm />
+                <div className="payment-methods-container">
+                  <Cards />
+                  <TokenizationForm />
+                </div>
               )}
               
               <div className="paypal-option">

@@ -31,6 +31,12 @@ const TokenizationForm = () => {
     application_key: 'd4pUmVHgVpw2mJ66rWwtfWaO2bAWV6'
   };
 
+  const userStr = localStorage.getItem('user');
+  const user = JSON.parse(userStr);
+  
+  const userId = user.id;
+  const userEmail = user.correo;
+
   // Load Paymentez script
   const loadScript = async () => {
     const script = document.createElement('script');
@@ -55,8 +61,8 @@ const TokenizationForm = () => {
     locale: 'es',
     user: {
       //add real user ID and email
-      id: String(Math.floor(new Date().getTime() / 1000)),
-      email: 'jhon@doe.com',
+      id: userId,
+      email: userEmail,
     },
     configuration: {
       default_country: 'COL',
