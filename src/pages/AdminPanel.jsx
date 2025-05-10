@@ -547,6 +547,73 @@ const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount,
   );
 };
 
+// Add DeleteItemModal component after DeleteServiceModal
+const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose]);
+  
+  if (!show) return null;
+  
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>Eliminar Ítem</h2>
+          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="warning-icon">
+            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
+          </div>
+          <p className="warning-message">
+            ¿Está seguro que desea eliminar este ítem?
+          </p>
+          {isLastItem && (
+            <div className="warning-details">
+              <p className="warning-text">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="warning-icon-small" />
+                Este es el último ítem de este servicio. Al eliminarlo, también se eliminará el servicio completo.
+              </p>
+            </div>
+          )}
+          <p className="warning-permanent">
+            Esta acción no se puede deshacer.
+          </p>
+        </div>
+        
+        <div className="modal-footer">
+          <button 
+            className="cancel-button" 
+            onClick={onClose}
+          >
+            Cancelar
+          </button>
+          <button 
+            className="delete-button" 
+            onClick={onConfirm}
+          >
+            <FontAwesomeIcon icon={faTrash} /> Eliminar {isLastItem ? 'Servicio' : 'Ítem'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Add a function to get color based on category
 const getCategoryColor = (categoryId) => {
   // Map category IDs to specific colors - you can customize these colors
@@ -1186,9 +1253,7 @@ const AdminPanel = () => {
   // Handler for deleting an item
   const handleDelete = (type, id) => {
     if (type === 'item') {
-      console.log(`Attempting to delete item with ID: ${id}`);
-      
-      // Find the item to get its service ID
+      // Find the item to get its details
       const itemToDelete = itemsWithDetails.find(item => (item.id_items === id || item.id_item === id));
       
       if (!itemToDelete) {
@@ -1202,105 +1267,91 @@ const AdminPanel = () => {
       // Check if this is the last item for this service
       const itemsForService = itemsWithDetails.filter(item => 
         item.id_servicio === servicioId && 
-        (item.id_items !== id && item.id_item !== id) // Exclude the item being deleted
+        (item.id_items !== id && item.id_item !== id)
       );
       
-      const isLastItemForService = itemsForService.length === 0;
+      const isLastItem = itemsForService.length === 0;
       
-      if (isLastItemForService) {
-        // If it's the last item, ask if they want to delete the entire service
-        if (window.confirm(`Este es el último ítem para este servicio. ¿Desea eliminar el servicio completo?`)) {
-          console.log(`Deleting the last item and the entire service with ID: ${servicioId}`);
-          // Call the deleteServicio function instead
-          deleteServicio(servicioId)
-            .then(result => {
-              if (result.success) {
-                // Show toast notification
-                success('Servicio y todos sus ítems eliminados correctamente');
-                
-                // Save current expanded state with deep copy
-                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-                
-                // Refresh items and services to update the UI
-                refreshItems()
-                  .then(() => {
-                    fetchAllServicios()
-                      .then(() => {
-                        // Restore expanded state exactly as it was
-                        setExpandedServices(currentExpandedState);
-                      });
-                  });
-              } else {
-                console.error("Delete service error:", result.error);
-                showError(`Error al eliminar servicio: ${result.error}`);
-              }
-            })
-            .catch(error => {
-              console.error("Unhandled error in delete service:", error);
-              showError(`Error inesperado: ${error.message}`);
-            });
-        } else {
-          // User chose not to delete the service, proceed with just deleting the item
-          deleteItem(id)
-            .then(result => {
-              if (result.success) {
-                // Show toast notification
-                success('Ítem eliminado correctamente');
-                
-                // Save current expanded state with deep copy
-                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-                
-                // Refresh items to update the list immediately
-                refreshItems()
-                  .then(() => {
-                    // Restore expanded state exactly as it was
-                    setExpandedServices(currentExpandedState);
-                  });
-              } else {
-                console.error("Delete error:", result.error);
-                showError(`Error al eliminar ítem: ${result.error}`);
-              }
-            })
-            .catch(error => {
-              console.error("Unhandled error in delete:", error);
-              showError(`Error inesperado: ${error.message}`);
-            });
-        }
-      } else {
-        // Not the last item, proceed normally with just item deletion
-        if (window.confirm(`¿Está seguro que desea eliminar este ítem?`)) {
-          // Call the deleteItem function from useItems hook
-          deleteItem(id)
-            .then(result => {
-              if (result.success) {
-                // Show toast notification
-                success('Ítem eliminado correctamente');
-                
-                // Save current expanded state with deep copy
-                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-                
-                // Refresh items to update the list immediately
-                refreshItems()
-                  .then(() => {
-                    // Restore expanded state exactly as it was
-                    setExpandedServices(currentExpandedState);
-                  });
-              } else {
-                console.error("Delete error:", result.error);
-                showError(`Error al eliminar ítem: ${result.error}`);
-              }
-            })
-            .catch(error => {
-              console.error("Unhandled error in delete:", error);
-              showError(`Error inesperado: ${error.message}`);
-            });
-        }
-      }
+      // Show the delete confirmation modal
+      setDeleteItemState({
+        show: true,
+        itemId: id,
+        servicioId: servicioId,
+        itemName: `${itemToDelete.servicio_nombre} - ${itemToDelete.subcategoria_nombre}`,
+        isLastItem,
+        isLoading: false
+      });
     } else if (type === 'servicio') {
       handleDeleteService(id);
     } else {
       showError(`Operación no soportada: eliminar ${type} con ID: ${id}`);
     }
+  };
+
+  // Add confirmDeleteItem function
+  const confirmDeleteItem = async () => {
+    try {
+      setDeleteItemState(prev => ({ ...prev, isLoading: true }));
+      
+      const { itemId, isLastItem, servicioId } = deleteItemState;
+      
+      if (isLastItem) {
+        // If it's the last item, delete the entire service
+        const result = await deleteServicio(servicioId);
+        if (result.success) {
+          success('Servicio y todos sus ítems eliminados correctamente');
+        } else {
+          showError(`Error al eliminar servicio: ${result.error}`);
+        }
+      } else {
+        // Just delete the single item
+        const result = await deleteItem(itemId);
+        if (result.success) {
+          success('Ítem eliminado correctamente');
+        } else {
+          showError(`Error al eliminar ítem: ${result.error}`);
+        }
+      }
+      
+      // Close the modal
+      setDeleteItemState({
+        show: false,
+        itemId: null,
+        servicioId: null,
+        itemName: '',
+        isLastItem: false,
+        isLoading: false
+      });
+      
+      // Save current expanded state
+      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+      
+      // Refresh the data
+      await refreshItems();
+      if (isLastItem) {
+        await fetchAllServicios();
+      }
+      
+      // Restore expanded state
+      setExpandedServices(currentExpandedState);
+      
+    } catch (error) {
+      console.error('Error in confirmDeleteItem:', error);
+      showError(`Error inesperado: ${error.message}`);
+      setDeleteItemState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Add cancelDeleteItem function
+  const cancelDeleteItem = () => {
+    setDeleteItemState({
+      show: false,
+      itemId: null,
+      servicioId: null,
+      itemName: '',
+      isLastItem: false,
+      isLoading: false
+    });
   };
 
   // Filter is active if any filter has a value
@@ -1454,7 +1505,7 @@ const AdminPanel = () => {
       const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
       if (!itemToUpdate) return;
       
-      // Handle service name editing differently
+      // Handle service name editing
       if (field === 'servicio') {
         // Only proceed if the name has changed
         if (value === originalValue) {
@@ -1485,11 +1536,11 @@ const AdminPanel = () => {
         const serviceWithSameNameInCategory = allServicios.find(s => 
           s.nombre.toLowerCase() === value.toLowerCase() && 
           s.id_categoria === categoryId &&
-          s.id_servicio !== itemToUpdate.id_servicio
+          s.id_servicio !== servicioId
         );
         
         if (serviceWithSameNameInCategory) {
-          warning(`Ya existe un servicio con el nombre "${value}" en la categoría "${categoryId}". Por favor, use un nombre diferente.`);
+          warning(`Ya existe un servicio con el nombre "${value}" en esta categoría.`);
           setEditingState({
             ...editingState,
             isLoading: false
@@ -1498,25 +1549,22 @@ const AdminPanel = () => {
         }
         
         // Update the service name in the backend
-        const updateResult = await updateServicio(itemToUpdate.id_servicio, value);
+        const updateResult = await updateServicio(servicioId, value);
         
         if (updateResult.success) {
-          // First, store the updated service name for UI consistency
+          // Update UI state
           setUpdatedServiceNames(prev => ({
             ...prev,
             [servicioId]: value
           }));
           
-          // Update both data models first before resetting the editing state
-          
-          // 1. Update all items that reference this service ID
+          // Update local items
           updateLocalItems(items => {
             return items.map(item => {
               if (item.id_servicio === servicioId) {
                 return { 
                   ...item, 
                   servicio_nombre: value,
-                  // Make sure all references to the service name are updated
                   servicio: value
                 };
               }
@@ -1524,7 +1572,7 @@ const AdminPanel = () => {
             });
           });
           
-          // 2. Update the services list in memory
+          // Update services list
           const updatedServicios = allServicios.map(s => {
             if (s.id_servicio === servicioId) {
               return { ...s, nombre: value };
@@ -1533,7 +1581,7 @@ const AdminPanel = () => {
           });
           setAllServicios(updatedServicios);
           
-          // Only after updating the UI state, clear the editing state
+          // Clear editing state
           setEditingState({
             itemId: null,
             field: null,
@@ -1541,10 +1589,10 @@ const AdminPanel = () => {
             isLoading: false
           });
           
-          // Save current expanded state with deep copy
+          // Save current expanded state
           const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
           
-          // Also refresh services from the server to ensure consistency
+          // Refresh services from server
           await fetchAllServicios();
           
           // Restore expanded state
@@ -1562,24 +1610,8 @@ const AdminPanel = () => {
         return;
       }
       
-      // For other fields (precio, subcategoria), continue with the existing logic
-      const updatedItem = { ...itemToUpdate };
-      
-      if (field === 'precio') {
-        // Validate that the price is a valid number
-        const price = parseFloat(value);
-        if (isNaN(price) || price < 0) {
-          warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        updatedItem.precio = price;
-      } 
-      else if (field === 'subcategoria') {
-        // For subcategory, we still use the dropdown selection
+      // Handle subcategory editing
+      if (field === 'subcategoria') {
         const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
         
         if (!selectedSubcategory) {
@@ -1593,7 +1625,6 @@ const AdminPanel = () => {
         
         // Check if this item already has this subcategory name
         if (itemToUpdate.subcategoria_nombre === selectedSubcategory.nombre) {
-          // No change needed
           setEditingState({
             itemId: null,
             field: null,
@@ -1614,7 +1645,7 @@ const AdminPanel = () => {
         );
         
         if (duplicateSubcategory) {
-          warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio. Por favor, seleccione otra subcategoría.`);
+          warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio.`);
           setEditingState({
             ...editingState,
             isLoading: false
@@ -1622,44 +1653,26 @@ const AdminPanel = () => {
           return;
         }
         
-        updatedItem.subcategoria_nombre = selectedSubcategory.nombre;
-        updatedItem.id_subcategoria = selectedSubcategory.id_subcategoria;
-      }
-      
-      // Use the correct id for updating, preferring id_items
-      const idToUse = itemToUpdate.id_items || itemToUpdate.id_item;
-      
-      // Save the updated item to the database
-      const result = await updateItem(idToUse, updatedItem);
-      
-      if (result.success) {
-        // Store updated values for UI consistency
-        if (field === 'precio') {
-          setUpdatedPrices(prev => ({
-            ...prev,
-            [idToUse]: value
-          }));
-          
-          // Update local items for immediate UI reflection
-          updateLocalItems(items => {
-            return items.map(item => {
-              if ((item.id_items === idToUse) || (item.id_item === idToUse)) {
-                return { ...item, precio: parseFloat(value) };
-              }
-              return item;
-            });
-          });
-        } 
-        else if (field === 'subcategoria') {
+        // Update the item with the new subcategory
+        const updatedItem = { 
+          ...itemToUpdate,
+          subcategoria_nombre: selectedSubcategory.nombre,
+          id_subcategoria: selectedSubcategory.id_subcategoria
+        };
+        
+        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
+        
+        if (result.success) {
+          // Update UI state
           setUpdatedSubcategoryNames(prev => ({
             ...prev,
-            [idToUse]: selectedSubcategory.nombre
+            [itemId]: selectedSubcategory.nombre
           }));
           
-          // Update local items for immediate UI reflection
+          // Update local items
           updateLocalItems(items => {
             return items.map(item => {
-              if ((item.id_items === idToUse) || (item.id_item === idToUse)) {
+              if ((item.id_items === itemId) || (item.id_item === itemId)) {
                 return { 
                   ...item, 
                   subcategoria_nombre: selectedSubcategory.nombre,
@@ -1669,35 +1682,98 @@ const AdminPanel = () => {
               return item;
             });
           });
+          
+          // Clear editing state
+          setEditingState({
+            itemId: null,
+            field: null,
+            value: '',
+            isLoading: false
+          });
+          
+          // Save current expanded state
+          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+          
+          // Refresh items
+          await refreshItems();
+          
+          // Restore expanded state
+          setExpandedServices(currentExpandedState);
+          
+          success('Subcategoría actualizada correctamente');
+        } else {
+          showError(`Error al actualizar subcategoría: ${result.error}`);
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
         }
         
-        // Reset editing state
-        setEditingState({
-          itemId: null,
-          field: null,
-          value: '',
-          isLoading: false
-        });
+        return;
+      }
+      
+      // Handle price editing
+      if (field === 'precio') {
+        // Validate that the price is a valid number
+        const price = parseFloat(value);
+        if (isNaN(price) || price < 0) {
+          warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+          return;
+        }
         
-        // Clear options
-        setInlineEditOptions([]);
+        const updatedItem = { 
+          ...itemToUpdate,
+          precio: price
+        };
         
-        // Save current expanded state with deep copy
-        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
         
-        // Refresh the items data to show the updated value immediately
-        await refreshItems();
-        
-        // Restore expanded state
-        setExpandedServices(currentExpandedState);
-        
-        success(`${field === 'subcategoria' ? 'Subcategoría' : 'Precio'} actualizado correctamente`);
-      } else {
-        showError(`Error al actualizar: ${result.error}`);
-        setEditingState({
-          ...editingState,
-          isLoading: false
-        });
+        if (result.success) {
+          // Update UI state
+          setUpdatedPrices(prev => ({
+            ...prev,
+            [itemId]: value
+          }));
+          
+          // Update local items
+          updateLocalItems(items => {
+            return items.map(item => {
+              if ((item.id_items === itemId) || (item.id_item === itemId)) {
+                return { ...item, precio: price };
+              }
+              return item;
+            });
+          });
+          
+          // Clear editing state
+          setEditingState({
+            itemId: null,
+            field: null,
+            value: '',
+            isLoading: false
+          });
+          
+          // Save current expanded state
+          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+          
+          // Refresh items
+          await refreshItems();
+          
+          // Restore expanded state
+          setExpandedServices(currentExpandedState);
+          
+          success('Precio actualizado correctamente');
+        } else {
+          showError(`Error al actualizar precio: ${result.error}`);
+          setEditingState({
+            ...editingState,
+            isLoading: false
+          });
+        }
       }
     } catch (error) {
       console.error('Error saving inline edit:', error);
@@ -1798,6 +1874,16 @@ const AdminPanel = () => {
     }
   }, [editingState.itemId, editingState.field]);
 
+  // Add deleteItemState to state declarations
+  const [deleteItemState, setDeleteItemState] = useState({
+    show: false,
+    itemId: null,
+    servicioId: null,
+    itemName: '',
+    isLastItem: false,
+    isLoading: false
+  });
+
   if (adminChecking) {
     return (
       <div className="admin-panel-container">
@@ -1828,7 +1914,7 @@ const AdminPanel = () => {
                   <input
                     type="text"
                     name="searchTerm"
-                    placeholder="Nombre de ítem, servicio o subcategoría..."
+                    placeholder="Nombre servicio o categoría..."
                     value={filters.searchTerm}
                     onChange={handleFilterChange}
                     className="search-input"
@@ -2084,28 +2170,9 @@ const AdminPanel = () => {
                                             autoFocus
                                             placeholder="Nombre del servicio"
                                           />
-                                          <div className="inline-edit-actions">
-                                            {editingState.isLoading ? (
-                                              <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                            ) : (
-                                              <>
-                                                <button 
-                                                  className="inline-edit-button save" 
-                                                  onClick={handleInlineEditSave}
-                                                  title="Guardar"
-                                                >
-                                                  <FontAwesomeIcon icon={faCheck} />
-                                                </button>
-                                                <button 
-                                                  className="inline-edit-button cancel" 
-                                                  onClick={handleInlineEditCancel}
-                                                  title="Cancelar"
-                                                >
-                                                  <FontAwesomeIcon icon={faTimes} />
-                                                </button>
-                                              </>
-                                            )}
-                                          </div>
+                                          {editingState.isLoading && (
+                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                          )}
                                         </div>
                                       ) : (
                                         <span 
@@ -2125,6 +2192,9 @@ const AdminPanel = () => {
                                           <select
                                             value={editingState.value}
                                             onChange={handleDropdownChange}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Escape') handleInlineEditCancel();
+                                            }}
                                             className="inline-edit-select"
                                             autoFocus
                                           >
@@ -2136,9 +2206,7 @@ const AdminPanel = () => {
                                             ))}
                                           </select>
                                           {editingState.isLoading && (
-                                            <div className="loading-indicator-small">
-                                              <FontAwesomeIcon icon={faSpinner} spin />
-                                            </div>
+                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
                                           )}
                                         </div>
                                       ) : (
@@ -2162,33 +2230,17 @@ const AdminPanel = () => {
                                               type="text"
                                               value={editingState.value}
                                               onChange={handleInlineEditChange}
-                                              onKeyDown={handleInlineEditKeyDown}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleInlineEditSave();
+                                                if (e.key === 'Escape') handleInlineEditCancel();
+                                              }}
                                               className="inline-edit-input"
                                               autoFocus
                                               placeholder="0.00"
                                             />
-                                            <div className="inline-edit-actions">
-                                              {editingState.isLoading ? (
-                                                <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
-                                              ) : (
-                                                <>
-                                                  <button 
-                                                    className="inline-edit-button save" 
-                                                    onClick={handleInlineEditSave}
-                                                    title="Guardar"
-                                                  >
-                                                    <FontAwesomeIcon icon={faCheck} />
-                                                  </button>
-                                                  <button 
-                                                    className="inline-edit-button cancel" 
-                                                    onClick={handleInlineEditCancel}
-                                                    title="Cancelar"
-                                                  >
-                                                    <FontAwesomeIcon icon={faTimes} />
-                                                  </button>
-                                                </>
-                                              )}
-                                            </div>
+                                            {editingState.isLoading && (
+                                              <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                            )}
                                           </div>
                                         </div>
                                       ) : (
@@ -2281,6 +2333,16 @@ const AdminPanel = () => {
           servicioName={deleteServiceState.servicioName}
           itemCount={deleteServiceState.itemCount}
           subcategoriaCount={deleteServiceState.subcategoriaCount}
+        />
+      )}
+      
+      {deleteItemState.show && (
+        <DeleteItemModal
+          show={deleteItemState.show}
+          onClose={cancelDeleteItem}
+          onConfirm={confirmDeleteItem}
+          itemName={deleteItemState.itemName}
+          isLastItem={deleteItemState.isLastItem}
         />
       )}
       

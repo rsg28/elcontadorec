@@ -28,7 +28,8 @@ const ServiceCard = ({
       item => String(item.id_servicio) === String(servicioId) && String(item.id_subcategoria) === String(selectedSubcategoria)
     );
     if (matchedItem && matchedItem.precio !== undefined && matchedItem.precio !== null) {
-      price = `$${matchedItem.precio}`;
+      const total = Number(matchedItem.precio) * count;
+      price = `$${total}`;
     }
   }
 
@@ -140,6 +141,9 @@ const ServiceCard = ({
           <button className="add-to-cart-btn horizontal-cart" onClick={handleAddToCart} title="Agregar al carrito">
             <FontAwesomeIcon icon={faShoppingCart} />
           </button>
+        </div>
+        <div className="iva-note" style={{ fontSize: '0.92em', color: '#888', marginTop: '2px' }}>
+          Incluye IVA
         </div>
       </div>
     </div>
