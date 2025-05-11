@@ -5,12 +5,36 @@ import {
   faMinus, 
   faPlus, 
   faLock,
-  faCreditCard
+  faCreditCard,
+  faFileInvoice,
+  faMoneyBill
 } from '@fortawesome/free-solid-svg-icons';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 import './Carrito.css';
 import displayImage from '../assets/display1.jpeg';
 import TokenizationForm from '../components/TokenizationForm';
+import displayImage from '../assets/empresas/display1.jpeg';
+import Cards from '../components/Cards';
+
+// Validation Schema
+const validationSchema = Yup.object().shape({
+  nombres: Yup.string()
+    .required('Los nombres son requeridos')
+    .min(2, 'Los nombres deben tener al menos 2 caracteres'),
+  apellidos: Yup.string()
+    .required('Los apellidos son requeridos')
+    .min(2, 'Los apellidos deben tener al menos 2 caracteres'),
+  cedula: Yup.string()
+    .required('La cédula o RUC es requerido')
+    .matches(/^[0-9]{10,13}$/, 'La cédula o RUC debe tener entre 10 y 13 dígitos'),
+  telefono: Yup.string()
+    .required('El teléfono es requerido')
+    .matches(/^[0-9]{10}$/, 'El teléfono debe tener 10 dígitos')
+});
+
 const Carrito = () => {
+  const [activeSection, setActiveSection] = useState('form'); // 'form' or 'payment'
   // Estado para los items del carrito
   const [cartItems, setCartItems] = useState([
     {
@@ -31,17 +55,13 @@ const Carrito = () => {
     }
   ]);
 
-  // Estado para el formulario de información de factura
-  const [formData, setFormData] = useState({
+  // Initial form values
+  const initialValues = {
     nombres: '',
     apellidos: '',
     cedula: '',
-    telefono: '',
-    metodoPago: 'tarjeta',
-    numeroTarjeta: '',
-    fechaExpiracion: '',
-    codigoSeguridad: ''
-  });
+    telefono: ''
+  };
 
   // Función para actualizar la cantidad de un producto
   const updateQuantity = (id, newQuantity) => {
@@ -59,22 +79,20 @@ const Carrito = () => {
   const iva = subtotal * 0.15; // IVA del 15%
   const total = subtotal + iva;
 
-  // Manejar cambios en el formulario
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+  // Handle form submission
+  const handleSubmit = (values, { setSubmitting }) => {
+    console.log('Form submitted:', values);
+    setSubmitting(false);
   };
-
+  
+/* 
   // Manejar cambio de método de pago
   const handlePaymentMethodChange = (method) => {
     setFormData({
       ...formData,
       metodoPago: method
     });
-  };
+  };*/
 
   return (
     <div className="carrito-container">
@@ -148,97 +166,82 @@ const Carrito = () => {
         
         {/* Columna derecha - Información de factura */}
         <div className="factura-container">
-          <h2 className="factura-title">Información de la factura</h2>
           
-          <div className="factura-form">
-            <div className="form-group">
-              <label htmlFor="nombres">Nombres</label>
-              <input 
-                type="text" 
-                id="nombres" 
-                name="nombres" 
-                value={formData.nombres}
-                onChange={handleInputChange}
-                className="form-input"
-              />
+          <div className="section-toggle-buttons">
+            <button 
+              className={`toggle-button ${activeSection === 'form' ? 'active' : ''}`}
+              onClick={() => setActiveSection('form')}
+            >
+              <FontAwesomeIcon icon={faFileInvoice} />
+              Detalles para la factura
+            </button>
+            <button 
+              className={`toggle-button ${activeSection === 'payment' ? 'active' : ''}`}
+              onClick={() => setActiveSection('payment')}
+            >
+              <FontAwesomeIcon icon={faMoneyBill} />
+              Pagar
+            </button>
+          </div>
+
+          <div className="factura-content">
+            <div className={`factura-form ${activeSection === 'form' ? 'active' : ''}`}>
+              <Formik
+                initialValues={initialValues}
+                validationSchema={validationSchema}
+                onSubmit={handleSubmit}
+              >
+                {({ isSubmitting }) => (
+                  <Form>
+                    <div className="form-group">
+                      <label htmlFor="nombres">Nombres</label>
+                      <Field
+                        type="text"
+                        id="nombres"
+                        name="nombres"
+                        className="form-input"
+                      />
+                      <ErrorMessage name="nombres" component="div" className="carrito-error-message" />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="apellidos">Apellidos</label>
+                      <Field
+                        type="text"
+                        id="apellidos"
+                        name="apellidos"
+                        className="form-input"
+                      />
+                      <ErrorMessage name="apellidos" component="div" className="carrito-error-message" />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="cedula">Cédula o RUC</label>
+                      <Field
+                        type="text"
+                        id="cedula"
+                        name="cedula"
+                        className="form-input"
+                      />
+                      <ErrorMessage name="cedula" component="div" className="carrito-error-message" />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="telefono">Número de teléfono</label>
+                      <Field
+                        type="text"
+                        id="telefono"
+                        name="telefono"
+                        className="form-input"
+                      />
+                      <ErrorMessage name="telefono" component="div" className="carrito-error-message" />
+                    </div>
+                  </Form>
+                )}
+              </Formik>
             </div>
-            
-            <div className="form-group">
-              <label htmlFor="apellidos">Apellidos</label>
-              <input 
-                type="text" 
-                id="apellidos" 
-                name="apellidos" 
-                value={formData.apellidos}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="cedula">Cédula o RUC</label>
-              <input 
-                type="text" 
-                id="cedula" 
-                name="cedula" 
-                value={formData.cedula}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="telefono">Número de teléfono</label>
-              <input 
-                type="text" 
-                id="telefono" 
-                name="telefono" 
-                value={formData.telefono}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
-            
-            <div className="pago-section">
-              <div className="pago-header">
-                <h3>Forma de pago</h3>
-                <div className="seguro-badge">
-                  <FontAwesomeIcon icon={faLock} />
-                  <span>Seguro</span>
-                </div>
-              </div>
-              
-              <div className="pago-metodos">
-                <div 
-                  className={`pago-metodo ${formData.metodoPago === 'tarjeta' ? 'active' : ''}`}
-                  onClick={() => handlePaymentMethodChange('tarjeta')}
-                >
-                  <FontAwesomeIcon icon={faCreditCard} className="metodo-icon" />
-                  <span>Tarjeta</span>
-                </div>
-                <div 
-                  className={`pago-metodo ${formData.metodoPago === 'efectivo' ? 'active' : ''}`}
-                  onClick={() => handlePaymentMethodChange('efectivo')}
-                >
-                  <span className="metodo-icon">$</span>
-                  <span>Cash App Pay</span>
-                </div>
-                <div 
-                  className={`pago-metodo ${formData.metodoPago === 'google' ? 'active' : ''}`}
-                  onClick={() => handlePaymentMethodChange('google')}
-                >
-                  <span className="metodo-icon">G</span>
-                  <span>Google Pay</span>
-                </div>
-              </div>
-              {/* todo bien hasta este punto */}
-              {formData.metodoPago === 'tarjeta' && (
-                <TokenizationForm />
-              )}
-              
-              <div className="paypal-option">
-                <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" className="paypal-logo" />
-              </div>
+            <div className={`pago-section ${activeSection === 'payment' ? 'active' : ''}`}>
+              <Cards />
             </div>
           </div>
         </div>
