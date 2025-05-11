@@ -200,6 +200,7 @@ button {
   flex-direction: column;
   align-items: center;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .section-title {
@@ -351,7 +352,8 @@ button {
 }
 
 .carousel-button.next {
-  right: 10px;
+  right: -20px;
+  z-index: 100;
 }
 
 .carousel-dots {

@@ -8,7 +8,7 @@ import {
   faCreditCard
 } from '@fortawesome/free-solid-svg-icons';
 import './Carrito.css';
-import displayImage from '../assets/empresas/display1.jpeg';
+import displayImage from '../assets/display1.jpeg';
 import TokenizationForm from '../components/TokenizationForm';
 const Carrito = () => {
   // Estado para los items del carrito

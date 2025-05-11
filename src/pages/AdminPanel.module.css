@@ -86,6 +86,24 @@
   box-sizing: border-box;
 }
 
+/* Eliminar todos los estilos de loading */
+.loading-overlay,
+.loading-spinner,
+.loading-text,
+.loading-indicator,
+.services-container.loading,
+.admin-content.loading,
+.admin-content .loading-overlay,
+.admin-content .loading-spinner,
+.admin-content .loading-text {
+  display: none;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .admin-header {
   display: flex;
   justify-content: space-between;
@@ -513,9 +531,9 @@
 .search-filters {
   background-color: #ffffff;
   border-radius: var(--radius-md);
-  padding: 25px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  padding: 30px;
+  margin-bottom: 35px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
   width: 100%;
   box-sizing: border-box;
 }
@@ -524,61 +542,59 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap: 20px;
+  gap: 25px;
 }
 
 .search-row {
   display: flex;
   width: 100%;
+  gap: 20px;
 }
 
 /* Fila completa para la barra de búsqueda */
 .search-row-full {
   width: 100%;
+  margin-bottom: 10px;
 }
 
 .search-field-full {
   width: 100%;
-  margin-bottom: 10px;
 }
 
 /* Fila para opciones de filtrado */
 .filter-options-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 15px;
+  gap: 20px;
   width: 100%;
+  align-items: end;
 }
 
 .search-field {
-  margin-bottom: 10px;
-}
-
-.actions-field {
-  display: flex;
-  align-items: flex-end;
-  height: 100%;
+  margin-bottom: 0;
+  flex: 1;
 }
 
 .search-group {
   width: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 8px;
 }
 
 .search-group label {
   display: flex;
   align-items: center;
   font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 10px;
+  color: #444;
   font-weight: 500;
+  margin-bottom: 0;
 }
 
 .label-icon {
   margin-right: 8px;
   color: #666;
+  font-size: 1.1rem;
 }
 
 .search-input-container,
@@ -594,18 +610,28 @@
   width: 100%;
   height: 42px;
   padding: 0 15px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 0.95rem;
-  background-color: white;
+  background-color: #f8f9fa;
   box-sizing: border-box;
+  transition: all 0.2s ease;
 }
 
 .search-input:focus,
 .filter-select:focus,
 .price-input:focus {
   outline: none;
+  border-color: var(--primary);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.search-input:hover,
+.filter-select:hover,
+.price-input:hover {
   border-color: #ccc;
+  background-color: #fff;
 }
 
 .price-input {
@@ -617,115 +643,129 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
+  color: #666;
+  font-weight: 500;
 }
 
 .filter-select {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 20px;
+  background-position: right 12px center;
+  background-size: 18px;
   padding-right: 35px;
 }
 
 .clear-input-icon {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #999;
   cursor: pointer;
   padding: 5px;
+  transition: color 0.2s ease;
+}
+
+.clear-input-icon:hover {
+  color: #666;
 }
 
 .actions-row {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  height: 100%;
-  padding-top: 33px; /* Add top padding to align with other inputs */
+  height: 42px;
+  align-items: flex-end;
+  margin-top: 28px;
 }
 
 .clear-filters-btn {
-  background-color: white;
-  color: #888;
-  border: 1px solid #ddd;
-  padding: 0 15px;
-  border-radius: 6px;
+  background-color: #f8f9fa;
+  color: #555;
+  border: 1px solid #e0e0e0;
+  padding: 0 20px;
+  border-radius: 8px;
   height: 42px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin-top: 0;
 }
 
 .clear-filters-btn.active {
-  color: #555;
+  color: #333;
 }
 
 .clear-filters-btn.active:hover {
-  background-color: #f9f9f9;
+  background-color: #f0f0f0;
+  border-color: #d0d0d0;
 }
 
 .clear-filters-btn:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
 }
 
-/* Responsive styles */
-@media (max-width: 992px) {
+/* Responsive styles para filtros */
+@media (max-width: 1200px) {
   .filter-options-row {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   .filter-options-row {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .actions-field {
-    grid-column: span 2;
+  .search-filters {
+    padding: 25px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-options-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .search-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .actions-row {
+    margin-top: 0;
+    height: auto;
   }
   
   .clear-filters-btn {
     width: 100%;
   }
-}
-
-@media (max-width: 576px) {
-  .filter-options-row {
-    grid-template-columns: 1fr;
-  }
   
-  .actions-field {
-    grid-column: 1;
+  .search-filters {
+    padding: 20px;
+    margin-bottom: 25px;
   }
 }
 
-/* Highlight text in search results */
-.highlight-text {
-  background-color: rgba(255, 230, 0, 0.25);
-  font-weight: 600;
-  padding: 0;
-  border-radius: 2px;
-  display: inline;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-  white-space: pre-wrap;
-}
-
-/* Search results info */
+/* Mejorar la apariencia de los resultados de búsqueda */
 .search-results-info {
-  margin-top: 15px;
-  padding: 8px 0;
-  color: #666;
-  font-size: 0.9rem;
+  margin-top: 20px;
+  padding: 12px 15px;
+  color: #555;
+  font-size: 0.95rem;
   text-align: right;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 @keyframes fade-in {
@@ -1669,4 +1709,174 @@ form {
 
 .category-services .service-group:last-child {
   border-bottom: none;
+}
+
+/* Update service group (inside category-services) to be much bigger */
+.category-services_12hzz_ .service-group {
+  min-height: 180px; /* Aumentado de 120px a 180px */
+  padding: 30px 35px; /* Aumentado de 20px 25px a 30px 35px */
+  margin-bottom: 25px; /* Añadido margen inferior para mejor separación */
+  border-radius: 12px; /* Añadido border-radius para mejor apariencia */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Mejorado el efecto de sombra */
+}
+
+/* Ajustar el tamaño del texto dentro de los servicios para mejor legibilidad */
+.category-services_12hzz_ .service-group .service-name {
+  font-size: 1.4rem; /* Aumentado de 1.2rem */
+  margin-bottom: 8px;
+}
+
+.category-services_12hzz_ .service-group .service-category {
+  font-size: 1rem; /* Aumentado de 0.85rem */
+}
+
+.category-services_12hzz_ .service-group .service-stats {
+  font-size: 1rem; /* Aumentado de 0.85rem */
+  padding: 6px 12px; /* Aumentado el padding */
+}
+
+/* Loading spinner styles */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+}
+
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 3px solid transparent;
+  border-top: 3px solid rgba(var(--primary-rgb), 0.3);
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+}
+
+.loading-text {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--primary-dark);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ajustar el contenedor de servicios para manejar el overlay de carga */
+.services-container {
+  position: relative;
+  min-height: 200px;
+}
+
+/* Estilo para cuando está cargando */
+.services-container.loading {
+  pointer-events: none;
+}
+
+/* Ajustar el estilo del mensaje de carga existente */
+.loading-indicator {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.loading-indicator .loading-spinner {
+  margin-bottom: 10px;
+}
+
+/* Estilo para el mensaje de error */
+.error-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: var(--error);
+  background-color: rgba(255, 0, 0, 0.05);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.error-icon {
+  font-size: 2rem;
+  color: var(--error);
+  margin-bottom: 10px;
+}
+
+/* Loading overlay para admin-content */
+.admin-content .loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  border-radius: var(--radius-md);
+}
+
+.admin-content .loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+.admin-content .loading-text {
+  color: var(--primary-dark);
+  font-size: 1rem;
+  font-weight: 500;
+  background-color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Asegurar que el contenido se oculte cuando está cargando */
+.admin-content.loading > *:not(.loading-overlay) {
+  opacity: 0.5;
+  filter: blur(1px);
+  transition: opacity 0.3s ease, filter 0.3s ease;
 } 

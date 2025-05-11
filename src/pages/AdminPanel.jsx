@@ -8,8 +8,8 @@ import useSubcategorias from '../hooks/useSubcategorias';
 import useCategorias from '../hooks/useCategorias';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
-import './AdminPanel.css';
 import 'react-toastify/dist/ReactToastify.css';
+import styles from './AdminPanel.module.css';
 
 // Item form modal component
 const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
@@ -1300,17 +1300,17 @@ const AdminPanel = () => {
         const result = await deleteServicio(servicioId);
         if (result.success) {
           success('Servicio y todos sus ítems eliminados correctamente');
+              } else {
+                showError(`Error al eliminar servicio: ${result.error}`);
+              }
         } else {
-          showError(`Error al eliminar servicio: ${result.error}`);
-        }
-      } else {
         // Just delete the single item
         const result = await deleteItem(itemId);
-        if (result.success) {
-          success('Ítem eliminado correctamente');
-        } else {
-          showError(`Error al eliminar ítem: ${result.error}`);
-        }
+              if (result.success) {
+                success('Ítem eliminado correctamente');
+              } else {
+                showError(`Error al eliminar ítem: ${result.error}`);
+              }
       }
       
       // Close the modal
@@ -1322,10 +1322,10 @@ const AdminPanel = () => {
         isLastItem: false,
         isLoading: false
       });
-      
+                
       // Save current expanded state
-      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-      
+                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+                
       // Refresh the data
       await refreshItems();
       if (isLastItem) {
@@ -1333,13 +1333,13 @@ const AdminPanel = () => {
       }
       
       // Restore expanded state
-      setExpandedServices(currentExpandedState);
+                    setExpandedServices(currentExpandedState);
       
     } catch (error) {
       console.error('Error in confirmDeleteItem:', error);
-      showError(`Error inesperado: ${error.message}`);
+              showError(`Error inesperado: ${error.message}`);
       setDeleteItemState(prev => ({ ...prev, isLoading: false }));
-    }
+        }
   };
 
   // Add cancelDeleteItem function
@@ -1661,8 +1661,8 @@ const AdminPanel = () => {
         };
         
         const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
-        
-        if (result.success) {
+      
+      if (result.success) {
           // Update UI state
           setUpdatedSubcategoryNames(prev => ({
             ...prev,
@@ -1748,31 +1748,31 @@ const AdminPanel = () => {
               return item;
             });
           });
-          
+        
           // Clear editing state
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          
+        setEditingState({
+          itemId: null,
+          field: null,
+          value: '',
+          isLoading: false
+        });
+        
           // Save current expanded state
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
+        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+        
           // Refresh items
-          await refreshItems();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
+        await refreshItems();
+        
+        // Restore expanded state
+        setExpandedServices(currentExpandedState);
+        
           success('Precio actualizado correctamente');
-        } else {
+      } else {
           showError(`Error al actualizar precio: ${result.error}`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
+        setEditingState({
+          ...editingState,
+          isLoading: false
+        });
         }
       }
     } catch (error) {
@@ -1897,34 +1897,34 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="admin-panel-container">
-      <h1 className="admin-panel-title">Panel de Administración</h1>
+    <div className={styles['admin-panel-container']}>
+      <h1 className={styles['admin-panel-title']}>Panel de Administración</h1>
       
-      <div className="search-filters">
-        <div className="search-filters-content">
+      <div className={styles['search-filters']}>
+        <div className={styles['search-filters-content']}>
           {/* Primera fila: barra de búsqueda ocupando todo el ancho */}
-          <div className="search-row search-row-full">
-            <div className="search-field search-field-full">
-              <div className="search-group">
+          <div className={styles['search-row']} style={{ width: '100%' }}>
+            <div className={styles['search-field']} style={{ width: '100%' }}>
+              <div className={styles['search-group']}>
                 <label>
-                  <FontAwesomeIcon icon={faSearch} className="label-icon" /> 
+                  <FontAwesomeIcon icon={faSearch} className={styles['label-icon']} /> 
                   Buscar
                 </label>
-                <div className="search-input-container">
+                <div className={styles['search-input-container']}>
                   <input
                     type="text"
                     name="searchTerm"
                     placeholder="Nombre servicio o categoría..."
                     value={filters.searchTerm}
                     onChange={handleFilterChange}
-                    className="search-input"
+                    className={styles['search-input']}
                     autoFocus
                     autoComplete="off"
                   />
                   {filters.searchTerm && (
                     <FontAwesomeIcon 
                       icon={faTimes} 
-                      className="clear-input-icon" 
+                      className={styles['clear-input-icon']} 
                       onClick={() => setFilters(prev => ({...prev, searchTerm: ''}))}
                     />
                   )}
@@ -1934,19 +1934,19 @@ const AdminPanel = () => {
           </div>
           
           {/* Segunda fila: opciones de filtrado alineadas */}
-          <div className="search-row filter-options-row">
-            <div className="search-field">
-              <div className="search-group">
+          <div className={styles['search-row']}>
+            <div className={styles['search-field']}>
+              <div className={styles['search-group']}>
                 <label>
-                  <FontAwesomeIcon icon={faFilter} className="label-icon" /> 
+                  <FontAwesomeIcon icon={faFilter} className={styles['label-icon']} /> 
                   Filtrar por Categoría
                 </label>
-                <div className="filter-select-container">
+                <div className={styles['filter-select-container']}>
                   <select 
                     name="categoriaId" 
                     value={filters.categoriaId} 
                     onChange={handleFilterChange}
-                    className="filter-select"
+                    className={styles['filter-select']}
                   >
                     <option value="all">Todas las categorías</option>
                     {allCategorias.map(categoria => (
@@ -1959,18 +1959,18 @@ const AdminPanel = () => {
               </div>
             </div>
             
-            <div className="search-field">
-              <div className="search-group">
+            <div className={styles['search-field']}>
+              <div className={styles['search-group']}>
                 <label>
-                  <FontAwesomeIcon icon={faFilter} className="label-icon" /> 
+                  <FontAwesomeIcon icon={faFilter} className={styles['label-icon']} /> 
                   Filtrar por Servicio
                 </label>
-                <div className="filter-select-container">
+                <div className={styles['filter-select-container']}>
                   <select 
                     name="servicioId" 
                     value={filters.servicioId} 
                     onChange={handleFilterChange}
-                    className="filter-select"
+                    className={styles['filter-select']}
                   >
                     <option value="all">Todos los servicios</option>
                     {allServicios.map(servicio => (
@@ -1983,52 +1983,52 @@ const AdminPanel = () => {
               </div>
             </div>
 
-            <div className="search-field">
-              <div className="search-group">
+            <div className={styles['search-field']}>
+              <div className={styles['search-group']}>
                 <label>
-                  <FontAwesomeIcon icon={faDollarSign} className="label-icon" /> 
+                  <FontAwesomeIcon icon={faDollarSign} className={styles['label-icon']} /> 
                   Precio mínimo
                 </label>
-                <div className="price-input-container">
-                  <span className="price-symbol">$</span>
+                <div className={styles['price-input-container']}>
+                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="minPrice"
                     placeholder=""
                     value={filters.minPrice}
                     onChange={handlePriceChange}
-                    className="price-input"
+                    className={styles['price-input']}
                     inputMode="decimal"
                   />
                 </div>
               </div>
             </div>
             
-            <div className="search-field">
-              <div className="search-group">
+            <div className={styles['search-field']}>
+              <div className={styles['search-group']}>
                 <label>
-                  <FontAwesomeIcon icon={faDollarSign} className="label-icon" /> 
+                  <FontAwesomeIcon icon={faDollarSign} className={styles['label-icon']} /> 
                   Precio máximo
                 </label>
-                <div className="price-input-container">
-                  <span className="price-symbol">$</span>
+                <div className={styles['price-input-container']}>
+                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="maxPrice"
                     placeholder=""
                     value={filters.maxPrice}
                     onChange={handlePriceChange}
-                    className="price-input"
+                    className={styles['price-input']}
                     inputMode="decimal"
                   />
                 </div>
               </div>
             </div>
             
-            <div className="search-field actions-field">
-              <div className="actions-row">
+            <div className={styles['search-field']} style={{ width: '100%' }}>
+              <div className={styles['actions-row']}>
                 <button 
-                  className={`clear-filters-btn ${isFilterActive ? 'active' : ''}`}
+                  className={`${styles['clear-filters-btn']} ${isFilterActive ? styles['active'] : ''}`}
                   onClick={clearFilters}
                   disabled={!isFilterActive}
                 >
@@ -2040,16 +2040,16 @@ const AdminPanel = () => {
         </div>
         
         {isFilterActive && (
-          <div className="search-results-info">
+          <div className={styles['search-results-info']}>
             Mostrando {filteredCount} de {totalCount} ítems
           </div>
         )}
       </div>
       
-      <div className="admin-content">
-        <div className="admin-header">
+      <div className={styles['admin-content']}>
+        <div className={styles['admin-header']}>
           <button 
-            className="add-button"
+            className={styles['add-button']}
             onClick={handleAddItem}
           >
             <FontAwesomeIcon icon={faPlus} /> Agregar Item
@@ -2057,13 +2057,13 @@ const AdminPanel = () => {
         </div>
         
         {loading ? (
-          <div className="loading-indicator">Cargando...</div>
+          <div className={styles['loading-indicator']}>Cargando...</div>
         ) : error ? (
-          <div className="error-message">{error}</div>
+          <div className={styles['error-message']}>{error}</div>
         ) : (
-          <div className="items-list">
+          <div className={styles['items-list']}>
             {filteredItems.length === 0 ? (
-              <p className="no-data">No hay ítems que coincidan con los criterios de búsqueda</p>
+              <p className={styles['no-data']}>No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
               // Reorganize to group by category first, then by service
               Object.values(
@@ -2104,40 +2104,40 @@ const AdminPanel = () => {
                   return categories;
                 }, {})
               ).map(category => (
-                <div key={`category-${category.id}`} className="category-group">
-                  <div className="category-header" style={{ backgroundColor: category.color }}>
-                    <h2 className="category-name">{category.name}</h2>
-                    <div className="category-stats">
+                <div key={`category-${category.id}`} className={styles['category-group']}>
+                  <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
+                    <h2 className={styles['category-name']}>{category.name}</h2>
+                    <div className={styles['category-stats']}>
                       {category.services.length} servicio(s)
                     </div>
                   </div>
                   
-                  <div className="category-services">
+                  <div className={styles['category-services']}>
                     {category.services.map(servicio => {
                       // Get items for this service
                       const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
                       
                       return (
-                        <div key={servicio.id_servicio} className="service-group">
+                        <div key={servicio.id_servicio} className={styles['service-group']}>
                           <div 
-                            className={`service-header ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}
+                            className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
                             style={{ borderLeft: `4px solid ${category.color}` }}
                             onClick={() => toggleServiceExpansion(servicio.id_servicio)}
                           >
                             <FontAwesomeIcon 
                               icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
-                              className="expand-icon" 
+                              className={styles['expand-icon']} 
                             />
-                            <div className="service-info">
-                              <h3 className="service-name">{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
-                              <div className="service-category">{category.name}</div>
+                            <div className={styles['service-info']}>
+                              <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
+                              <div className={styles['service-category']}>{category.name}</div>
                             </div>
-                            <div className="service-stats">
-                              <span className="service-items-count">{servicioItems.length} ítem(s)</span>
+                            <div className={styles['service-stats']}>
+                              <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
                             </div>
-                            <div className="service-actions">
+                            <div className={styles['service-actions']}>
                               <button 
-                                className="action-button delete"
+                                className={styles['action-button']}
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent triggering the header click
                                   handleDelete('servicio', servicio.id_servicio);
@@ -2149,15 +2149,15 @@ const AdminPanel = () => {
                             </div>
                           </div>
                           
-                          <div className={`service-items ${expandedServices[servicio.id_servicio] ? 'expanded' : ''}`}>
+                          <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
                             {servicioItems.map(item => (
-                              <div key={item.id_items || item.id_item} className="item-card" style={{ borderLeft: `4px solid ${category.color}` }}>
-                                <div className="item-header">
-                                  <div className="item-main-info">
-                                    <div className="item-service">
-                                      <span className="service-label">Servicio:</span>
+                              <div key={item.id_items || item.id_item} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
+                                <div className={styles['item-header']}>
+                                  <div className={styles['item-main-info']}>
+                                    <div className={styles['item-service']}>
+                                      <span className={styles['service-label']}>Servicio:</span>
                                       {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                                        <div className="inline-edit-field">
+                                        <div className={styles['inline-edit-field']}>
                                           <input
                                             type="text"
                                             value={editingState.value}
@@ -2166,17 +2166,17 @@ const AdminPanel = () => {
                                               if (e.key === 'Enter') handleInlineEditSave();
                                               if (e.key === 'Escape') handleInlineEditCancel();
                                             }}
-                                            className="inline-edit-input"
+                                            className={styles['inline-edit-input']}
                                             autoFocus
                                             placeholder="Nombre del servicio"
                                           />
                                           {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
                                           )}
                                         </div>
                                       ) : (
                                         <span 
-                                          className="service-name editable" 
+                                          className={styles['service-name']}
                                           onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
                                           title="Doble clic para editar"
                                         >
@@ -2185,17 +2185,17 @@ const AdminPanel = () => {
                                       )}
                                     </div>
                                     
-                                    <div className="item-subcategory">
-                                      <span className="subcategory-label">Subcategoría:</span>
+                                    <div className={styles['item-subcategory']}>
+                                      <span className={styles['subcategory-label']}>Subcategoría:</span>
                                       {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                                        <div className="inline-edit-field">
+                                        <div className={styles['inline-edit-field']}>
                                           <select
                                             value={editingState.value}
                                             onChange={handleDropdownChange}
                                             onKeyDown={(e) => {
                                               if (e.key === 'Escape') handleInlineEditCancel();
                                             }}
-                                            className="inline-edit-select"
+                                            className={styles['inline-edit-select']}
                                             autoFocus
                                           >
                                             <option value="">Seleccione una subcategoría</option>
@@ -2206,12 +2206,12 @@ const AdminPanel = () => {
                                             ))}
                                           </select>
                                           {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
                                           )}
                                         </div>
                                       ) : (
                                         <span 
-                                          className="subcategory-name editable" 
+                                          className={styles['subcategory-name']}
                                           onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
                                           title="Doble clic para editar"
                                         >
@@ -2220,12 +2220,12 @@ const AdminPanel = () => {
                                       )}
                                     </div>
                                     
-                                    <div className="item-price-display">
-                                      <span className="price-label">Precio:</span>
+                                    <div className={styles['item-price-display']}>
+                                      <span className={styles['price-label']}>Precio:</span>
                                       {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                                        <div className="inline-edit-field">
-                                          <div className="price-edit-container">
-                                            <span className="price-edit-symbol">$</span>
+                                        <div className={styles['inline-edit-field']}>
+                                          <div className={styles['price-edit-container']}>
+                                            <span className={styles['price-edit-symbol']}>$</span>
                                             <input
                                               type="text"
                                               value={editingState.value}
@@ -2234,18 +2234,18 @@ const AdminPanel = () => {
                                                 if (e.key === 'Enter') handleInlineEditSave();
                                                 if (e.key === 'Escape') handleInlineEditCancel();
                                               }}
-                                              className="inline-edit-input"
+                                              className={styles['inline-edit-input']}
                                               autoFocus
                                               placeholder="0.00"
                                             />
                                             {editingState.isLoading && (
-                                              <FontAwesomeIcon icon={faSpinner} spin className="inline-edit-icon" />
+                                              <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
                                             )}
                                           </div>
                                         </div>
                                       ) : (
                                         <span 
-                                          className="price-value editable" 
+                                          className={styles['price-value']}
                                           onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', updatedPrices[item.id_item] || item.precio)}
                                           title="Doble clic para editar"
                                         >
@@ -2255,17 +2255,17 @@ const AdminPanel = () => {
                                     </div>
                                   </div>
                                   
-                                  <div className="item-category-indicator" 
+                                  <div className={styles['item-category-indicator']} 
                                     style={{ backgroundColor: category.color }}
                                     title={`Categoría: ${category.name}`}
                                   >
                                     {category.name}
                                   </div>
                                   
-                                  <div className="item-controls">
-                                    <div className="item-actions">
+                                  <div className={styles['item-controls']}>
+                                    <div className={styles['item-actions']}>
                                       <button 
-                                        className="action-button delete"
+                                        className={styles['action-button']}
                                         onClick={() => handleDelete('item', item.id_items || item.id_item)}
                                         title="Eliminar ítem"
                                       >
@@ -2276,20 +2276,20 @@ const AdminPanel = () => {
                                 </div>
                                 
                                 {(item.descripcion || item.opciones) && (
-                                  <div className={`item-details ${expandedItems[item.id_items || item.id_item] ? 'expanded' : ''}`}>
-                                    <div className="item-section">
-                                      <div className="item-section-row">
+                                  <div className={`${styles['item-details']} ${expandedItems[item.id_items || item.id_item] ? styles['expanded'] : ''}`}>
+                                    <div className={styles['item-section']}>
+                                      <div className={styles['item-section-row']}>
                                         {item.descripcion && (
-                                          <div className="item-detail">
-                                            <span className="detail-label">Descripción:</span>
-                                            <span className="detail-value">{item.descripcion}</span>
+                                          <div className={styles['item-detail']}>
+                                            <span className={styles['detail-label']}>Descripción:</span>
+                                            <span className={styles['detail-value']}>{item.descripcion}</span>
                                           </div>
                                         )}
                                         
                                         {item.opciones && (
-                                          <div className="item-detail">
-                                            <span className="detail-label">Opciones:</span>
-                                            <span className="detail-value">{item.opciones}</span>
+                                          <div className={styles['item-detail']}>
+                                            <span className={styles['detail-label']}>Opciones:</span>
+                                            <span className={styles['detail-value']}>{item.opciones}</span>
                                           </div>
                                         )}
                                       </div>

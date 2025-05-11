@@ -20,8 +20,7 @@ import {
 import { Link, Navigate } from 'react-router-dom';
 import './Perfil.css';
 // Importar las imágenes directamente
-import displayImage from '../assets/empresas/display1.jpeg';
-import sub2Image from '../assets/empresas/sub2.jpeg';
+import displayImage from '../assets/display1.jpeg';
 import useAuth from '../hooks/useAuth';
 
 const Perfil = () => {
@@ -77,16 +76,6 @@ const Perfil = () => {
       imagen: displayImage,
       estado: 'Completado'
     },
-    {
-      id: 2,
-      fecha: 'Abril 22, 2023',
-      total: '$91.48',
-      cantidad: 2,
-      servicio: 'Declaraciones de Impuestos mensuales',
-      descripcion: 'Elaboramos y presentamos declaraciones de IVA mensual de forma oportuna, analizando documentos y optimizando su carga tributaria con el respaldo de expertos contables.',
-      imagen: sub2Image,
-      estado: 'En proceso'
-    }
   ]);
 
   useEffect(() => {
@@ -391,7 +380,7 @@ const Perfil = () => {
                   <p>Accede a la gestión de servicios, subcategorías y precios</p>
                 </div>
               </div>
-              <Link to="/admin-panel" className="admin-panel-btn">
+              <Link to="/admin" className="admin-panel-btn">
                 <FontAwesomeIcon icon={faTools} /> Gestionar
               </Link>
             </div>
