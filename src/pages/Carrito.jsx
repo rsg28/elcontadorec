@@ -14,7 +14,6 @@ import * as Yup from 'yup';
 import './Carrito.css';
 import displayImage from '../assets/display1.jpeg';
 import TokenizationForm from '../components/TokenizationForm';
-import displayImage from '../assets/empresas/display1.jpeg';
 import Cards from '../components/Cards';
 
 // Validation Schema
