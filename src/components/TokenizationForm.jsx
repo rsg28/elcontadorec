@@ -31,6 +31,12 @@ const TokenizationForm = () => {
     application_key: 'd4pUmVHgVpw2mJ66rWwtfWaO2bAWV6'
   };
 
+  const userStr = localStorage.getItem('user');
+  const user = JSON.parse(userStr);
+  
+  const userId = user.id;
+  const userEmail = user.correo;
+
   // Load Paymentez script
   const loadScript = async () => {
     const script = document.createElement('script');
@@ -55,8 +61,8 @@ const TokenizationForm = () => {
     locale: 'es',
     user: {
       //add real user ID and email
-      id: String(Math.floor(new Date().getTime() / 1000)),
-      email: 'jhon@doe.com',
+      id: userId,
+      email: userEmail,
     },
     configuration: {
       default_country: 'COL',
@@ -93,6 +99,7 @@ const TokenizationForm = () => {
     }
     
     removeTokenizationForm();
+    window.location.reload();
   };
 
   // Initialize payment gateway
@@ -239,11 +246,8 @@ const TokenizationForm = () => {
           id="tokenize_btn" 
           ref={submitBtnRef}
           disabled={state.ui.isSubmitBtnDisabled}
-          style={{
-            ...styles.tokBtn, 
-            ...(state.ui.isSubmitBtnDisabled ? styles.tokBtnDisabled : {}),
-            display: state.ui.showSubmitBtn ? 'block' : 'none'
-          }}
+          className={`token-btn`}
+          style={{ display: state.ui.showSubmitBtn ? 'block' : 'none' }}
         >
           Guardar tarjeta
         </button> 
@@ -251,11 +255,8 @@ const TokenizationForm = () => {
           id="newCard_btn" 
           ref={newCardBtnRef} 
           disabled={state.ui.isNewCardBtnDisabled}
-          style={{
-            ...styles.tokBtn,
-            ...(state.ui.isNewCardBtnDisabled ? styles.tokBtnDisabled : {}),
-            display: state.ui.showNewCardBtn ? 'block' : 'none'
-          }}
+          className={`token-btn`}
+          style={{ display: state.ui.showNewCardBtn ? 'block' : 'none' }}
         >
           Agregar tarjeta
         </button>
@@ -263,12 +264,8 @@ const TokenizationForm = () => {
           id="cancel_btn" 
           ref={cancelBtnRef} 
           disabled={state.ui.isCancelBtnDisabled} 
-          style={{
-            ...styles.tokBtn,
-            ...styles.cancelBtn,
-            ...(state.ui.isCancelBtnDisabled ? styles.tokBtnDisabled : {}),
-            display: state.ui.showCancelBtn ? 'block' : 'none'
-          }}
+          className={`token-btn cancel`}
+          style={{ display: state.ui.showCancelBtn ? 'block' : 'none' }}
         >
           Cancelar
         </button>
@@ -310,34 +307,49 @@ const styles = {
     justifyContent: 'center', 
     width: '100%'
   },
-  tokBtn: {
-    background: 'linear-gradient(to bottom, rgb(65, 107, 197) 0%, rgb(0, 11, 112) 100%)',
-    color: '#fff',
-    width: '80%',
-    border: '1px solid rgba(46, 86, 153, 0.0980392)',
-    borderBottomColor: 'rgba(46, 86, 153, 0.4)',
-    borderTop: 0,
-    borderRadius: '4px',
-    fontSize: '17px',
-    textShadow: 'rgba(46, 86, 153, 0.298039) 0px -1px 0px',
-    lineHeight: '34px',
-    WebkitFontSmoothing: 'antialiased',
-    fontWeight: 'bold',
-    display: 'block',
-    cursor: 'pointer',
-    marginTop: '5px',
-  },
-  tokBtnDisabled: {
-    opacity: 0.65,
-    cursor: 'not-allowed',
-  },
-  cancelBtn: {
-    background: 'linear-gradient(to bottom, rgb(199, 0, 0) 0%, rgb(129, 0, 0) 100%)',
-    color: '#fff',
-    width: '80%',
-    border: '1px solid rgba(46, 86, 153, 0.0980392)',
-    borderBottomColor: 'rgba(46, 86, 153, 0.4)',
-  },
 };
+
+/* --- Improved Button Styles --- */
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+.token-btn {
+  background: linear-gradient(90deg, #3a7bd5 0%, #004e92 100%);
+  color: #fff;
+  width: 80%;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  box-shadow: 0 2px 8px rgba(58, 123, 213, 0.15);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+  outline: none;
+  display: block;
+}
+.token-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+.token-btn.cancel {
+  background: linear-gradient(90deg, #ff5858 0%, #b90000 100%);
+  box-shadow: 0 2px 8px rgba(255, 88, 88, 0.12);
+}
+.token-btn:hover:not(:disabled),
+.token-btn:focus:not(:disabled) {
+  filter: brightness(1.08) saturate(1.2);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 16px rgba(58, 123, 213, 0.18);
+}
+.token-btn.cancel:hover:not(:disabled),
+.token-btn.cancel:focus:not(:disabled) {
+  filter: brightness(1.08) saturate(1.2);
+  box-shadow: 0 4px 16px rgba(255, 88, 88, 0.18);
+}
+`;
+document.head.appendChild(styleSheet);
 
 export default TokenizationForm;
