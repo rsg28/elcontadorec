@@ -45,6 +45,9 @@ const CategoriaPage = () => {
   // Add state for selected prices
   const [selectedPrices, setSelectedPrices] = useState({});
   
+  // Add state for quantities
+  const [quantities, setQuantities] = useState({});
+  
   // Loading and error states
   const loading = itemsLoading || serviciosLoading || categoriasLoading || subcategoriasLoading;
   const error = itemsError || serviciosError || categoriasError || subcategoriasError;
@@ -225,6 +228,15 @@ const CategoriaPage = () => {
     // eslint-disable-next-line
   }, [filteredItems, allSubcategorias]);
   
+  // Handler for quantity change
+  const handleQuantityChange = (servicioId, delta) => {
+    setQuantities(prev => {
+      const current = prev[servicioId] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [servicioId]: next };
+    });
+  };
+  
   if (loading) {
     return (
       <div className="categoria-page-container">
@@ -290,13 +302,22 @@ const CategoriaPage = () => {
                     </option>
                   ))}
                 </select>
+                <div className="service-card-qty-row">
+                  <span className="qty-label">necesito</span>
+                  <div className="qty-controls">
+                    <button className="qty-btn" onClick={() => handleQuantityChange(servicio.id_servicio, -1)} disabled={(quantities[servicio.id_servicio] || 1) <= 1}>-</button>
+                    <input className="qty-input" type="text" value={quantities[servicio.id_servicio] || 1} readOnly />
+                    <button className="qty-btn" onClick={() => handleQuantityChange(servicio.id_servicio, 1)}>+</button>
+                  </div>
+                  <span>declaración(es)</span>
+                </div>
                 <div className="service-card-precio-row">
                   <span className="service-card-precio-label">PRECIO:</span>
                   <span className="service-card-precio">
                     ${formatPrice(selectedPrices[servicio.id_servicio] || 0)}
                   </span>
                   <button className="service-card-cart-btn">
-                    <i className="fa fa-shopping-cart" style={{ color: '#ff0000' }}></i>
+                    Agregar al carrito <i className="fa fa-shopping-cart"></i>
                   </button>
                 </div>
               </div>

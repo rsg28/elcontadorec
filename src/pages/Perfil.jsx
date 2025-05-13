@@ -174,287 +174,69 @@ const Perfil = () => {
   }
 
   return (
-    <div className="perfil-container">
-      {successMessage && (
-        <div className="perfil-success-message">
-          <FontAwesomeIcon icon={faCheckCircle} />
-          <span>{successMessage}</span>
-        </div>
-      )}
-      
-      {errorMessage && (
-        <div className="perfil-error-message">
-          <FontAwesomeIcon icon={faTimes} />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-      
-      <div className="perfil-header">
-        <div className="perfil-avatar">
-          <div className="avatar-initials">
-            {user?.nombres?.charAt(0) || ''}
-            {user?.apellidos?.charAt(0) || ''}
-          </div>
-        </div>
-        <div className="perfil-welcome">
-          <h1>Bienvenido, {user?.nombres?.split(' ')[0] || 'Usuario'}</h1>
-          <p>Gestiona tu información personal y visualiza tus servicios contratados</p>
-        </div>
-      </div>
-      
-      <div className="perfil-grid">
-        {/* Sección de información personal */}
-        <div className="perfil-seccion info-personal">
-          <div className="seccion-header">
-            <FontAwesomeIcon icon={faUser} className="seccion-icono" />
-            <h2>Tu Perfil</h2>
-          </div>
-          
-          <div className="campo-perfil">
-            <div className="campo-label">Nombres</div>
-            {editMode.nombres ? (
-              <div className="campo-edit">
-                <input
-                  type="text"
-                  name="nombres"
-                  value={editData.nombres}
-                  onChange={handleChange}
-                  className="edit-input"
-                />
-                <div className="edit-actions">
-                  <button 
-                    className="save-btn" 
-                    onClick={() => handleSave('nombres')} 
-                    disabled={editing}
-                  >
-                    {editing ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Guardar'}
-                  </button>
-                  <button 
-                    className="cancel-btn" 
-                    onClick={() => handleCancel('nombres')}
-                    disabled={editing}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="campo-valor">{user?.nombres || 'No especificado'}</div>
-                <button className="editar-btn" onClick={() => handleEdit('nombres')}>
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
-              </>
+    <div className="perfil-main-layout">
+      <div className="perfil-main-card">
+        <aside className="perfil-sidebar">
+          <ul>
+            <li className="sidebar-active">
+              <FontAwesomeIcon icon={faUser} /> Mi perfil
+            </li>
+            <li className="has-sub">
+              <FontAwesomeIcon icon={faShoppingBag} /> Mis pedidos
+            </li>
+            <ul className="sidebar-sub">
+              <li>Pedidos pendientes</li>
+              <li>Pedidos completados</li>
+            </ul>
+            <li>
+              <FontAwesomeIcon icon={faTools} /> Cerrar sesión
+            </li>
+            {isUserAdmin && (
+              <li className="sidebar-admin">
+                <Link to="/admin" className="admin-panel-link">
+                  <FontAwesomeIcon icon={faUserCog} className="admin-icon" /> Panel de Administración
+                </Link>
+              </li>
             )}
-          </div>
-          
-          <div className="campo-perfil">
-            <div className="campo-label">Apellidos</div>
-            {editMode.apellidos ? (
-              <div className="campo-edit">
-                <input
-                  type="text"
-                  name="apellidos"
-                  value={editData.apellidos}
-                  onChange={handleChange}
-                  className="edit-input"
-                />
-                <div className="edit-actions">
-                  <button 
-                    className="save-btn" 
-                    onClick={() => handleSave('apellidos')} 
-                    disabled={editing}
-                  >
-                    {editing ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Guardar'}
-                  </button>
-                  <button 
-                    className="cancel-btn" 
-                    onClick={() => handleCancel('apellidos')}
-                    disabled={editing}
-                  >
-                    Cancelar
-                  </button>
-                </div>
+          </ul>
+        </aside>
+        <div className="perfil-content">
+          <h2 className="perfil-title">Mi perfil</h2>
+          <p className="perfil-subtitle">Aquí podrás actualizar la información de tu cuenta</p>
+          <div className="perfil-card-outer">
+            <div className="perfil-card">
+              <div className="perfil-avatar-big">
+                <img src={displayImage} alt="avatar" />
+                <button className="perfil-avatar-edit">Editar</button>
               </div>
-            ) : (
-              <>
-                <div className="campo-valor">{user?.apellidos || 'No especificado'}</div>
-                <button className="editar-btn" onClick={() => handleEdit('apellidos')}>
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
-              </>
-            )}
-          </div>
-          
-          <div className="campo-perfil">
-            <div className="campo-label">Email</div>
-            {editMode.correo ? (
-              <div className="campo-edit">
-                <input
-                  type="email"
-                  name="correo"
-                  value={editData.correo}
-                  onChange={handleChange}
-                  className="edit-input"
-                />
-                <div className="edit-actions">
-                  <button 
-                    className="save-btn" 
-                    onClick={() => handleSave('correo')} 
-                    disabled={editing}
-                  >
-                    {editing ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Guardar'}
-                  </button>
-                  <button 
-                    className="cancel-btn" 
-                    onClick={() => handleCancel('correo')}
-                    disabled={editing}
-                  >
-                    Cancelar
-                  </button>
+              <div className="perfil-card-info">
+                <div className="perfil-card-header">
+                  <span className="perfil-card-name">{formatFullName()}</span>
+                  <button className="perfil-card-edit-btn">Editar</button>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="campo-valor">{user?.correo || 'No especificado'}</div>
-                <button className="editar-btn" onClick={() => handleEdit('correo')}>
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
-              </>
-            )}
-          </div>
-          
-          <div className="campo-perfil">
-            <div className="campo-label">Teléfono</div>
-            {editMode.telefono ? (
-              <div className="campo-edit">
-                <input
-                  type="tel"
-                  name="telefono"
-                  value={editData.telefono}
-                  onChange={handleChange}
-                  className="edit-input"
-                />
-                <div className="edit-actions">
-                  <button 
-                    className="save-btn" 
-                    onClick={() => handleSave('telefono')} 
-                    disabled={editing}
-                  >
-                    {editing ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Guardar'}
-                  </button>
-                  <button 
-                    className="cancel-btn" 
-                    onClick={() => handleCancel('telefono')}
-                    disabled={editing}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="campo-valor">{user?.telefono || 'No especificado'}</div>
-                <button className="editar-btn" onClick={() => handleEdit('telefono')}>
-                  <FontAwesomeIcon icon={faEdit} /> Editar
-                </button>
-              </>
-            )}
-          </div>
-          
-          <div className="campo-perfil">
-            <div className="campo-label">Tipo/Número de Documento</div>
-            <div className="campo-valor">
-              {user?.tipo_documento ? `${user.tipo_documento.toUpperCase()}: ` : ''} 
-              {user?.numero_documento || 'No especificado'}
-            </div>
-          </div>
-          
-          {/* Botón de Panel de Administración solo para administradores */}
-          {isUserAdmin && (
-            <div className="admin-panel-access">
-              <div className="admin-panel-info">
-                <FontAwesomeIcon icon={faUserCog} className="admin-icon" />
-                <div>
-                  <h3>Panel de Administración</h3>
-                  <p>Accede a la gestión de servicios, subcategorías y precios</p>
-                </div>
-              </div>
-              <Link to="/admin" className="admin-panel-btn">
-                <FontAwesomeIcon icon={faTools} /> Gestionar
-              </Link>
-            </div>
-          )}
-          
-          {/* Sección de Seguridad */}
-          <div className="security-section">
-            <h3 className="section-subtitle">
-              <FontAwesomeIcon icon={faShield} /> Seguridad
-            </h3>
-            <div className="security-actions">
-              <button className="security-btn">
-                <FontAwesomeIcon icon={faEdit} /> Cambiar Contraseña
-              </button>
-              <button className="security-btn">
-                <FontAwesomeIcon icon={faCreditCard} /> Gestionar Métodos de Pago
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Sección de pedidos */}
-        <div className="perfil-seccion pedidos">
-          <div className="seccion-header">
-            <FontAwesomeIcon icon={faShoppingBag} className="seccion-icono" />
-            <h2>Tus Servicios Contratados</h2>
-          </div>
-          
-          {pedidos.length > 0 ? (
-            pedidos.map(pedido => (
-              <div key={pedido.id} className="pedido-card">
-                <div className="pedido-header">
-                  <div className="pedido-info">
-                    <div className="info-grupo">
-                      <span className="info-label">FECHA</span>
-                      <span className="info-valor">{pedido.fecha}</span>
-                    </div>
-                    <div className="info-grupo">
-                      <span className="info-label">TOTAL</span>
-                      <span className="info-valor">{pedido.total}</span>
-                    </div>
-                    <div className="info-grupo">
-                      <span className="info-label">ESTADO</span>
-                      <span className={`info-valor estado-${pedido.estado.toLowerCase().replace(' ', '-')}`}>
-                        {pedido.estado}
-                      </span>
-                    </div>
+                <div className="perfil-card-sub">Apellidos y Nombre</div>
+                <div className="perfil-card-fields">
+                  <div>
+                    <div>{user?.correo}</div>
+                    <div className="perfil-card-label">Email</div>
+                  </div>
+                  <div>
+                    <div>{user?.numero_documento}</div>
+                    <div className="perfil-card-label">Cédula/RUC</div>
+                  </div>
+                  <div>
+                    <div>{user?.telefono}</div>
+                    <div className="perfil-card-label">Celular</div>
+                  </div>
+                  <div>
+                    <div>{user?.ciudad}</div>
+                    <div className="perfil-card-label">Ciudad</div>
                   </div>
                 </div>
-                
-                <div className="pedido-detalles">
-                  <div className="servicio-info">
-                    <h3>{pedido.servicio}</h3>
-                    <p>{pedido.descripcion}</p>
-                  </div>
-                  <div className="servicio-imagen">
-                    <img src={pedido.imagen} alt={pedido.servicio} />
-                  </div>
-                  <div className="acciones-pedido">
-                    <button className="accion-btn">Detalles del servicio</button>
-                    <button className="accion-btn">Contactar con un asesor</button>
-                    <button className="accion-btn">Volver a comprar</button>
-                  </div>
-                </div>
+                <button className="perfil-card-save-btn">Guardar <FontAwesomeIcon icon={faCheckCircle} /></button>
               </div>
-            ))
-          ) : (
-            <div className="no-pedidos">
-              <p>No has contratado ningún servicio todavía.</p>
-              <Link to="/" className="browse-services-btn">
-                <FontAwesomeIcon icon={faShoppingBag} /> Explorar Servicios
-              </Link>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

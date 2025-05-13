@@ -53,7 +53,6 @@ const Home = () => {
   
   // Helper to determine if buttons should be visible
   const isPrevButtonVisible = currentPage > 0;
-  const isNextButtonVisible = currentPage < maxPages - 1;
 
   // Handler for category card clicks
   const handleCategoryClick = (categoryId) => {
@@ -112,32 +111,15 @@ const Home = () => {
               <div 
                 key={category.id} 
                 className="category-card" 
-                style={{ borderColor: category.color }}
                 onClick={() => handleCategoryClick(category.id)}
               >
                 <div className="category-icon" style={{ backgroundColor: category.color }}>
                   <FontAwesomeIcon icon={category.icon} />
                 </div>
                 <h3 className="category-title">{category.title}</h3>
-                <div className="category-overlay">
-                  <button className="category-button">
-                    <FontAwesomeIcon icon={faPlusCircle} />
-                    <span>Ver más</span>
-                  </button>
-                </div>
               </div>
             ))}
           </div>
-          
-          {isNextButtonVisible && (
-            <button 
-              className="carousel-button next" 
-              onClick={handleNextPage}
-              aria-label="Categorías siguientes"
-            >
-              <FontAwesomeIcon icon={faChevronRight} />
-            </button>
-          )}
           
           <div className="carousel-dots">
             {Array.from({ length: maxPages }).map((_, index) => (
@@ -211,26 +193,23 @@ const Header = () => {
       </div>
       <div className="user-actions">
         {forceAuthenticated ? (
-          <>
-            <Link to="/perfil" className="user-button">
-              <div className="button-content">
-                <FontAwesomeIcon icon={faUser} className="user-icon" />
-                <span>{user?.nombres?.split(' ')[0] || 'Perfil'}</span>
-              </div>
+          <div className="user-actions-row">
+            <Link to="/carrito" className="orders-link">
+              <span>Mis órdenes</span>
+              <FontAwesomeIcon icon={faShoppingCart} className="cart-icon" />
             </Link>
-            <Link to="/carrito" className="cart-button">
-              <div className="button-content">
-                <FontAwesomeIcon icon={faShoppingCart} className="cart-icon" />
-                <span>Carrito</span>
-              </div>
+            <span className="user-divider">|</span>
+            <Link to="/perfil" className="user-greeting">
+              <span>Hola,</span>
+              <span className="user-name">{user?.nombres?.split(' ')[0] || 'Jefferson'}</span>
+              <span className="user-avatar">
+                <FontAwesomeIcon icon={faUser} />
+              </span>
             </Link>
-            <button onClick={handleLogout} className="logout-button">
-              <div className="button-content">
-                <FontAwesomeIcon icon={faSignOutAlt} className="logout-icon" />
-                <span>Salir</span>
-              </div>
+            <button onClick={handleLogout} className="logout-link" title="Salir">
+              <FontAwesomeIcon icon={faSignOutAlt} />
             </button>
-          </>
+          </div>
         ) : (
           <>
             <Link to="/login" className="user-button">
