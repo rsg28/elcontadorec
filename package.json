@@ -26,6 +26,7 @@
     "express": "^5.1.0",
     "formik": "^2.4.6",
     "jsonwebtoken": "^9.0.2",
+    "lottie-react": "^2.4.1",
     "mysql": "^2.18.1",
     "mysql2": "^3.14.0",
     "node-fetch": "^3.3.2",

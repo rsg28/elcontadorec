@@ -455,9 +455,11 @@
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 0 1rem;
+  
 }
 
 .toggle-button {
+  width: 100%;
   flex: 1;
   padding: 1rem;
   border: 2px solid #e0e0e0;
@@ -488,6 +490,69 @@
   font-size: 1.2rem;
 }
 
+.toggle-button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #e0e0e0;
+  border-color: #e0e0e0;
+  color: #999;
+}
+
+.toggle-button.disabled:hover {
+  border-color: #e0e0e0;
+  color: #999;
+  background: #e0e0e0;
+}
+
+.toggle-button.disabled.active {
+  background: #e0e0e0;
+  border-color: #e0e0e0;
+  color: #999;
+}
+
 .factura-form .form-group label {
   color: #fff !important;
+}
+
+.payment-button-container {
+  position: relative;
+  flex: 1;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: tooltipFadeIn 0.2s ease-in-out;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 } 

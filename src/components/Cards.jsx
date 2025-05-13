@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TokenizationForm from './TokenizationForm';
-import getAllCards from '../hooks/paymentezNuvei/getAllCards';
-import { FaCreditCard } from 'react-icons/fa';
+import usePaymentez from '../hooks/usePaymentez';
+import { FaWallet, FaCreditCard } from 'react-icons/fa';
+import LoadingAnimation from './loadingAnimation';
 
 // Card types with their respective brands and styles
 const CARD_BRANDS = {
@@ -78,7 +79,7 @@ const CARD_BRANDS = {
     }
 };
 
-const cards = {
+const cardsDummy = {
     "cards": [
         {
             "bin": "511915",
@@ -117,12 +118,34 @@ const cards = {
     "result_size": 3
 }
 
-const Cards = () => {
-    //const { cards, loading, error } = getAllCards();
+const Cards = ({facturaFormValues}) => {
+    const { loading, error, getAllCards, deleteCard } = usePaymentez();
     const [selectedCardToken, setSelectedCardToken] = useState(null);
+    const [cards, setCards] = useState({cards: []});
+    const [localError, setLocalError] = useState(null);
 
-    const handleDelete = (token) => {
-        // TODO: Implement delete functionality
+    const loadCards = async () => {
+        try {
+            setLocalError(null);
+            const response = await getAllCards();
+            // Ensure we always have a valid cards object structure
+            setCards(response && typeof response === 'object' ? response : { cards: [] });
+        } catch (err) {
+            console.error('Error loading cards:', err);
+            setLocalError('Error al cargar las tarjetas. Por favor, intente nuevamente.');
+            setCards({ cards: [] });
+        }
+    };
+
+    const handleDelete = async (token) => {
+        try {
+            setLocalError(null);
+            await deleteCard(token);
+            await loadCards();
+        } catch (err) {
+            console.error('Error deleting card:', err);
+            setLocalError('Error al eliminar la tarjeta. Por favor, intente nuevamente.');
+        }
     };
 
     const handleSelectCard = (token) => {
@@ -134,57 +157,93 @@ const Cards = () => {
         return CARD_BRANDS[type] || CARD_BRANDS.default;
     };
 
+    const handlePay = () => {
+        // Payment logic will be implemented here
+        console.log('Payment initiated with card token:', selectedCardToken);
+    };
+
+    useEffect(() => {
+        loadCards();
+    }, []);
+
     return (
         <div style={styles.container}>
+            {loading && <LoadingAnimation />}
+            {(error || localError) && (
+                <div style={styles.errorContainer}>
+                    <p style={styles.errorText}>{error || localError}</p>
+                </div>
+            )}
             <h1 style={styles.title}>
                 <FaCreditCard style={styles.titleIcon} />
                 Pago con tarjeta
             </h1>
             <div style={styles.scrollableContainer}>
                 <div style={styles.cardsContainer}>
-                    {cards.cards.map((card) => {
-                        const brandInfo = getCardBrand(card.type);
-                        const isSelected = selectedCardToken === card.token;
-                        
-                        return (
-                            <div key={card.token} style={styles.cardWrapper}>
-                                <div style={{
-                                    ...styles.card,
-                                    ...brandInfo.style,
-                                    ...(isSelected ? styles.selectedCard : {})
-                                }}>
-                                    <div style={styles.cardInfo}>
-                                        <p style={styles.cardType}>
-                                            {brandInfo.name.toUpperCase()}
-                                        </p>
-                                        <p style={styles.cardNumber}>•••• •••• •••• {card.number}</p>
-                                        <p style={styles.cardHolder}>{card.holder_name}</p>
-                                        <p style={styles.cardExpiry}>Expires: {card.expiry_month}/{card.expiry_year}</p>
-                                    </div>
-                                    <div style={styles.buttonContainer}>
-                                        <button 
-                                            onClick={() => handleSelectCard(card.token)}
-                                            style={{
-                                                ...styles.selectButton,
-                                                ...(isSelected ? styles.selectedButton : {})
-                                            }}
-                                        >
-                                            {isSelected ? 'Selected' : 'Select'}
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(card.token)}
-                                            style={styles.deleteButton}
-                                        >
-                                            Delete
-                                        </button>
+                    {(!cards || !Array.isArray(cards.cards) || cards.cards.length === 0) ? (
+                        <div style={styles.noCardsContainer}>
+                            <FaWallet style={styles.noCardsIcon} />
+                            <p style={styles.noCardsText}>No hay tarjetas guardadas</p>
+                            <p style={styles.noCardsSubtext}>Agrega una tarjeta usando el boton de abajo</p>
+                        </div>
+                    ) : (
+                        cards.cards.map((card) => {
+                            const brandInfo = getCardBrand(card.type);
+                            const isSelected = selectedCardToken === card.token;
+                            
+                            return (
+                                <div key={card.token} style={styles.cardWrapper}>
+                                    <div style={{
+                                        ...styles.card,
+                                        ...brandInfo.style,
+                                        ...(isSelected ? styles.selectedCard : {})
+                                    }}>
+                                        <div style={styles.cardInfo}>
+                                            <p style={styles.cardType}>
+                                                {brandInfo.name.toUpperCase()}
+                                            </p>
+                                            <p style={styles.cardNumber}>•••• •••• •••• {card.number}</p>
+                                            <p style={styles.cardHolder}>{card.holder_name}</p>
+                                            <p style={styles.cardExpiry}>Expires: {card.expiry_month}/{card.expiry_year}</p>
+                                        </div>
+                                        <div style={styles.buttonContainer}>
+                                            <button 
+                                                onClick={() => handleSelectCard(card.token)}
+                                                style={{
+                                                    ...styles.selectButton,
+                                                    ...(isSelected ? styles.selectedButton : {})
+                                                }}
+                                            >
+                                                {isSelected ? 'Eligida' : 'Elegir'}
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(card.token)}
+                                                style={styles.deleteButton}
+                                            >
+                                                Borrar
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    )}
                 </div>
             </div>
             <TokenizationForm />
+            <div style={styles.paymentButtonContainer}>
+                <button 
+                    onClick={handlePay}
+                    disabled={!selectedCardToken || cards.cards.length === 0}
+                    style={{
+                        ...styles.paymentButton,
+                        opacity: (!selectedCardToken || cards.cards.length === 0) ? 0.6 : 1,
+                        cursor: (!selectedCardToken || cards.cards.length === 0) ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    Pagar
+                </button>
+            </div>
         </div>
     )
 }
@@ -218,8 +277,7 @@ const styles = {
         padding: '15px',
         display: 'flex',
         justifyContent: 'center',
-        boxShadow: '0 6px 24px rgba(20, 40, 101, 0.25)',
-        
+        //boxShadow: '0 6px 24px rgba(20, 40, 101, 0.25)',
         scrollbarWidth: 'thin',
         scrollbarColor: '#4d94ff #1a2657',
         transition: 'all 0.3s ease',
@@ -327,6 +385,78 @@ const styles = {
         border: '3px solid #4d94ff',
         position: 'relative',
     },
+    noCardsContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        textAlign: 'center',
+        height: '100%',
+        width: '100%',
+        color: '#e0e6f7',
+    },
+    noCardsIcon: {
+        fontSize: '48px',
+        color: '#4d94ff',
+        marginBottom: '15px',
+        opacity: 0.8,
+    },
+    noCardsText: {
+        fontSize: '18px',
+        fontWeight: '600',
+        marginBottom: '8px',
+        color: '#e0e6f7',
+    },
+    noCardsSubtext: {
+        fontSize: '14px',
+        color: '#a0a8c0',
+        maxWidth: '250px',
+        lineHeight: '1.4',
+    },
+    paymentButtonContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        marginTop: '10px',
+        width: '100%'
+    },
+    errorContainer: {
+        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+        border: '1px solid rgba(220, 53, 69, 0.2)',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        marginBottom: '20px',
+        textAlign: 'center',
+    },
+    errorText: {
+        color: '#dc3545',
+        fontSize: '14px',
+        margin: 0,
+        fontWeight: '500',
+    },
+    paymentButton: {
+        background: 'linear-gradient(90deg, #2ecc71 0%, #27ae60 100%)',
+        color: '#fff',
+        width: '80%',
+        maxWidth: '400px',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        lineHeight: '40px',
+        boxShadow: '0 2px 8px rgba(46, 204, 113, 0.15)',
+        textShadow: '0 1px 2px rgba(0,0,0,0.08)',
+        transition: 'all 0.2s cubic-bezier(.4,0,.2,1)',
+        outline: 'none',
+        '&:hover:not(:disabled)': {
+            filter: 'brightness(1.08) saturate(1.2)',
+            transform: 'translateY(-2px) scale(1.03)',
+            boxShadow: '0 4px 16px rgba(6, 245, 106, 0.18)',
+        },
+        '&:disabled': {
+            filter: 'grayscale(0.3)',
+        }
+    }
 };
 
 export default Cards;

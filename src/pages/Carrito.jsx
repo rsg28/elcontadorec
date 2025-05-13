@@ -13,7 +13,6 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import './Carrito.css';
 import displayImage from '../assets/display1.jpeg';
-import TokenizationForm from '../components/TokenizationForm';
 import Cards from '../components/Cards';
 
 // Validation Schema
@@ -34,6 +33,8 @@ const validationSchema = Yup.object().shape({
 
 const Carrito = () => {
   const [activeSection, setActiveSection] = useState('form'); // 'form' or 'payment'
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   // Estado para los items del carrito
   const [cartItems, setCartItems] = useState([
     {
@@ -92,6 +93,20 @@ const Carrito = () => {
       metodoPago: method
     });
   };*/
+
+  // Handle form validation
+  const handleFormValidation = (isValid) => {
+    setIsFormValid(isValid);
+  };
+
+  // Handle section toggle
+  const handleSectionToggle = (section) => {
+    if (section === 'payment' && !isFormValid) {
+      alert('Por favor complete todos los campos del formulario antes de proceder al pago');
+      return;
+    }
+    setActiveSection(section);
+  };
 
   return (
     <div className="carrito-container">
@@ -169,18 +184,32 @@ const Carrito = () => {
           <div className="section-toggle-buttons">
             <button 
               className={`toggle-button ${activeSection === 'form' ? 'active' : ''}`}
-              onClick={() => setActiveSection('form')}
+              onClick={() => handleSectionToggle('form')}
+              style={{fontSize: '15px'}}
             >
               <FontAwesomeIcon icon={faFileInvoice} />
               Detalles para la factura
             </button>
-            <button 
-              className={`toggle-button ${activeSection === 'payment' ? 'active' : ''}`}
-              onClick={() => setActiveSection('payment')}
+            <div 
+              className="payment-button-container"
+              onMouseEnter={() => !isFormValid && setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
             >
-              <FontAwesomeIcon icon={faMoneyBill} />
-              Pagar
-            </button>
+              <button 
+                className={`toggle-button ${activeSection === 'payment' ? 'active' : ''} ${!isFormValid ? 'disabled' : ''}`}
+                onClick={() => handleSectionToggle('payment')}
+                style={{fontSize: '15px'}}
+                disabled={!isFormValid}
+              >
+                <FontAwesomeIcon icon={faMoneyBill} />
+                Pagar
+              </button>
+              {showTooltip && !isFormValid && (
+                <div className="tooltip">
+                  Complete todos los campos del formulario para proceder al pago
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="factura-content">
@@ -189,54 +218,63 @@ const Carrito = () => {
                 initialValues={initialValues}
                 validationSchema={validationSchema}
                 onSubmit={handleSubmit}
+                validateOnChange={true}
+                validateOnBlur={true}
               >
-                {({ isSubmitting }) => (
-                  <Form>
-                    <div className="form-group">
-                      <label htmlFor="nombres">Nombres</label>
-                      <Field
-                        type="text"
-                        id="nombres"
-                        name="nombres"
-                        className="form-input"
-                      />
-                      <ErrorMessage name="nombres" component="div" className="carrito-error-message" />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="apellidos">Apellidos</label>
-                      <Field
-                        type="text"
-                        id="apellidos"
-                        name="apellidos"
-                        className="form-input"
-                      />
-                      <ErrorMessage name="apellidos" component="div" className="carrito-error-message" />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="cedula">Cédula o RUC</label>
-                      <Field
-                        type="text"
-                        id="cedula"
-                        name="cedula"
-                        className="form-input"
-                      />
-                      <ErrorMessage name="cedula" component="div" className="carrito-error-message" />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="telefono">Número de teléfono</label>
-                      <Field
-                        type="text"
-                        id="telefono"
-                        name="telefono"
-                        className="form-input"
-                      />
-                      <ErrorMessage name="telefono" component="div" className="carrito-error-message" />
-                    </div>
-                  </Form>
-                )}
+                {({ isSubmitting, isValid, dirty }) => {
+                  // Update form validation state whenever form validity changes
+                  React.useEffect(() => {
+                    handleFormValidation(isValid && dirty);
+                  }, [isValid, dirty]);
+
+                  return (
+                    <Form>
+                      <div className="form-group">
+                        <label htmlFor="nombres">Nombres</label>
+                        <Field
+                          type="text"
+                          id="nombres"
+                          name="nombres"
+                          className="form-input"
+                        />
+                        <ErrorMessage name="nombres" component="div" className="carrito-error-message" />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="apellidos">Apellidos</label>
+                        <Field
+                          type="text"
+                          id="apellidos"
+                          name="apellidos"
+                          className="form-input"
+                        />
+                        <ErrorMessage name="apellidos" component="div" className="carrito-error-message" />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="cedula">Cédula o RUC</label>
+                        <Field
+                          type="text"
+                          id="cedula"
+                          name="cedula"
+                          className="form-input"
+                        />
+                        <ErrorMessage name="cedula" component="div" className="carrito-error-message" />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="telefono">Número de teléfono</label>
+                        <Field
+                          type="text"
+                          id="telefono"
+                          name="telefono"
+                          className="form-input"
+                        />
+                        <ErrorMessage name="telefono" component="div" className="carrito-error-message" />
+                      </div>
+                    </Form>
+                  );
+                }}
               </Formik>
             </div>
             <div className={`pago-section ${activeSection === 'payment' ? 'active' : ''}`}>

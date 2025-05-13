@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import LoadingAnimation from './loadingAnimation';
 
 const TokenizationForm = () => {
   // Refs
@@ -14,6 +15,7 @@ const TokenizationForm = () => {
     loaded: false,
     paymentGateway: null,
     responseText: '',
+    loading: false,
     ui: {
       showSubmitBtn: false,
       showNewCardBtn: true,
@@ -86,20 +88,31 @@ const TokenizationForm = () => {
   };
 
   const handleTokenizationResponse = (response) => {
-    const status = response.card.status;
-    console.log("Tokenization status:", status);
-    
-    if (status === 'valid') {
-      alert("Tarjeta guardada correctamente");
-    } else if (status === "review") {
-      console.log("Tarjeta en revisión");
-      alert("Tarjeta en revisión");
-    } else {
-      alert('Error al procesar la tarjeta. Intente nuevamente.');
+    try {
+      const status = response.card.status;
+      
+      if (status === 'valid') {
+        alert("Tarjeta guardada correctamente");
+      } else if (status === "review") {
+        console.log("Tarjeta en revisión");
+        alert("Tarjeta en revisión");
+      } else if (status === 403 || status === 404) {
+        alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
+      } else {
+        alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
+      }
+    } catch (error) {
+      console.error('Error processing tokenization response:', error);
+      if (error.status === 403 || error.status === 404) {
+        alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
+      } else {
+        alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
+      }
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
+      removeTokenizationForm();
+      window.location.reload();
     }
-    
-    removeTokenizationForm();
-    window.location.reload();
   };
 
   // Initialize payment gateway
@@ -121,6 +134,7 @@ const TokenizationForm = () => {
     setState(prev => ({
       ...prev,
       responseText: '',
+      loading: true,
       ui: { ...prev.ui, isSubmitBtnDisabled: true }
     }));
 
@@ -137,6 +151,7 @@ const TokenizationForm = () => {
         setState(prev => ({
           ...prev,
           responseText: error.message || 'Error al procesar la tarjeta. Intente nuevamente.',
+          loading: false,
           ui: { ...prev.ui, isSubmitBtnDisabled: false }
         }));
         
@@ -229,48 +244,51 @@ const TokenizationForm = () => {
   }, []);
 
   return (
-    <div style={{...styles.container, ...styles.paymentExampleDiv}} id="payment_example_div">
-      <div 
-        id="tokenize_container" 
-        className="tokenize_container" 
-        ref={tokenizeContainerRef} 
-        style={styles.tokenizeContainer}
-      />
-      <div 
-        id="response" 
-        ref={responseRef}
-        style={styles.responseContainer}
-      />
-      <div style={styles.buttonContainer}>
-        <button 
-          id="tokenize_btn" 
-          ref={submitBtnRef}
-          disabled={state.ui.isSubmitBtnDisabled}
-          className={`token-btn`}
-          style={{ display: state.ui.showSubmitBtn ? 'block' : 'none' }}
-        >
-          Guardar tarjeta
-        </button> 
-        <button 
-          id="newCard_btn" 
-          ref={newCardBtnRef} 
-          disabled={state.ui.isNewCardBtnDisabled}
-          className={`token-btn`}
-          style={{ display: state.ui.showNewCardBtn ? 'block' : 'none' }}
-        >
-          Agregar tarjeta
-        </button>
-        <button 
-          id="cancel_btn" 
-          ref={cancelBtnRef} 
-          disabled={state.ui.isCancelBtnDisabled} 
-          className={`token-btn cancel`}
-          style={{ display: state.ui.showCancelBtn ? 'block' : 'none' }}
-        >
-          Cancelar
-        </button>
+    <>
+      {state.loading && <LoadingAnimation />}
+      <div style={{...styles.container, ...styles.paymentExampleDiv}} id="payment_example_div">
+        <div 
+          id="tokenize_container" 
+          className="tokenize_container" 
+          ref={tokenizeContainerRef} 
+          style={styles.tokenizeContainer}
+        />
+        <div 
+          id="response" 
+          ref={responseRef}
+          style={styles.responseContainer}
+        />
+        <div style={styles.buttonContainer}>
+          <button 
+            id="tokenize_btn" 
+            ref={submitBtnRef}
+            disabled={state.ui.isSubmitBtnDisabled}
+            className={`token-btn`}
+            style={{ display: state.ui.showSubmitBtn ? 'block' : 'none' }}
+          >
+            Guardar tarjeta
+          </button> 
+          <button 
+            id="newCard_btn" 
+            ref={newCardBtnRef} 
+            disabled={state.ui.isNewCardBtnDisabled}
+            className={`token-btn`}
+            style={{ display: state.ui.showNewCardBtn ? 'block' : 'none' }}
+          >
+            Agregar tarjeta
+          </button>
+          <button 
+            id="cancel_btn" 
+            ref={cancelBtnRef} 
+            disabled={state.ui.isCancelBtnDisabled} 
+            className={`token-btn cancel`}
+            style={{ display: state.ui.showCancelBtn ? 'block' : 'none' }}
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
