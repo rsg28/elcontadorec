@@ -278,7 +278,7 @@ const CategoriaPage = () => {
                 ) : (
                   <img src={displayDefault} alt="Imagen por defecto" className="service-card-img" />
                 )}
-                <button className="service-card-btn small">VER MÁS</button>
+                <button className="service-card-btn small" onClick={() => navigate(`/servicio/${servicio.id_servicio}`)}>VER MÁS</button>
               </div>
               <div className="service-card-right">
                 <label className="service-card-label">Seleccione una subcategoría para ver el precio</label>

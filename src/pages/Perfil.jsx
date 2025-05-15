@@ -24,7 +24,7 @@ import displayImage from '../assets/display1.jpeg';
 import useAuth from '../hooks/useAuth';
 
 const Perfil = () => {
-  const { user, isAuthenticated, isAdmin, loading } = useAuth();
+  const { user, isAuthenticated, isAdmin, loading, logout } = useAuth();
   const [editMode, setEditMode] = useState({
     nombres: false,
     apellidos: false,
@@ -188,8 +188,10 @@ const Perfil = () => {
               <li>Pedidos pendientes</li>
               <li>Pedidos completados</li>
             </ul>
-            <li>
-              <FontAwesomeIcon icon={faTools} /> Cerrar sesión
+            <li className="sidebar-logout">
+              <button type="button" className="logout-btn" onClick={() => { logout(); window.location.href = '/'; }}>
+                <FontAwesomeIcon icon={faTools} /> Cerrar sesión
+              </button>
             </li>
             {isUserAdmin && (
               <li className="sidebar-admin">

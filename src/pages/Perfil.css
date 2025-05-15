@@ -1182,4 +1182,17 @@
   min-height: 1.08em !important;
   max-width: 1.08em !important;
   max-height: 1.08em !important;
+}
+
+.sidebar-logout:hover,
+.sidebar-logout:focus-within {
+  background: #f5f6fa;
+  color: var(--primary-dark);
+  border-radius: 0 18px 18px 0;
+}
+
+.sidebar-logout .logout-btn {
+  padding: 12px 0px 12px 0px !important;
+  white-space: nowrap;
+  font-size: 1.13rem;
 } 

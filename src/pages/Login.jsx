@@ -74,12 +74,10 @@ const Login = () => {
           // Show success message
           setLoginSuccess(`¡Bienvenido/a de nuevo, ${result.data.nombres?.split(' ')[0] || 'Usuario'}!`);
           
-          // Wait 2 seconds before allowing redirect
+          // Refresh the page to update user info everywhere
           setTimeout(() => {
-            setAllowRedirect(true);
-            // Redirect to homepage instead of admin panel
-            navigate('/');
-          }, 2000);
+            window.location.href = '/';
+          }, 1200);
         }
       } catch (error) {
         setLoginError('Error al conectar con el servidor. Inténtalo de nuevo.');

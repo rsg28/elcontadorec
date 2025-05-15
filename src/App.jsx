@@ -39,6 +39,7 @@ import ThankYou from './pages/ThankYou';
 import CategoriaPage from './pages/CategoriaPage';
 import Carrito from './pages/Carrito';
 import Perfil from './pages/Perfil';
+import ServicioPage from './pages/ServicioPage';
 // Import components
 import Navbar from './components/Navbar';
 // Import hooks
@@ -248,6 +249,7 @@ function App() {
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/servicio/:id_servicio" element={<ServicioPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         
