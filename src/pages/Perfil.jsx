@@ -191,7 +191,7 @@ const Perfil = () => {
             <li className="sidebar-logout">
               <button type="button" className="logout-btn" onClick={() => { logout(); window.location.href = '/'; }}>
                 <FontAwesomeIcon icon={faTools} /> Cerrar sesión
-              </button>
+                  </button>
             </li>
             {isUserAdmin && (
               <li className="sidebar-admin">
@@ -218,7 +218,7 @@ const Perfil = () => {
                 </div>
                 <div className="perfil-card-sub">Apellidos y Nombre</div>
                 <div className="perfil-card-fields">
-                  <div>
+                <div>
                     <div>{user?.correo}</div>
                     <div className="perfil-card-label">Email</div>
                   </div>

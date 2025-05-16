@@ -332,24 +332,24 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
   if (!show) return null;
   
   return (
-    <div className="modal-overlay" onClick={(e) => {
+    <div className={styles['modal-overlay']} onClick={(e) => {
       // Prevent closing when clicking outside
       // Commented out to prevent modal from closing when clicking outside
       // if (e.target === e.currentTarget) {
       //   onClose();
       // }
     }}>
-      <div className="modal-content">
-        <div className="modal-header">
+      <div className={styles['modal-content']}>
+        <div className={styles['modal-header']}>
           <h2>{editItem ? 'Editar Ítem' : 'Agregar Nuevo Ítem'}</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         
         <form onSubmit={handleSubmit}>
-          <div className="form-layout">
-            <div className="form-group">
+          <div className={styles['form-layout']}>
+            <div className={styles['form-group']}>
               <label htmlFor="categoria">
-                Categoría <span className="required-mark">*</span>
+                Categoría <span className={styles['required-mark']}>*</span>
               </label>
               <select
                 id="categoria"
@@ -358,7 +358,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, 'categoria')}
                 required
-                className="form-control"
+                className={styles['form-control']}
               >
                 <option value="">Seleccione una categoría</option>
                 {allCategorias.map(categoria => (
@@ -369,11 +369,11 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               </select>
             </div>
             
-            <div className="form-group">
+            <div className={styles['form-group']}>
               <label htmlFor="servicio">
-                Servicio <span className="required-mark">*</span>
+                Servicio <span className={styles['required-mark']}>*</span>
               </label>
-              <div className="autocomplete-container" ref={servicioInputRef}>
+              <div className={styles['autocomplete-container']} ref={servicioInputRef}>
                 <input
                   id="servicio"
                   type="text"
@@ -383,12 +383,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   onKeyDown={(e) => handleKeyDown(e, 'servicio')}
                   required
                   placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
-                  className="form-control"
+                  className={styles['form-control']}
                   disabled={!formData.categoria}
                   autoComplete="off"
                 />
                 {suggestions.servicios.length > 0 && (
-                  <ul className="suggestions-list">
+                  <ul className={styles['suggestions-list']}>
                     {suggestions.servicios.map((suggestion, index) => (
                       <li 
                         key={index}
@@ -401,15 +401,15 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 )}
               </div>
               {!formData.categoria && (
-                <div className="field-description">Primero seleccione una categoría para ver servicios disponibles</div>
+                <div className={styles['field-description']}>Primero seleccione una categoría para ver servicios disponibles</div>
               )}
             </div>
             
-            <div className="form-group">
+            <div className={styles['form-group']}>
               <label htmlFor="subcategoria">
-                Subcategoría <span className="required-mark">*</span>
+                Subcategoría <span className={styles['required-mark']}>*</span>
               </label>
-              <div className="autocomplete-container" ref={subcategoriaInputRef}>
+              <div className={styles['autocomplete-container']} ref={subcategoriaInputRef}>
                 <input
                   id="subcategoria"
                   type="text"
@@ -419,11 +419,11 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   onKeyDown={(e) => handleKeyDown(e, 'subcategoria')}
                   required
                   placeholder="Escriba para buscar o agregar subcategoría"
-                  className="form-control"
+                  className={styles['form-control']}
                   autoComplete="off"
                 />
                 {suggestions.subcategorias.length > 0 && (
-                  <ul className="suggestions-list">
+                  <ul className={styles['suggestions-list']}>
                     {suggestions.subcategorias.map((suggestion, index) => (
                       <li 
                         key={index}
@@ -437,12 +437,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               </div>
             </div>
 
-            <div className="form-group">
+            <div className={styles['form-group']}>
               <label htmlFor="precio">
-                Precio <span className="required-mark">*</span>
+                Precio <span className={styles['required-mark']}>*</span>
               </label>
-              <div className="enhanced-price-input">
-                <span className="currency-symbol">$</span>
+              <div className={styles['enhanced-price-input']}>
+                <span className={styles['currency-symbol']}>$</span>
                 <input
                   id="precio"
                   type="text"
@@ -452,18 +452,18 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   required
                   placeholder="0.00"
                   inputMode="decimal"
-                  className="form-control price-control"
+                  className={`${styles['form-control']} ${styles['price-control']}`}
                   autoComplete="off"
                 />
               </div>
             </div>
           </div>
           
-          <div className="form-actions">
-            <button type="button" className="cancel-button" onClick={onClose}>
+          <div className={styles['form-actions']}>
+            <button type="button" className={styles['cancel-button']} onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="save-button">
+            <button type="submit" className={styles['save-button']}>
               <FontAwesomeIcon icon={faSave} /> {editItem ? 'Actualizar' : 'Guardar'} Ítem
             </button>
           </div>
@@ -497,46 +497,46 @@ const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount,
   if (!show) return null;
   
   return (
-    <div className="modal-overlay" onClick={(e) => {
+    <div className={styles['modal-overlay']} onClick={(e) => {
       // Prevent closing when clicking outside
       // if (e.target === e.currentTarget) {
       //   onClose();
       // }
     }}>
-      <div className="modal-content">
-        <div className="modal-header">
+      <div className={styles['modal-content']}>
+        <div className={styles['modal-header']}>
           <h2>Eliminar Servicio</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         
-        <div className="modal-body">
-          <div className="warning-icon">
+        <div className={styles['modal-body']}>
+          <div className={styles['warning-icon']}>
             <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
           </div>
-          <p className="warning-message">
+          <p className={styles['warning-message']}>
             Está a punto de eliminar el servicio <strong>{servicioName}</strong> y todos sus elementos asociados.
           </p>
-          <p className="warning-details">
+          <p className={styles['warning-details']}>
             Esta acción eliminará:
           </p>
-          <ul className="warning-items">
+          <ul className={styles['warning-items']}>
             <li>{subcategoriaCount} subcategoría(s)</li>
             <li>{itemCount} ítem(s)</li>
           </ul>
-          <p className="warning-permanent">
+          <p className={styles['warning-permanent']}>
             Esta acción no se puede deshacer. ¿Está seguro que desea continuar?
           </p>
         </div>
         
-        <div className="modal-footer">
+        <div className={styles['modal-footer']}>
           <button 
-            className="cancel-button" 
+            className={styles['cancel-button']} 
             onClick={onClose}
           >
             Cancelar
           </button>
           <button 
-            className="delete-button" 
+            className={styles['delete-button']} 
             onClick={onConfirm}
           >
             <FontAwesomeIcon icon={faTrash} /> Eliminar Servicio
@@ -568,42 +568,42 @@ const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => 
   if (!show) return null;
   
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']}>
+        <div className={styles['modal-header']}>
           <h2>Eliminar Ítem</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         
-        <div className="modal-body">
-          <div className="warning-icon">
+        <div className={styles['modal-body']}>
+          <div className={styles['warning-icon']}>
             <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
           </div>
-          <p className="warning-message">
+          <p className={styles['warning-message']}>
             ¿Está seguro que desea eliminar este ítem?
           </p>
           {isLastItem && (
-            <div className="warning-details">
-              <p className="warning-text">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="warning-icon-small" />
+            <div className={styles['warning-details']}>
+              <p className={styles['warning-text']}>
+                <FontAwesomeIcon icon={faExclamationTriangle} className={styles['warning-icon-small']} />
                 Este es el último ítem de este servicio. Al eliminarlo, también se eliminará el servicio completo.
               </p>
             </div>
           )}
-          <p className="warning-permanent">
+          <p className={styles['warning-permanent']}>
             Esta acción no se puede deshacer.
           </p>
         </div>
         
-        <div className="modal-footer">
+        <div className={styles['modal-footer']}>
           <button 
-            className="cancel-button" 
+            className={styles['cancel-button']} 
             onClick={onClose}
           >
             Cancelar
           </button>
           <button 
-            className="delete-button" 
+            className={styles['delete-button']} 
             onClick={onConfirm}
           >
             <FontAwesomeIcon icon={faTrash} /> Eliminar {isLastItem ? 'Servicio' : 'Ítem'}
@@ -871,28 +871,34 @@ const AdminPanel = () => {
   const totalCount = itemsWithDetails.length;
 
   // Handler for adding a new item
-  const handleAddItem = async () => {
+  const handleAddItem = () => {
     try {
-      // Save current expanded services state
-      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-      console.log('Saving expanded state before add item:', currentExpandedState);
-      
-      // Asegurarse de que tenemos los datos más actualizados
-      console.log('Actualizando listas antes de mostrar el formulario de ítem');
-      
-      // Actualizar la lista de servicios primero
-      await fetchAllServicios();
-      
-      // Restore the expanded services state exactly as it was
-      console.log('Restoring expanded state after fetch:', currentExpandedState);
-      setExpandedServices(currentExpandedState);
-      
-      // Luego configurar el estado para mostrar el formulario
+      // First, set the form state to show the modal immediately
       setCurrentEditItem(null);
       setShowItemForm(true);
+      
+      // Then optionally refresh data (removed await to prevent blocking)
+      console.log('Actualizando listas después de mostrar el formulario de ítem');
+      
+      // Save current expanded state
+      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+      
+      // Update services list in the background
+      fetchAllServicios()
+        .then(() => {
+          // Restore expanded state after fetch
+          console.log('Restoring expanded state after fetch:', currentExpandedState);
+          setExpandedServices(currentExpandedState);
+        })
+        .catch(error => {
+          console.error('Error fetching services:', error);
+          // Don't hide the form if this fails
+        });
     } catch (error) {
       console.error('Error al preparar formulario de ítem:', error);
       alert('Hubo un problema al preparar el formulario. Por favor, intente nuevamente.');
+      // Ensure form shows even if there's an error
+      setShowItemForm(true);
     }
   };
   

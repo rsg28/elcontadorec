@@ -28,7 +28,7 @@ const Navbar = () => {
   return (
     <nav className="main-nav nav-flat nav-fixed-height">
       {showArrows && (
-        <button className="nav-arrow left" onClick={() => scroll('left')}>&lt;</button>
+      <button className="nav-arrow left" onClick={() => scroll('left')}>&lt;</button>
       )}
       <ul className="nav-list nav-flat-list nav-centered-list" ref={listRef}>
         {loading && <li className="nav-item">Loading...</li>}
@@ -45,7 +45,7 @@ const Navbar = () => {
         ))}
       </ul>
       {showArrows && (
-        <button className="nav-arrow right" onClick={() => scroll('right')}>&gt;</button>
+      <button className="nav-arrow right" onClick={() => scroll('right')}>&gt;</button>
       )}
     </nav>
   );
