@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faCheck, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faSpinner, faExclamationTriangle, faPalette } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
@@ -10,6 +10,7 @@ import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
 import 'react-toastify/dist/ReactToastify.css';
 import styles from './AdminPanel.module.css';
+import LoadingAnimation from '../components/loadingAnimation';
 
 // Item form modal component
 const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
@@ -170,11 +171,6 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 categoriaName: cat ? cat.nombre : 'Otra categoría'
               };
             });
-          
-          // Add warning for duplicate names in other categories
-          if (servicesInOtherCategories.length > 0) {
-            console.log('Servicios con mismo nombre en otras categorías:', servicesInOtherCategories);
-          }
         }
         
         setSuggestions(prev => ({ ...prev, servicios: servicioSuggestions }));
@@ -252,12 +248,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
     
     if (existingServicio) {
       servicioId = existingServicio.id_servicio;
-      console.log(`Usando servicio existente: ${existingServicio.nombre} (ID: ${servicioId})`);
+      
     } else {
       // We'll need to create a new servicio on the backend
       // For now, we'll pass the name and handle creation in the backend
       servicioId = formData.servicio;
-      console.log(`Se creará un nuevo servicio: ${formData.servicio}`);
+      
     }
     
     // Find or create subcategoria ID
@@ -268,12 +264,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
     
     if (existingSubcategoria) {
       subcategoriaId = existingSubcategoria.id_subcategoria;
-      console.log(`Usando subcategoría existente: ${existingSubcategoria.nombre} (ID: ${subcategoriaId})`);
+      
     } else {
       // We'll need to create a new subcategoria on the backend
       // For now, we'll pass the name and handle creation in the backend
       subcategoriaId = formData.subcategoria;
-      console.log(`Se creará una nueva subcategoría: ${formData.subcategoria}`);
+      
     }
     
     // Convert precio to number and process data
@@ -287,7 +283,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
       id_categoria: formData.categoria // Pass the selected category ID
     };
     
-    console.log('Enviando datos de ítem para guardar:', processedData);
+    
     onSave(processedData, editItem?.id_item);
   };
 
@@ -332,25 +328,28 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
   if (!show) return null;
   
   return (
-    <div className={styles['modal-overlay']} onClick={(e) => {
-      // Prevent closing when clicking outside
-      // Commented out to prevent modal from closing when clicking outside
-      // if (e.target === e.currentTarget) {
-      //   onClose();
-      // }
-    }}>
-      <div className={styles['modal-content']}>
-        <div className={styles['modal-header']}>
-          <h2>{editItem ? 'Editar Ítem' : 'Agregar Nuevo Ítem'}</h2>
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '550px' }}>
+        <div className={styles['modal-header']} style={{ borderRadius: '8px 8px 0 0' }}>
+          <h2>
+            {editItem ? (
+              <><FontAwesomeIcon icon={faEdit} className={styles['modal-header-icon']} /> Editar Ítem</>
+            ) : (
+              <><FontAwesomeIcon icon={faPlus} className={styles['modal-header-icon']} /> Agregar Nuevo Ítem</>
+            )}
+          </h2>
           <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         
-        <form onSubmit={handleSubmit}>
-          <div className={styles['form-layout']}>
-            <div className={styles['form-group']}>
-              <label htmlFor="categoria">
+        <form onSubmit={handleSubmit} autoComplete="off">
+          <div className={styles['modal-body']} style={{ padding: '25px 30px' }}>
+            <div className={styles['form-grid']}>
+              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
+                <label htmlFor="categoria" className={styles['form-label']}>
+                  <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
                 Categoría <span className={styles['required-mark']}>*</span>
               </label>
+                <div className={styles['form-control-wrapper']}>
               <select
                 id="categoria"
                 name="categoria"
@@ -362,18 +361,25 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               >
                 <option value="">Seleccione una categoría</option>
                 {allCategorias.map(categoria => (
-                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                      <option 
+                        key={categoria.id_categoria} 
+                        value={categoria.id_categoria}
+                        style={{ color: '#333' }}
+                      >
                     {categoria.nombre}
                   </option>
                 ))}
               </select>
+                </div>
             </div>
             
-            <div className={styles['form-group']}>
-              <label htmlFor="servicio">
+              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
+                <label htmlFor="servicio" className={styles['form-label']}>
+                  <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
                 Servicio <span className={styles['required-mark']}>*</span>
               </label>
               <div className={styles['autocomplete-container']} ref={servicioInputRef}>
+                  <div className={styles['form-control-wrapper']}>
                 <input
                   id="servicio"
                   type="text"
@@ -387,6 +393,10 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   disabled={!formData.categoria}
                   autoComplete="off"
                 />
+                    {!formData.servicio && formData.categoria && 
+                      <FontAwesomeIcon icon={faSearch} className={styles['input-icon']} />
+                    }
+                  </div>
                 {suggestions.servicios.length > 0 && (
                   <ul className={styles['suggestions-list']}>
                     {suggestions.servicios.map((suggestion, index) => (
@@ -394,6 +404,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                         key={index}
                         onClick={() => handleSuggestionSelect('servicio', suggestion.nombre)}
                       >
+                          <FontAwesomeIcon icon={faEdit} className={styles['suggestion-icon']} />
                         {suggestion.nombre}
                       </li>
                     ))}
@@ -401,15 +412,20 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 )}
               </div>
               {!formData.categoria && (
-                <div className={styles['field-description']}>Primero seleccione una categoría para ver servicios disponibles</div>
+                  <div className={styles['field-description']}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '5px', fontSize: '12px', color: '#f39c12' }} />
+                    Primero seleccione una categoría para ver servicios disponibles
+                  </div>
               )}
             </div>
             
-            <div className={styles['form-group']}>
-              <label htmlFor="subcategoria">
+              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
+                <label htmlFor="subcategoria" className={styles['form-label']}>
+                  <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
                 Subcategoría <span className={styles['required-mark']}>*</span>
               </label>
               <div className={styles['autocomplete-container']} ref={subcategoriaInputRef}>
+                  <div className={styles['form-control-wrapper']}>
                 <input
                   id="subcategoria"
                   type="text"
@@ -422,6 +438,10 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   className={styles['form-control']}
                   autoComplete="off"
                 />
+                    {!formData.subcategoria && 
+                      <FontAwesomeIcon icon={faSearch} className={styles['input-icon']} />
+                    }
+                  </div>
                 {suggestions.subcategorias.length > 0 && (
                   <ul className={styles['suggestions-list']}>
                     {suggestions.subcategorias.map((suggestion, index) => (
@@ -429,6 +449,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                         key={index}
                         onClick={() => handleSuggestionSelect('subcategoria', suggestion)}
                       >
+                          <FontAwesomeIcon icon={faFilter} className={styles['suggestion-icon']} />
                         {suggestion}
                       </li>
                     ))}
@@ -437,8 +458,9 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               </div>
             </div>
 
-            <div className={styles['form-group']}>
-              <label htmlFor="precio">
+              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
+                <label htmlFor="precio" className={styles['form-label']}>
+                  <FontAwesomeIcon icon={faDollarSign} className={styles['field-icon']} /> 
                 Precio <span className={styles['required-mark']}>*</span>
               </label>
               <div className={styles['enhanced-price-input']}>
@@ -455,16 +477,17 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                   className={`${styles['form-control']} ${styles['price-control']}`}
                   autoComplete="off"
                 />
+                </div>
               </div>
             </div>
           </div>
           
-          <div className={styles['form-actions']}>
+          <div className={styles['form-actions']} style={{ padding: '20px 30px', borderTop: '1px solid #eee' }}>
             <button type="button" className={styles['cancel-button']} onClick={onClose}>
-              Cancelar
+              <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
             </button>
             <button type="submit" className={styles['save-button']}>
-              <FontAwesomeIcon icon={faSave} /> {editItem ? 'Actualizar' : 'Guardar'} Ítem
+              <FontAwesomeIcon icon={faSave} style={{ marginRight: '8px' }} /> {editItem ? 'Actualizar' : 'Guardar'} Ítem
             </button>
           </div>
         </form>
@@ -475,10 +498,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
 
 // Modal para confirmar la eliminación de un servicio
 const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount, subcategoriaCount }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
   // Add effect for escape key
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isLoading) {
         onClose();
       }
     }
@@ -492,21 +517,23 @@ const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount,
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [show, onClose]);
+  }, [show, onClose, isLoading]);
+  
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
+  };
   
   if (!show) return null;
   
   return (
-    <div className={styles['modal-overlay']} onClick={(e) => {
-      // Prevent closing when clicking outside
-      // if (e.target === e.currentTarget) {
-      //   onClose();
-      // }
-    }}>
+    <div className={styles['modal-overlay']}>
       <div className={styles['modal-content']}>
+        {isLoading && <LoadingAnimation />}
         <div className={styles['modal-header']}>
           <h2>Eliminar Servicio</h2>
-          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
         </div>
         
         <div className={styles['modal-body']}>
@@ -532,14 +559,19 @@ const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount,
           <button 
             className={styles['cancel-button']} 
             onClick={onClose}
+            disabled={isLoading}
           >
             Cancelar
           </button>
           <button 
             className={styles['delete-button']} 
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={isLoading}
           >
-            <FontAwesomeIcon icon={faTrash} /> Eliminar Servicio
+            {isLoading ? 
+              <><FontAwesomeIcon icon={faSpinner} spin /> Eliminando...</> : 
+              <><FontAwesomeIcon icon={faTrash} /> Eliminar Servicio</>
+            }
           </button>
         </div>
       </div>
@@ -549,9 +581,11 @@ const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount,
 
 // Add DeleteItemModal component after DeleteServiceModal
 const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isLoading) {
         onClose();
       }
     }
@@ -563,16 +597,23 @@ const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [show, onClose]);
+  }, [show, onClose, isLoading]);
+  
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
+  };
   
   if (!show) return null;
   
   return (
     <div className={styles['modal-overlay']}>
       <div className={styles['modal-content']}>
+        {isLoading && <LoadingAnimation />}
         <div className={styles['modal-header']}>
           <h2>Eliminar Ítem</h2>
-          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar">×</button>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
         </div>
         
         <div className={styles['modal-body']}>
@@ -599,14 +640,19 @@ const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => 
           <button 
             className={styles['cancel-button']} 
             onClick={onClose}
+            disabled={isLoading}
           >
             Cancelar
           </button>
           <button 
             className={styles['delete-button']} 
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={isLoading}
           >
-            <FontAwesomeIcon icon={faTrash} /> Eliminar {isLastItem ? 'Servicio' : 'Ítem'}
+            {isLoading ? 
+              <><FontAwesomeIcon icon={faSpinner} spin /> Eliminando...</> : 
+              <><FontAwesomeIcon icon={faTrash} /> Eliminar {isLastItem ? 'Servicio' : 'Ítem'}</>
+            }
           </button>
         </div>
       </div>
@@ -614,30 +660,346 @@ const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => 
   );
 };
 
-// Add a function to get color based on category
-const getCategoryColor = (categoryId) => {
-  // Map category IDs to specific colors - you can customize these colors
-  const colorMap = {
-    1: '#4285F4', // Blue for Empresas
-    2: '#EA4335', // Red for Personas
-    3: '#FBBC05', // Yellow/Orange for Contabilidad
-    4: '#34A853', // Green for Impuestos
-    5: '#9C27B0', // Purple for Asesoría
-    6: '#FF9800', // Orange for Capacitación
-    7: '#795548', // Brown for Otros servicios
-    8: '#00BCD4', // Cyan for another category
-    9: '#607D8B', // Blue Grey for another category
-    10: '#009688', // Teal for another category
+
+
+// Add ColorPickerModal component
+const ColorPickerModal = ({ show, onClose, onSave, categoriaId, initialColor, categoriaName }) => {
+  const [color, setColor] = useState(initialColor || '#000000');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setColor(initialColor || '#000000');
+  }, [initialColor]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleColorChange = (e) => {
+    setColor(e.target.value);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onSave(categoriaId, { color });
+    setIsLoading(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '400px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2>Cambiar Color de Categoría</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className={styles['modal-body']}>
+            <div className={styles['form-group']}>
+              <label>Categoría</label>
+              <input 
+                type="text" 
+                value={categoriaName} 
+                readOnly 
+                className={styles['form-control']} 
+                disabled
+              />
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label>Color</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <input 
+                  type="color" 
+                  value={color} 
+                  onChange={handleColorChange} 
+                  style={{ width: '80px', height: '40px', cursor: 'pointer' }}
+                  disabled={isLoading}
+                />
+                <input 
+                  type="text" 
+                  value={color} 
+                  onChange={(e) => setColor(e.target.value)}
+                  className={styles['form-control']}
+                  style={{ width: '100px' }}
+                  disabled={isLoading}
+                />
+                <div 
+                  style={{ 
+                    width: '60px', 
+                    height: '40px', 
+                    backgroundColor: color, 
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles['form-actions']}>
+            <button 
+              type="button" 
+              className={styles['cancel-button']} 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className={styles['save-button']}
+              disabled={isLoading}
+            >
+              {isLoading ? 
+                <><FontAwesomeIcon icon={faSpinner} spin /> Guardando...</> : 
+                <><FontAwesomeIcon icon={faSave} /> Guardar</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Agregar el componente modal para crear categorías después del ColorPickerModal
+const CreateCategoryModal = ({ show, onClose, onSave }) => {
+  const [categoryData, setCategoryData] = useState({
+    nombre: '',
+    color: '#4285F4' // Color azul por defecto
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCategoryData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleColorChange = (e) => {
+    setCategoryData(prev => ({
+      ...prev,
+      color: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onSave(categoryData);
+    setIsLoading(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '450px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2><FontAwesomeIcon icon={faPlus} className={styles['modal-header-icon']} /> Nueva Categoría</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className={styles['modal-body']}>
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
+                Nombre de Categoría
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <input 
+                  type="text" 
+                  name="nombre"
+                  value={categoryData.nombre} 
+                  onChange={handleInputChange} 
+                  className={styles['form-control']}
+                  placeholder="Ej: Empresas, Personas, Contabilidad..."
+                  required
+                  autoFocus
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faPalette} className={styles['field-icon']} /> 
+                Color
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <input 
+                  type="color" 
+                  value={categoryData.color} 
+                  onChange={handleColorChange} 
+                  style={{ width: '80px', height: '40px', cursor: 'pointer' }}
+                  disabled={isLoading}
+                />
+                <input 
+                  type="text" 
+                  name="color"
+                  value={categoryData.color} 
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  style={{ width: '120px' }}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+                <div 
+                  style={{ 
+                    width: '60px', 
+                    height: '40px', 
+                    backgroundColor: categoryData.color, 
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles['form-actions']}>
+            <button 
+              type="button" 
+              className={styles['cancel-button']} 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className={styles['save-button']}
+              disabled={isLoading || !categoryData.nombre.trim()}
+            >
+              {isLoading ? 
+                <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '8px' }} /> Guardando...</> : 
+                <><FontAwesomeIcon icon={faSave} style={{ marginRight: '8px' }} /> Guardar Categoría</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Add DeleteCategoryModal component
+const DeleteCategoryModal = ({ show, onClose, onConfirm, categoryName, serviceCount }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+  
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
   };
   
-  // If category ID is not in the map, generate a color based on the ID
-  if (!colorMap[categoryId]) {
-    // Generate a color based on the category ID
-    const hue = (categoryId * 137) % 360; // Use golden ratio to spread colors
-    return `hsl(${hue}, 70%, 45%)`; // Good saturation and lightness for readability
-  }
+  if (!show) return null;
   
-  return colorMap[categoryId] || '#757575'; // Default gray if category is null
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2>Eliminar Categoría</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <div className={styles['modal-body']}>
+          <div className={styles['warning-icon']}>
+            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
+          </div>
+          <p className={styles['warning-message']}>
+            Está a punto de eliminar la categoría <strong>{categoryName}</strong> y todos sus elementos asociados.
+          </p>
+          <p className={styles['warning-details']}>
+            Esta acción eliminará:
+          </p>
+          <ul className={styles['warning-items']}>
+            <li>{serviceCount} servicio(s) y todos sus ítems</li>
+          </ul>
+          <p className={styles['warning-permanent']}>
+            Esta acción no se puede deshacer. ¿Está seguro que desea continuar?
+          </p>
+        </div>
+        
+        <div className={styles['modal-footer']}>
+          <button 
+            className={styles['cancel-button']} 
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancelar
+          </button>
+          <button 
+            className={styles['delete-button']} 
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? 
+              <><FontAwesomeIcon icon={faSpinner} spin /> Eliminando...</> : 
+              <><FontAwesomeIcon icon={faTrash} /> Eliminar Categoría</>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const AdminPanel = () => {
@@ -666,7 +1028,14 @@ const AdminPanel = () => {
     setServicios: setAllServicios 
   } = useAllServicios();
   const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
-  const { categorias: allCategorias, loading: categoriasLoading, error: categoriasError } = useCategorias();
+  const { 
+    categorias: allCategorias, 
+    loading: categoriasLoading, 
+    error: categoriasError, 
+    updateCategoria,
+    createCategoria,
+    deleteCategoria
+  } = useCategorias();
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
   
   const [adminChecking, setAdminChecking] = useState(true);
@@ -713,8 +1082,11 @@ const AdminPanel = () => {
   // Add a ref to track if this is the initial load
   const isInitialLoadRef = useRef(true);
   
-  // Loading and error states - be less restrictive to prevent infinite loading
-  const loading = itemsLoading && (!itemsWithDetails || itemsWithDetails.length === 0);
+  // Loading and error states
+  const loading = itemsLoading || 
+                 ((!itemsWithDetails || itemsWithDetails.length === 0) && !error) || 
+                 (allServicios.length === 0 && !serviciosError) ||
+                 (allCategorias.length === 0 && !categoriasError);
   const error = itemsError || serviciosError || subcategoriasError || categoriasError;
   
   // Check if user is authenticated and admin
@@ -725,25 +1097,25 @@ const AdminPanel = () => {
       try {
         // Check authentication first
         if (!isAuthenticated()) {
-          console.log('User not authenticated, redirecting');
+          
           alert('Acceso restringido. Debe iniciar sesión.');
           navigate('/');
           return;
         }
 
-        console.log('User authenticated, checking admin status...');
+        
         
         // Now check admin status (properly awaiting the async function)
         const adminStatus = await isAdmin();
-        console.log('Admin check result:', adminStatus);
+        
         
         if (isMounted) {
           if (!adminStatus) {
-            console.log('User is not an admin, redirecting');
+            
             alert('Acceso restringido. Solo los administradores pueden acceder a esta página.');
             navigate('/');
           } else {
-            console.log('Admin access granted');
+            
             setIsAdminUser(true);
           }
           setAdminChecking(false);
@@ -878,7 +1250,7 @@ const AdminPanel = () => {
       setShowItemForm(true);
       
       // Then optionally refresh data (removed await to prevent blocking)
-      console.log('Actualizando listas después de mostrar el formulario de ítem');
+      
       
       // Save current expanded state
       const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
@@ -887,7 +1259,6 @@ const AdminPanel = () => {
       fetchAllServicios()
         .then(() => {
           // Restore expanded state after fetch
-          console.log('Restoring expanded state after fetch:', currentExpandedState);
           setExpandedServices(currentExpandedState);
         })
         .catch(error => {
@@ -907,7 +1278,7 @@ const AdminPanel = () => {
     if (type === 'item') {
       try {
         // Refrescar datos primero
-        console.log('Actualizando listas antes de editar ítem');
+        
         await fetchAllServicios();
         
         // Buscar el ítem después de refrescar los datos
@@ -953,7 +1324,7 @@ const AdminPanel = () => {
   // Handler for saving or updating an item
   const handleSaveItem = async (itemData, itemId) => {
     try {
-      console.log('Guardando ítem con datos:', itemData);
+      
       
       // Validar que tengamos datos básicos
       if (!itemData.id_categoria) {
@@ -968,7 +1339,7 @@ const AdminPanel = () => {
       
       // If new service needs to be created
       if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
-        console.log('Creando nuevo servicio:', itemData.servicio_nombre);
+        
         
         try {
           // Check if service with same name already exists in this category
@@ -991,7 +1362,7 @@ const AdminPanel = () => {
             if (result.success) {
               // Update the item data with the new service ID
               itemData.id_servicio = result.data.id_servicio;
-              console.log('Servicio creado con ID:', result.data.id_servicio);
+              
             } else {
               showError(`Error al crear servicio: ${result.error}`);
               return;
@@ -1011,8 +1382,6 @@ const AdminPanel = () => {
           showError('Error: El servicio no existe o no es válido');
           return;
         }
-        
-        console.log('Creando nueva subcategoría:', itemData.subcategoria_nombre);
         
         try {
           // Check if subcategory with same name already exists for this service
@@ -1038,7 +1407,6 @@ const AdminPanel = () => {
               itemData.id_subcategoria = result.data.id_subcategoria;
               // Ensure the subcategoria_nombre is set
               itemData.subcategoria_nombre = result.data.nombre;
-              console.log('Subcategoría creada con ID:', result.data.id_subcategoria);
             } else {
               showError(`Error al crear subcategoría: ${result.error}`);
               return;
@@ -1066,7 +1434,6 @@ const AdminPanel = () => {
       
       // Now proceed with item creation/update
       if (itemId) {
-        console.log('Actualizando ítem existente con ID:', itemId);
         const result = await updateItem(itemId, itemData);
         if (result.success) {
           setShowItemForm(false);
@@ -1084,13 +1451,11 @@ const AdminPanel = () => {
           // Restore expanded state
           setExpandedServices(currentExpandedState);
           
-          console.log('Item actualizado correctamente');
           success('Item actualizado correctamente');
         } else {
           showError(`Error al actualizar ítem: ${result.error}`);
         }
       } else {
-        console.log('Creando nuevo ítem');
         const result = await addItem(itemData);
         if (result.success) {
           setShowItemForm(false);
@@ -1150,7 +1515,6 @@ const AdminPanel = () => {
           // Restore expanded state
           setExpandedServices(currentExpandedState);
           
-          console.log('Item creado correctamente');
           success('Item creado correctamente');
         } else {
           showError(`Error al agregar ítem: ${result.error}`);
@@ -1190,7 +1554,7 @@ const AdminPanel = () => {
     try {
       setDeleteServiceState(prev => ({ ...prev, isLoading: true }));
       
-      console.log('Eliminando servicio con ID:', deleteServiceState.servicioId);
+      
       const result = await deleteServicio(deleteServiceState.servicioId);
       
       // Cerrar el modal primero para mejorar la experiencia del usuario
@@ -1812,7 +2176,7 @@ const AdminPanel = () => {
       newState[serviceId] = !newState[serviceId];
       
       // For debugging
-      console.log(`Toggled service ${serviceId} to ${newState[serviceId] ? 'expanded' : 'collapsed'}`);
+      
       
       return newState;
     });
@@ -1890,6 +2254,169 @@ const AdminPanel = () => {
     isLoading: false
   });
 
+  // Add state for color picker modal
+  const [colorPickerState, setColorPickerState] = useState({
+    show: false,
+    categoriaId: null,
+    categoriaName: '',
+    currentColor: '',
+    isLoading: false
+  });
+
+  // Dentro del componente AdminPanel, agregar el estado para el modal de creación de categorías
+  const [createCategoryState, setCreateCategoryState] = useState({
+    show: false,
+    isLoading: false
+  });
+
+  // Add state for delete category modal
+  const [deleteCategoryState, setDeleteCategoryState] = useState({
+    show: false,
+    categoryId: null,
+    categoryName: '',
+    serviceCount: 0,
+    isLoading: false
+  });
+
+  // Agregar la función para manejar la creación de categorías
+  const handleCreateCategory = async (categoryData) => {
+    try {
+      // Llamar a la función del hook para crear la categoría
+      const result = await createCategoria(categoryData);
+      
+      if (result.success) {
+        success('Categoría creada correctamente');
+        // Cerrar el modal
+        setCreateCategoryState({
+          show: false,
+          isLoading: false
+        });
+      } else {
+        showError(`Error al crear categoría: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      showError('Error inesperado al crear la categoría');
+    }
+  };
+
+  // Add function to handle the color picker
+  const handleOpenColorPicker = (e, categoriaId, categoriaName, currentColor) => {
+    e.stopPropagation(); // Prevent triggering other click events
+    setColorPickerState({
+      show: true,
+      categoriaId,
+      categoriaName,
+      currentColor,
+      isLoading: false
+    });
+  };
+
+  // Add function to handle category deletion request
+  const handleDeleteCategory = (categoryId, categoryName, serviceCount) => {
+    setDeleteCategoryState({
+      show: true,
+      categoryId,
+      categoryName,
+      serviceCount,
+      isLoading: false
+    });
+  };
+
+  // Add function to confirm category deletion
+  const confirmDeleteCategory = async () => {
+    try {
+      setDeleteCategoryState(prev => ({ ...prev, isLoading: true }));
+      
+      const { categoryId } = deleteCategoryState;
+      
+      // Get all services for this category
+      const servicesToDelete = allServicios.filter(s => s.id_categoria === categoryId);
+      
+      // Delete all services first
+      for (const service of servicesToDelete) {
+        const serviceResult = await deleteServicio(service.id_servicio);
+        if (!serviceResult.success) {
+          throw new Error(`Error al eliminar servicio ${service.nombre}: ${serviceResult.error}`);
+        }
+      }
+      
+      // Then delete the category itself using the deleteCategoria function
+      const result = await deleteCategoria(categoryId);
+      
+      // Close the modal first for better UX
+      setDeleteCategoryState({
+        show: false,
+        categoryId: null,
+        categoryName: '',
+        serviceCount: 0,
+        isLoading: false
+      });
+      
+      if (result.success) {
+        // Refresh data
+        await refreshItems();
+        
+        success('Categoría eliminada correctamente junto con todos sus servicios');
+      } else {
+        showError(`Error al eliminar categoría: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error in confirmDeleteCategory:', error);
+      showError(`Error inesperado: ${error.message}`);
+      
+      // Reset modal state
+      setDeleteCategoryState({
+        show: false,
+        categoryId: null,
+        categoryName: '',
+        serviceCount: 0,
+        isLoading: false
+      });
+    }
+  };
+  
+  // Add function to cancel category deletion
+  const cancelDeleteCategory = () => {
+    setDeleteCategoryState({
+      show: false,
+      categoryId: null,
+      categoryName: '',
+      serviceCount: 0,
+      isLoading: false
+    });
+  };
+
+  // Add function to save the new color
+  const handleSaveColor = async (categoriaId, colorData) => {
+    try {
+      // Call the updateCategoria function with only the color data
+      const result = await updateCategoria(categoriaId, colorData);
+      
+      if (result.success) {
+        success('Color de categoría actualizado correctamente');
+        // Close the modal
+        setColorPickerState({
+          show: false,
+          categoriaId: null,
+          categoriaName: '',
+          currentColor: '',
+          isLoading: false
+        });
+        
+        // No need to refresh since the hook already updates the state
+      } else {
+        showError(`Error al actualizar color: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving color:', error);
+      showError('Error inesperado al guardar el color');
+    }
+  };
+
+  // Constante para color por defecto en caso de que una categoría no tenga color definido
+  const DEFAULT_CATEGORY_COLOR = '#4285F4'; // Azul
+
   if (adminChecking) {
     return (
       <div className="admin-panel-container">
@@ -1904,6 +2431,7 @@ const AdminPanel = () => {
 
   return (
     <div className={styles['admin-panel-container']}>
+      {(deleteCategoryState.isLoading || loading || serviciosLoading || categoriasLoading) && <LoadingAnimation />}
       <h1 className={styles['admin-panel-title']}>Panel de Administración</h1>
       
       <div className={styles['search-filters']}>
@@ -2054,67 +2582,123 @@ const AdminPanel = () => {
       
       <div className={styles['admin-content']}>
         <div className={styles['admin-header']}>
+          <div className={styles['admin-actions']}>
           <button 
             className={styles['add-button']}
             onClick={handleAddItem}
           >
             <FontAwesomeIcon icon={faPlus} /> Agregar Item
           </button>
+            <button 
+              className={styles['add-category-button']}
+              onClick={() => setCreateCategoryState({ show: true, isLoading: false })}
+            >
+              <FontAwesomeIcon icon={faPlus} /> Nueva Categoría
+          </button>
+          </div>
         </div>
         
-        {loading ? (
-          <div className={styles['loading-indicator']}>Cargando...</div>
-        ) : error ? (
+        {error ? (
           <div className={styles['error-message']}>{error}</div>
         ) : (
           <div className={styles['items-list']}>
-            {filteredItems.length === 0 ? (
+            {filteredItems.length === 0 && filters.categoriaId === 'all' ? (
               <p className={styles['no-data']}>No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
-              // Reorganize to group by category first, then by service
-              Object.values(
-                // First, group all services by category ID
-                allServicios.reduce((categories, service) => {
-                  // Skip services that don't match our filters
-                  if (filters.servicioId !== 'all' && service.id_servicio !== parseInt(filters.servicioId)) {
-                    return categories;
-                  }
-                  
-                  // Skip if no items match this service
-                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
-                  if (!hasMatchingItems) {
-                    return categories;
-                  }
-                  
-                  // Get category info
-                  const categoryId = service.id_categoria;
-                  const category = allCategorias.find(c => c.id_categoria === categoryId);
-                  
+              // Start with all categories and add their services
+              allCategorias
+                .filter(categoria => {
                   // Skip if we're filtering by category and this doesn't match
-                  if (filters.categoriaId !== 'all' && categoryId !== parseInt(filters.categoriaId)) {
-                    return categories;
+                  if (filters.categoriaId !== 'all' && categoria.id_categoria !== parseInt(filters.categoriaId)) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map(categoria => {
+                  // Find services for this category
+                  const categoryServices = allServicios
+                    .filter(service => {
+                      // Match service to this category
+                      if (service.id_categoria !== categoria.id_categoria) {
+                        return false;
+                      }
+                      
+                      // Skip services that don't match service filter
+                  if (filters.servicioId !== 'all' && service.id_servicio !== parseInt(filters.servicioId)) {
+                        return false;
                   }
                   
-                  // Add category if it doesn't exist yet
-                  if (!categories[categoryId]) {
-                    categories[categoryId] = {
-                      id: categoryId,
-                      name: category ? category.nombre : 'Sin categoría',
-                      color: getCategoryColor(categoryId),
-                      services: []
-                    };
-                  }
+                      // Check if it has matching items (only apply this filter if not filtering by categoria)
+                      if (filters.categoriaId === 'all') {
+                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
+                        if (!hasMatchingItems) return false;
+                      }
+                      
+                      return true;
+                    });
                   
-                  // Add this service to the category
-                  categories[categoryId].services.push(service);
-                  return categories;
-                }, {})
-              ).map(category => (
+                  return {
+                    id: categoria.id_categoria,
+                    name: categoria.nombre,
+                    color: categoria.color || DEFAULT_CATEGORY_COLOR,
+                    services: categoryServices
+                  };
+                })
+                .map(category => (
                 <div key={`category-${category.id}`} className={styles['category-group']}>
                   <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
                     <h2 className={styles['category-name']}>{category.name}</h2>
                     <div className={styles['category-stats']}>
                       {category.services.length} servicio(s)
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        className={styles['color-picker-button']}
+                        onClick={(e) => handleOpenColorPicker(e, category.id, category.name, category.color)}
+                        title="Cambiar color de la categoría"
+                        style={{ 
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '5px 8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faPalette} />
+                      </button>
+                      <button 
+                        className={styles['delete-category-button']}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(category.id, category.name, category.services.length);
+                        }}
+                        title="Eliminar categoría y todos sus servicios"
+                        style={{ 
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '5px 8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 0, 0, 0.7)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
                     </div>
                   </div>
                   
@@ -2136,7 +2720,6 @@ const AdminPanel = () => {
                             />
                             <div className={styles['service-info']}>
                               <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
-                              <div className={styles['service-category']}>{category.name}</div>
                             </div>
                             <div className={styles['service-stats']}>
                               <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
@@ -2261,12 +2844,7 @@ const AdminPanel = () => {
                                     </div>
                                   </div>
                                   
-                                  <div className={styles['item-category-indicator']} 
-                                    style={{ backgroundColor: category.color }}
-                                    title={`Categoría: ${category.name}`}
-                                  >
-                                    {category.name}
-                                  </div>
+
                                   
                                   <div className={styles['item-controls']}>
                                     <div className={styles['item-actions']}>
@@ -2349,6 +2927,44 @@ const AdminPanel = () => {
           onConfirm={confirmDeleteItem}
           itemName={deleteItemState.itemName}
           isLastItem={deleteItemState.isLastItem}
+        />
+      )}
+      
+      {colorPickerState.show && (
+        <ColorPickerModal
+          show={colorPickerState.show}
+          onClose={() => setColorPickerState({
+            show: false,
+            categoriaId: null,
+            categoriaName: '',
+            currentColor: '',
+            isLoading: false
+          })}
+          onSave={handleSaveColor}
+          categoriaId={colorPickerState.categoriaId}
+          initialColor={colorPickerState.currentColor}
+          categoriaName={colorPickerState.categoriaName}
+        />
+      )}
+      
+      {createCategoryState.show && (
+        <CreateCategoryModal
+          show={createCategoryState.show}
+          onClose={() => setCreateCategoryState({ 
+            show: false, 
+            isLoading: false 
+          })}
+          onSave={handleCreateCategory}
+        />
+      )}
+      
+      {deleteCategoryState.show && (
+        <DeleteCategoryModal
+          show={deleteCategoryState.show}
+          onClose={cancelDeleteCategory}
+          onConfirm={confirmDeleteCategory}
+          categoryName={deleteCategoryState.categoryName}
+          serviceCount={deleteCategoryState.serviceCount}
         />
       )}
       

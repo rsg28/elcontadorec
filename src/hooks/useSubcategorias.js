@@ -27,7 +27,6 @@ const useSubcategorias = (servicioId = null) => {
       }
       
       const data = await response.json();
-      console.log(`Received ${data.length} subcategorías:`, data);
       setSubcategorias(data);
       setError(null);
       return data;
@@ -47,8 +46,6 @@ const useSubcategorias = (servicioId = null) => {
     
     try {
       setLoading(true);
-      console.log(`Fetching subcategorias for service ID: ${id}`);
-      console.log(`URL: ${API_BASE_URL}/subcategorias/servicio/${id}`);
       
       const response = await fetch(`${API_BASE_URL}/subcategorias/servicio/${id}`, {
         credentials: 'include' // Include cookies for authentication
@@ -60,7 +57,6 @@ const useSubcategorias = (servicioId = null) => {
       }
       
       const data = await response.json();
-      console.log(`Received ${data.length} subcategorías:`, data);
       
       if (id === servicioId) {
         // Solo actualizar el estado si el ID coincide con el ID actual del hook
@@ -103,7 +99,6 @@ const useSubcategorias = (servicioId = null) => {
       }
       
       const data = await response.json();
-      console.log('Created subcategoria:', data);
       
       // Si estamos viendo las subcategorías del servicio al que pertenece la nueva, actualizar la lista
       if (servicioId && parseInt(servicioId) === parseInt(nuevaSubcategoria.id_servicio)) {

@@ -221,7 +221,6 @@ export const useAllServicios = () => {
       }
       
       // Call the backend to delete the service and all related records in a transaction
-      console.log(`Eliminando servicio: ${servicioId}`);
       const deleteResponse = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'DELETE',
         headers: {
@@ -235,7 +234,6 @@ export const useAllServicios = () => {
       }
       
       const result = await deleteResponse.json();
-      console.log('Respuesta del servidor:', result);
       
       // Update local state ONLY when server deletion was successful
       setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));

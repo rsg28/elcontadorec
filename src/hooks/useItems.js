@@ -28,7 +28,6 @@ const useItems = () => {
       }
       
       const data = await response.json();
-      console.log('Items refreshed successfully', data.length);
       setItems(data);
       setError(null);
       
@@ -360,9 +359,6 @@ const useItems = () => {
       if (!token) {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
-      
-      // Log the itemId for debugging
-      console.log('Deleting item with ID:', itemId);
       
       const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: 'DELETE',
