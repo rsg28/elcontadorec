@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faSearch, faDollarSign, faFilter } from '@fortawesome/free-solid-svg-icons';
@@ -68,6 +68,9 @@ const CategoriaPage = () => {
   // Get services for current category
   const categoryServices = allServicios.filter(s => s.id_categoria === parseInt(categoriaId));
   
+  // Add ref to track if initial prices have been set
+  const initialPricesSet = useRef({});
+  
   // Handle subcategoria selection
   const handleSubcategoriaChange = (servicioId, subcategoriaId, items) => {
     console.log('DEBUG - servicioId:', servicioId, 'type:', typeof servicioId);
@@ -120,8 +123,6 @@ const CategoriaPage = () => {
         Number(item.id_servicio) === Number(servicio.id_servicio)
       );
 
-      if (servicioItems.length === 0) return null;
-
       // Get subcategorias that have items
       const subcategoriasWithItems = servicioItems.reduce((acc, item) => {
         const subcategoria = allSubcategorias.find(sub => 
@@ -133,17 +134,33 @@ const CategoriaPage = () => {
         return acc;
       }, []);
 
+      // If no items, still show the service but with minimal info
+      if (servicioItems.length === 0) {
+        return {
+          servicio,
+          items: [],
+          subcategorias: [],
+          serviceInfo: {
+            nombre: servicio.nombre || 'Servicio sin nombre',
+            descripcion: servicio.descripcion || 'Sin descripción disponible',
+            imagen_url: servicio.imagen_url || null
+          }
+        };
+      }
+
+      // Get the first item's details for the service info
+      const firstItem = servicioItems[0];
       return {
         servicio,
         items: servicioItems,
         subcategorias: subcategoriasWithItems,
         serviceInfo: {
-          nombre: servicioItems[0].servicio_nombre,
-          descripcion: servicioItems[0].descripcion,
-          imagen_url: servicioItems[0].imagen_url
+          nombre: firstItem.servicio_nombre || servicio.nombre || 'Servicio sin nombre',
+          descripcion: firstItem.descripcion || servicio.descripcion || 'Sin descripción disponible',
+          imagen_url: firstItem.imagen_url || servicio.imagen_url || null
         }
       };
-    }).filter(Boolean);
+    });
   };
   
   // Toggle service expansion
@@ -217,20 +234,39 @@ const CategoriaPage = () => {
   
   // Actualiza automáticamente el precio si solo hay una subcategoría
   useEffect(() => {
-    getServicesWithItems().forEach(({ servicio, items, subcategorias }) => {
-      if (
-        subcategorias.length === 1 &&
-        (!selectedPrices[servicio.id_servicio] || selectedPrices[servicio.id_servicio] === 0)
-      ) {
-        handleSubcategoriaChange(
-          servicio.id_servicio,
-          subcategorias[0].id_subcategoria,
-          items
+    const servicesWithItems = getServicesWithItems();
+    servicesWithItems.forEach(({ servicio, items, subcategorias }) => {
+      const servicioId = servicio.id_servicio;
+      
+      // Skip if we've already set the price for this service
+      if (initialPricesSet.current[servicioId]) {
+        return;
+      }
+
+      // Only update if there's exactly one subcategoria
+      if (subcategorias.length === 1) {
+        const subcategoriaId = subcategorias[0].id_subcategoria;
+        const matchingItem = items.find(item => 
+          Number(item.id_servicio) === Number(servicioId) && 
+          Number(item.id_subcategoria) === Number(subcategoriaId)
         );
+        
+        if (matchingItem) {
+          setSelectedPrices(prev => ({
+            ...prev,
+            [servicioId]: matchingItem.precio
+          }));
+          // Mark this service as having its initial price set
+          initialPricesSet.current[servicioId] = true;
+        }
       }
     });
-    // eslint-disable-next-line
-  }, [filteredItems, allSubcategorias]);
+  }, [filteredItems, allSubcategorias]); // Remove selectedPrices from dependencies
+
+  // Reset the initialPricesSet ref when category changes
+  useEffect(() => {
+    initialPricesSet.current = {};
+  }, [categoriaId]);
   
   // Handler for quantity change
   const handleQuantityChange = (servicioId, delta) => {

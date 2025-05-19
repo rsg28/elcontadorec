@@ -8,6 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
+import LoadingAnimation from '../components/loadingAnimation';
 import './ServicioPage.css';
 
 // Mapa de iconos para convertir nombres de string a componentes de FontAwesome
@@ -87,7 +88,7 @@ const ServicioPage = () => {
     return (
       <div className="servicio-page-container">
         <div className="loading-container">
-          Cargando...
+          <LoadingAnimation />
         </div>
       </div>
     );
@@ -126,7 +127,13 @@ const ServicioPage = () => {
         <div className="servicio-header">
           <h1 className="servicio-title">{currentServicio.nombre}</h1>
           <div className="servicio-description">
-            {currentServicio.descripcion || 'Con nuestro software de última tecnología generamos un reporte consolidado de ventas y retenciones del periodo contratado, cumpliendo con la normativa vigente'}
+            {currentServicio.descripcion ? (
+              currentServicio.descripcion
+            ) : (
+              <span className="no-description-message">
+                Este servicio aún no tiene una descripción detallada. Por favor, contáctenos para más información.
+              </span>
+            )}
           </div>
         </div>
         <div className="servicio-content">
@@ -143,7 +150,7 @@ const ServicioPage = () => {
               ))
             ) : (
               <div className="no-features-message">
-                No hay características disponibles para este servicio
+                Este servicio aún no tiene características definidas. Por favor, contáctenos para conocer más detalles sobre los beneficios y características específicas de este servicio.
               </div>
             )}
           </div>

@@ -50,6 +50,17 @@
   font-size: 17px;
   margin-top: 6px;
   margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.no-description-message {
+  color: #999;
+  font-style: italic;
+  display: block;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #ddd;
 }
 
 .servicio-content {
@@ -195,6 +206,22 @@
 
 .error-container {
   color: #b91c1c;
+}
+
+.no-features-message {
+  color: #999;
+  font-style: italic;
+  display: block;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #ddd;
+  text-align: center;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Responsive adjustments */

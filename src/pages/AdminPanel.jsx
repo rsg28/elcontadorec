@@ -76,7 +76,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
     if (show) {
       if (editItem) {
         // Find service to get its category
-        const service = servicios.find(s => s.servicio_nombre === editItem.servicio_nombre);
+        const service = servicios.find(s => s.id_servicio === editItem.id_servicio);
         const categoryId = service ? service.id_categoria : '';
         
         // Fill form with existing item data if editing
@@ -817,12 +817,14 @@ const ColorPickerModal = ({ show, onClose, onSave, categoriaId, initialColor, ca
 };
 
 // Agregar el componente modal para crear categorías después del ColorPickerModal
-const CreateCategoryModal = ({ show, onClose, onSave }) => {
+const CreateCategoryModal = ({ show, onClose, onSave, allCategorias }) => {
   const [categoryData, setCategoryData] = useState({
     nombre: '',
-    color: '#4285F4' // Color azul por defecto
+    color: '#4285F4', // Color azul por defecto
+    imagen: 'folder' // Icono por defecto (debe coincidir con uno de los nombres en commonIcons)
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -833,6 +835,8 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
 
     if (show) {
       document.addEventListener('keydown', handleKeyDown);
+      // Reset error when modal opens
+      setError('');
     }
     
     return () => {
@@ -846,6 +850,10 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user types
+    if (name === 'nombre') {
+      setError('');
+    }
   };
 
   const handleColorChange = (e) => {
@@ -857,9 +865,32 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if category name is empty
+    if (!categoryData.nombre.trim()) {
+      setError('El nombre de la categoría es requerido');
+      return;
+    }
+
+    // Check if category name already exists
+    const categoryExists = allCategorias.some(
+      cat => cat.nombre.toLowerCase() === categoryData.nombre.toLowerCase().trim()
+    );
+
+    if (categoryExists) {
+      setError('Ya existe una categoría con este nombre');
+      return;
+    }
+
     setIsLoading(true);
-    await onSave(categoryData);
-    setIsLoading(false);
+    try {
+      await onSave(categoryData);
+    } catch (error) {
+      console.error('Error saving category:', error);
+      setError('Error al guardar la categoría');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!show) return null;
@@ -878,7 +909,7 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
             <div className={styles['form-group']}>
               <label className={styles['form-label']}>
                 <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
-                Nombre de Categoría
+                Nombre de Categoría <span className={styles['required-mark']}>*</span>
               </label>
               <div className={styles['form-control-wrapper']}>
                 <input 
@@ -886,13 +917,19 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
                   name="nombre"
                   value={categoryData.nombre} 
                   onChange={handleInputChange} 
-                  className={styles['form-control']}
+                  className={`${styles['form-control']} ${error ? styles['error-input'] : ''}`}
                   placeholder="Ej: Empresas, Personas, Contabilidad..."
                   required
                   autoFocus
                   disabled={isLoading}
                   autoComplete="off"
                 />
+                {error && (
+                  <div className={styles['error-message']}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '5px' }} />
+                    {error}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -931,6 +968,49 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
                 />
               </div>
             </div>
+
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faListAlt} className={styles['field-icon']} /> 
+                Ícono
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <select
+                  name="imagen"
+                  value={categoryData.imagen}
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  disabled={isLoading}
+                >
+                  {commonIcons.map(({name, icon}) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <div className={styles['icon-preview']} style={{ marginTop: '10px' }}>
+                  <div 
+                    style={{ 
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: categoryData.color,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <FontAwesomeIcon 
+                      icon={commonIcons.find(item => item.name === categoryData.imagen)?.icon || faFolder} 
+                      style={{ 
+                        fontSize: '20px', 
+                        color: 'white'
+                      }} 
+                    />
+                  </div>
+                  <span style={{ marginLeft: '10px' }}>Vista previa del ícono</span>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className={styles['form-actions']}>
@@ -945,7 +1025,7 @@ const CreateCategoryModal = ({ show, onClose, onSave }) => {
             <button 
               type="submit" 
               className={styles['save-button']}
-              disabled={isLoading || !categoryData.nombre.trim()}
+              disabled={isLoading || !categoryData.nombre.trim() || !!error}
             >
               {isLoading ? 
                 <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '8px' }} /> Guardando...</> : 
@@ -1579,6 +1659,94 @@ const VerCaracteristicasModal = ({ show, onClose, caracteristicas, onDelete, onC
   );
 };
 
+// Add EditServiceDescriptionModal component after other modal components
+const EditServiceDescriptionModal = ({ show, onClose, onSave, servicioName, initialDescription }) => {
+  const [description, setDescription] = useState(initialDescription || '');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setDescription(initialDescription || '');
+  }, [initialDescription]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onSave(description);
+    setIsLoading(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '600px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2><FontAwesomeIcon icon={faEdit} className={styles['modal-header-icon']} /> Editar Descripción del Servicio</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className={styles['modal-body']}>
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
+                Descripción
+              </label>
+              <textarea 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)}
+                className={styles['form-control']}
+                rows="6"
+                placeholder="Ingrese la descripción del servicio..."
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+          </div>
+          
+          <div className={styles['form-actions']}>
+            <button 
+              type="button" 
+              className={styles['cancel-button']} 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className={styles['save-button']}
+              disabled={isLoading}
+            >
+              {isLoading ? 
+                <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '8px' }} /> Guardando...</> : 
+                <><FontAwesomeIcon icon={faSave} style={{ marginRight: '8px' }} /> Guardar Descripción</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AdminPanel = () => {
   const { isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -1620,7 +1788,8 @@ const AdminPanel = () => {
     createCaracteristica,
     assignCaracteristicaToServicio,
     deleteCaracteristica,
-    fetchCaracteristicas
+    fetchCaracteristicas,
+    addCaracteristicaToServicio
   } = useCaracteristicas();
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
   
@@ -1652,16 +1821,13 @@ const AdminPanel = () => {
     itemId: null,
     field: null,
     value: '',
-    isLoading: false
+    isLoading: false,
+    originalValue: ''
   });
-  
-  // Add a new state to track expanded services
+
+  // Add other state variables
   const [expandedServices, setExpandedServices] = useState({});
-  
-  // Add a state to track the most recently updated service names
   const [updatedServiceNames, setUpdatedServiceNames] = useState({});
-  
-  // Add states to track updated subcategory names and prices
   const [updatedSubcategoryNames, setUpdatedSubcategoryNames] = useState({});
   const [updatedPrices, setUpdatedPrices] = useState({});
   
@@ -2050,10 +2216,7 @@ const AdminPanel = () => {
           // Store the new item's service name for immediate display
           if (result.data && result.data.id_servicio) {
             // Update updatedServiceNames to ensure the UI shows the correct name immediately
-            setUpdatedServiceNames(prev => ({
-              ...prev,
-              [result.data.id_servicio]: itemData.servicio_nombre
-            }));
+            // setUpdatedServiceNames(prev => ({...prev, [result.data.id_servicio]: itemData.servicio_nombre}));
             
             // Also update the local items immediately instead of waiting for refresh
             const newItem = {
@@ -2383,375 +2546,375 @@ const AdminPanel = () => {
   };
 
   // Add state for dropdowns
-  const [inlineEditOptions, setInlineEditOptions] = useState([]);
+  // const [inlineEditOptions, setInlineEditOptions] = useState([]);
 
   // Update handleDoubleClick to allow free-text entry for services
-  const handleDoubleClick = (itemId, field, value) => {
-    // For service field, we'll use text input instead of dropdown
-    if (field === 'servicio') {
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false,
-        originalValue: value // Store the original value for comparison
-      });
-    } 
-    // For subcategoria, we still use dropdown
-    else if (field === 'subcategoria') {
-      const options = allSubcategorias.map(s => ({
-        id: s.id_subcategoria,
-        name: s.nombre
-      }));
-      
-      setInlineEditOptions(options);
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false
-      });
-    }
-    // For price, we use the existing text input
-    else {
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false
-      });
-    }
-  };
+  // const handleDoubleClick = (itemId, field, value) => {
+  //   // For service field, we'll use text input instead of dropdown
+  //   if (field === 'servicio') {
+  //     setEditingState({
+  //       itemId,
+  //       field,
+  //       value: value || '',
+  //       isLoading: false,
+  //       originalValue: value // Store the original value for comparison
+  //     });
+  //   } 
+  //   // For subcategoria, we still use dropdown
+  //   else if (field === 'subcategoria') {
+  //     const options = allSubcategorias.map(s => ({
+  //       id: s.id_subcategoria,
+  //       name: s.nombre
+  //     }));
+  //     
+  //     setInlineEditOptions(options);
+  //     setEditingState({
+  //       itemId,
+  //       field,
+  //       value: value || '',
+  //       isLoading: false
+  //     });
+  //   }
+  //   // For price, we use the existing text input
+  //   else {
+  //     setEditingState({
+  //       itemId,
+  //       field,
+  //       value: value || '',
+  //       isLoading: false
+  //     });
+  //   }
+  // };
 
   // Update handleDropdownChange for subcategory selection
-  const handleDropdownChange = (e) => {
-    const newValue = e.target.value;
-    
-    // Update the state
-    setEditingState({
-      ...editingState,
-      value: newValue
-    });
-    
-    // Only auto-save for subcategory dropdown, not for service (which is now a text input)
-    if (editingState.field === 'subcategoria') {
-      setEditingState(prev => ({
-        ...prev,
-        value: newValue,
-        isLoading: true
-      }));
-      
-      // Auto-save after a brief delay to allow state update
-      setTimeout(() => {
-        handleInlineEditSave();
-      }, 100);
-    }
-  };
+  // const handleDropdownChange = (e) => {
+  //   const newValue = e.target.value;
+  //   
+  //   // Update the state
+  //   setEditingState({
+  //     ...editingState,
+  //     value: newValue
+  //   });
+  //   
+  //   // Only auto-save for subcategory dropdown, not for service (which is now a text input)
+  //   if (editingState.field === 'subcategoria') {
+  //     setEditingState(prev => ({
+  //       ...prev,
+  //       value: newValue,
+  //       isLoading: true
+  //     }));
+  //     
+  //     // Auto-save after a brief delay to allow state update
+  //     setTimeout(() => {
+  //       handleInlineEditSave();
+  //     }, 100);
+  //   }
+  // };
 
   // Update handleInlineEditSave to track all updated fields
-  const handleInlineEditSave = async () => {
-    const { itemId, field, value, originalValue } = editingState;
-    if (!value.trim()) return;
-    
-    setEditingState({
-      ...editingState,
-      isLoading: true
-    });
-    
-    try {
-      const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
-      if (!itemToUpdate) return;
-      
-      // Handle service name editing
-      if (field === 'servicio') {
-        // Only proceed if the name has changed
-        if (value === originalValue) {
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Find the service to get its ID and category
-        const currentService = allServicios.find(s => s.id_servicio === itemToUpdate.id_servicio);
-        if (!currentService) {
-          showError('No se pudo encontrar el servicio actual');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        const categoryId = currentService.id_categoria;
-        const servicioId = currentService.id_servicio;
-        
-        // Check if another service with the same name exists in this category
-        const serviceWithSameNameInCategory = allServicios.find(s => 
-          s.nombre.toLowerCase() === value.toLowerCase() && 
-          s.id_categoria === categoryId &&
-          s.id_servicio !== servicioId
-        );
-        
-        if (serviceWithSameNameInCategory) {
-          warning(`Ya existe un servicio con el nombre "${value}" en esta categoría.`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Update the service name in the backend
-        const updateResult = await updateServicio(servicioId, value);
-        
-        if (updateResult.success) {
-          // Update UI state
-          setUpdatedServiceNames(prev => ({
-            ...prev,
-            [servicioId]: value
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if (item.id_servicio === servicioId) {
-                return { 
-                  ...item, 
-                  servicio_nombre: value,
-                  servicio: value
-                };
-              }
-              return item;
-            });
-          });
-          
-          // Update services list
-          const updatedServicios = allServicios.map(s => {
-            if (s.id_servicio === servicioId) {
-              return { ...s, nombre: value };
-            }
-            return s;
-          });
-          setAllServicios(updatedServicios);
-          
-          // Clear editing state
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          
-          // Save current expanded state
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh services from server
-          await fetchAllServicios();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          success('Nombre de servicio actualizado correctamente');
-        } else {
-          showError(`Error al actualizar servicio: ${updateResult.error}`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-        }
-        
-        return;
-      }
-      
-      // Handle subcategory editing
-      if (field === 'subcategoria') {
-        const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
-        
-        if (!selectedSubcategory) {
-          warning('Por favor seleccione una subcategoría válida');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Check if this item already has this subcategory name
-        if (itemToUpdate.subcategoria_nombre === selectedSubcategory.nombre) {
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Check if another item in the same service already has this subcategory
-        const itemsWithSameService = itemsWithDetails.filter(item => 
-          item.id_servicio === itemToUpdate.id_servicio &&
-          (item.id_items !== itemId && item.id_item !== itemId)
-        );
-        
-        const duplicateSubcategory = itemsWithSameService.find(item => 
-          item.subcategoria_nombre.toLowerCase() === selectedSubcategory.nombre.toLowerCase()
-        );
-        
-        if (duplicateSubcategory) {
-          warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio.`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Update the item with the new subcategory
-        const updatedItem = { 
-          ...itemToUpdate,
-          subcategoria_nombre: selectedSubcategory.nombre,
-          id_subcategoria: selectedSubcategory.id_subcategoria
-        };
-        
-        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
-      
-      if (result.success) {
-          // Update UI state
-          setUpdatedSubcategoryNames(prev => ({
-            ...prev,
-            [itemId]: selectedSubcategory.nombre
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if ((item.id_items === itemId) || (item.id_item === itemId)) {
-                return { 
-                  ...item, 
-                  subcategoria_nombre: selectedSubcategory.nombre,
-                  id_subcategoria: selectedSubcategory.id_subcategoria 
-                };
-              }
-              return item;
-            });
-          });
-          
-          // Clear editing state
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          
-          // Save current expanded state
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh items
-          await refreshItems();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          success('Subcategoría actualizada correctamente');
-        } else {
-          showError(`Error al actualizar subcategoría: ${result.error}`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-        }
-        
-        return;
-      }
-      
-      // Handle price editing
-      if (field === 'precio') {
-        // Validate that the price is a valid number
-        const price = parseFloat(value);
-        if (isNaN(price) || price < 0) {
-          warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        const updatedItem = { 
-          ...itemToUpdate,
-          precio: price
-        };
-        
-        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
-        
-        if (result.success) {
-          // Update UI state
-          setUpdatedPrices(prev => ({
-            ...prev,
-            [itemId]: value
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if ((item.id_items === itemId) || (item.id_item === itemId)) {
-                return { ...item, precio: price };
-              }
-              return item;
-            });
-          });
-        
-          // Clear editing state
-        setEditingState({
-          itemId: null,
-          field: null,
-          value: '',
-          isLoading: false
-        });
-        
-          // Save current expanded state
-        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-        
-          // Refresh items
-        await refreshItems();
-        
-        // Restore expanded state
-        setExpandedServices(currentExpandedState);
-        
-          success('Precio actualizado correctamente');
-      } else {
-          showError(`Error al actualizar precio: ${result.error}`);
-        setEditingState({
-          ...editingState,
-          isLoading: false
-        });
-        }
-      }
-    } catch (error) {
-      console.error('Error saving inline edit:', error);
-      setEditingState({
-        ...editingState,
-        isLoading: false
-      });
-      showError('Error al guardar los cambios');
-    }
-  };
+  // const handleInlineEditSave = async () => {
+  //   const { itemId, field, value, originalValue } = editingState;
+  //   if (!value.trim()) return;
+  //   
+  //   setEditingState({
+  //     ...editingState,
+  //     isLoading: true
+  //   });
+  //   
+  //   try {
+  //     const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
+  //     if (!itemToUpdate) return;
+  //     
+  //     // Handle service name editing
+  //     if (field === 'servicio') {
+  //       // Only proceed if the name has changed
+  //       if (value === originalValue) {
+  //         setEditingState({
+  //           itemId: null,
+  //           field: null,
+  //           value: '',
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       // Find the service to get its ID and category
+  //       const currentService = allServicios.find(s => s.id_servicio === itemToUpdate.id_servicio);
+  //       if (!currentService) {
+  //         showError('No se pudo encontrar el servicio actual');
+  //         setEditingState({
+  //           ...editingState,
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       const categoryId = currentService.id_categoria;
+  //       const servicioId = currentService.id_servicio;
+  //       
+  //       // Check if another service with the same name exists in this category
+  //       const serviceWithSameNameInCategory = allServicios.find(s => 
+  //         s.nombre.toLowerCase() === value.toLowerCase() && 
+  //         s.id_categoria === categoryId &&
+  //         s.id_servicio !== servicioId
+  //       );
+  //       
+  //       if (serviceWithSameNameInCategory) {
+  //         warning(`Ya existe un servicio con el nombre "${value}" en esta categoría.`);
+  //         setEditingState({
+  //           ...editingState,
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       // Update the service name in the backend
+  //       const updateResult = await updateServicio(servicioId, value);
+  //       
+  //       if (updateResult.success) {
+  //         // Update UI state
+  //         setUpdatedServiceNames(prev => ({
+  //           ...prev,
+  //           [servicioId]: value
+  //         }));
+  //         
+  //         // Update local items
+  //         updateLocalItems(items => {
+  //           return items.map(item => {
+  //             if (item.id_servicio === servicioId) {
+  //               return { 
+  //                 ...item, 
+  //                 servicio_nombre: value,
+  //                 servicio: value
+  //               };
+  //             }
+  //             return item;
+  //           });
+  //         });
+  //         
+  //         // Update services list
+  //         const updatedServicios = allServicios.map(s => {
+  //           if (s.id_servicio === servicioId) {
+  //             return { ...s, nombre: value };
+  //           }
+  //           return s;
+  //         });
+  //         setAllServicios(updatedServicios);
+  //         
+  //         // Clear editing state
+  //         setEditingState({
+  //           itemId: null,
+  //           field: null,
+  //           value: '',
+  //           isLoading: false
+  //         });
+  //         
+  //         // Save current expanded state
+  //         const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+  //         
+  //         // Refresh services from server
+  //         await fetchAllServicios();
+  //         
+  //         // Restore expanded state
+  //         setExpandedServices(currentExpandedState);
+  //         
+  //         success('Nombre de servicio actualizado correctamente');
+  //       } else {
+  //         showError(`Error al actualizar servicio: ${updateResult.error}`);
+  //         setEditingState({
+  //           ...editingState,
+  //           isLoading: false
+  //         });
+  //       }
+  //       
+  //       return;
+  //     }
+  //     
+  //     // Handle subcategory editing
+  //     if (field === 'subcategoria') {
+  //       const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
+  //       
+  //       if (!selectedSubcategory) {
+  //         warning('Por favor seleccione una subcategoría válida');
+  //         setEditingState({
+  //           ...editingState,
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       // Check if this item already has this subcategory name
+  //       if (itemToUpdate.subcategoria_nombre === selectedSubcategory.nombre) {
+  //         setEditingState({
+  //           itemId: null,
+  //           field: null,
+  //           value: '',
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       // Check if another item in the same service already has this subcategory
+  //       const itemsWithSameService = itemsWithDetails.filter(item => 
+  //         item.id_servicio === itemToUpdate.id_servicio &&
+  //         (item.id_items !== itemId && item.id_item !== itemId)
+  //       );
+  //       
+  //       const duplicateSubcategory = itemsWithSameService.find(item => 
+  //         item.subcategoria_nombre.toLowerCase() === selectedSubcategory.nombre.toLowerCase()
+  //       );
+  //       
+  //       if (duplicateSubcategory) {
+  //         warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio.`);
+  //         setEditingState({
+  //           ...editingState,
+  //           isLoading: false
+  //         });
+  //         return;
+  //       }
+  //       
+  //       // Update the item with the new subcategory
+  //       const updatedItem = { 
+  //         ...itemToUpdate,
+  //         subcategoria_nombre: selectedSubcategory.nombre,
+  //         id_subcategoria: selectedSubcategory.id_subcategoria
+  //       };
+  //       
+  //       const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
+  //     
+  //   if (result.success) {
+  //       // Update UI state
+  //       setUpdatedSubcategoryNames(prev => ({
+  //         ...prev,
+  //         [itemId]: selectedSubcategory.nombre
+  //       }));
+  //       
+  //       // Update local items
+  //       updateLocalItems(items => {
+  //         return items.map(item => {
+  //           if ((item.id_items === itemId) || (item.id_item === itemId)) {
+  //             return { 
+  //               ...item, 
+  //               subcategoria_nombre: selectedSubcategory.nombre,
+  //               id_subcategoria: selectedSubcategory.id_subcategoria 
+  //             };
+  //           }
+  //           return item;
+  //         });
+  //       });
+  //       
+  //       // Clear editing state
+  //       setEditingState({
+  //         itemId: null,
+  //         field: null,
+  //         value: '',
+  //         isLoading: false
+  //       });
+  //       
+  //       // Save current expanded state
+  //       const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+  //       
+  //       // Refresh items
+  //       await refreshItems();
+  //       
+  //       // Restore expanded state
+  //       setExpandedServices(currentExpandedState);
+  //       
+  //       success('Subcategoría actualizada correctamente');
+  //     } else {
+  //       showError(`Error al actualizar subcategoría: ${result.error}`);
+  //       setEditingState({
+  //         ...editingState,
+  //         isLoading: false
+  //       });
+  //     }
+  //     
+  //     return;
+  //   }
+  //   
+  //   // Handle price editing
+  //   if (field === 'precio') {
+  //     // Validate that the price is a valid number
+  //     const price = parseFloat(value);
+  //     if (isNaN(price) || price < 0) {
+  //       warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
+  //       setEditingState({
+  //         ...editingState,
+  //         isLoading: false
+  //       });
+  //       return;
+  //     }
+  //     
+  //     const updatedItem = { 
+  //       ...itemToUpdate,
+  //       precio: price
+  //     };
+  //     
+  //     const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
+  //     
+  //     if (result.success) {
+  //       // Update UI state
+  //       setUpdatedPrices(prev => ({
+  //         ...prev,
+  //         [itemId]: value
+  //       }));
+  //       
+  //       // Update local items
+  //       updateLocalItems(items => {
+  //         return items.map(item => {
+  //           if ((item.id_items === itemId) || (item.id_item === itemId)) {
+  //             return { ...item, precio: price };
+  //           }
+  //           return item;
+  //         });
+  //       });
+  //     
+  //     // Clear editing state
+  //   setEditingState({
+  //     itemId: null,
+  //     field: null,
+  //     value: '',
+  //     isLoading: false
+  //   });
+  //   
+  //   // Save current expanded state
+  //   const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+  //   
+  //   // Refresh items
+  //   await refreshItems();
+  //   
+  //   // Restore expanded state
+  //   setExpandedServices(currentExpandedState);
+  //   
+  //     success('Precio actualizado correctamente');
+  // } else {
+  //     showError(`Error al actualizar precio: ${result.error}`);
+  //   setEditingState({
+  //     ...editingState,
+  //     isLoading: false
+  //   });
+  //   }
+  // }
+  // } catch (error) {
+  //   console.error('Error saving inline edit:', error);
+  //   setEditingState({
+  //     ...editingState,
+  //     isLoading: false
+  //   });
+  //   showError('Error al guardar los cambios');
+  // }
+  // };
 
   // Update handleInlineEditCancel to clear options
-  const handleInlineEditCancel = () => {
-    setEditingState({
-      itemId: null,
-      field: null,
-      value: '',
-      isLoading: false
-    });
-    setInlineEditOptions([]);
-  };
+  // const handleInlineEditCancel = () => {
+  //   setEditingState({
+  //     itemId: null,
+  //     field: null,
+  //     value: '',
+  //     isLoading: false
+  //   });
+  //   setInlineEditOptions([]);
+  // };
 
   // Add a function to toggle service expansion
   const toggleServiceExpansion = (serviceId) => {
@@ -2782,54 +2945,54 @@ const AdminPanel = () => {
   }, [allServicios]);
 
   // Restore the keydown handler
-  const handleInlineEditKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleInlineEditSave();
-    } else if (e.key === 'Escape') {
-      handleInlineEditCancel();
-    }
-  };
+  // const handleInlineEditKeyDown = (e) => {
+  //   if (e.key === 'Enter') {
+  //     handleInlineEditSave();
+  //   } else if (e.key === 'Escape') {
+  //     handleInlineEditCancel();
+  //   }
+  // };
 
   // Add back handleInlineEditChange for price editing
-  const handleInlineEditChange = (e) => {
-    // Special handling for price - only allow numbers and decimal point
-    if (editingState.field === 'precio') {
-      const value = e.target.value;
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setEditingState({
-          ...editingState,
-          value: value
-        });
-      }
-    } else {
-      setEditingState({
-        ...editingState,
-        value: e.target.value
-      });
-    }
-  };
+  // const handleInlineEditChange = (e) => {
+  //   // Special handling for price - only allow numbers and decimal point
+  //   if (editingState.field === 'precio') {
+  //     const value = e.target.value;
+  //     if (value === '' || /^\d*\.?\d*$/.test(value)) {
+  //       setEditingState({
+  //         ...editingState,
+  //         value: value
+  //       });
+  //     }
+  //   } else {
+  //     setEditingState({
+  //       ...editingState,
+  //       value: e.target.value
+  //     });
+  //   }
+  // };
 
   // Add a useEffect to handle clicks outside the edit field
-  useEffect(() => {
-    // Only add the handler if we're in edit mode
-    if (editingState.itemId) {
-      function handleClickOutside(event) {
-        const editField = document.querySelector('.inline-edit-field');
-        if (editField && !editField.contains(event.target)) {
-          // If we clicked outside and it's not the price field (which needs manual save),
-          // cancel editing
-          if (editingState.field !== 'precio') {
-            handleInlineEditCancel();
-          }
-        }
-      }
-      
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [editingState.itemId, editingState.field]);
+  // useEffect(() => {
+  //   // Only add the handler if we're in edit mode
+  //   if (editingState.itemId) {
+  //     function handleClickOutside(event) {
+  //       const editField = document.querySelector('.inline-edit-field');
+  //       if (editField && !editField.contains(event.target)) {
+  //         // If we clicked outside and it's not the price field (which needs manual save),
+  //         // cancel editing
+  //         if (editingState.field !== 'precio') {
+  //           handleInlineEditCancel();
+  //         }
+  //       }
+  //     }
+  //     
+  //     document.addEventListener('mousedown', handleClickOutside);
+  //     return () => {
+  //       document.removeEventListener('mousedown', handleClickOutside);
+  //     };
+  //   }
+  // }, [editingState.itemId, editingState.field]);
 
   // Add deleteItemState to state declarations
   const [deleteItemState, setDeleteItemState] = useState({
@@ -3053,7 +3216,7 @@ const AdminPanel = () => {
   // Función para manejar la asignación de características a servicios
   const handleAssignCaracteristica = async (servicioId, caracteristicaId) => {
     try {
-      const result = await assignCaracteristicaToServicio(servicioId, caracteristicaId);
+      const result = await addCaracteristicaToServicio(servicioId, caracteristicaId);
       
       if (result.success) {
         success('Característica asignada correctamente al servicio');
@@ -3062,6 +3225,8 @@ const AdminPanel = () => {
           show: false,
           isLoading: false
         });
+        // Refresh the services list to show the new characteristic
+        await fetchAllServicios();
       } else {
         showError(`Error al asignar característica: ${result.error}`);
       }
@@ -3122,6 +3287,46 @@ const AdminPanel = () => {
       serviciosCount: 0,
       isLoading: false
     });
+  };
+
+  // Inside the AdminPanel component, add new state for the description modal
+  const [editDescriptionState, setEditDescriptionState] = useState({
+    show: false,
+    servicioId: null,
+    servicioName: '',
+    currentDescription: '',
+    isLoading: false
+  });
+
+  // Add handler for saving service description
+  const handleSaveServiceDescription = async (description) => {
+    try {
+      const { servicioId } = editDescriptionState;
+      const result = await updateServicio(servicioId, { descripcion: description });
+      
+      if (result.success) {
+        // Update local state
+        setAllServicios(prev => prev.map(s => 
+          s.id_servicio === servicioId 
+            ? { ...s, descripcion: description }
+            : s
+        ));
+        
+        success('Descripción del servicio actualizada correctamente');
+        setEditDescriptionState({
+          show: false,
+          servicioId: null,
+          servicioName: '',
+          currentDescription: '',
+          isLoading: false
+        });
+      } else {
+        showError(`Error al actualizar descripción: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving service description:', error);
+      showError('Error inesperado al guardar la descripción');
+    }
   };
 
   if (adminChecking) {
@@ -3464,7 +3669,23 @@ const AdminPanel = () => {
                               <button 
                                 className={styles['action-button']}
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Prevent triggering the header click
+                                  e.stopPropagation();
+                                  setEditDescriptionState({
+                                    show: true,
+                                    servicioId: servicio.id_servicio,
+                                    servicioName: servicio.nombre,
+                                    currentDescription: servicio.descripcion || '',
+                                    isLoading: false
+                                  });
+                                }}
+                                title="Editar descripción del servicio"
+                              >
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+                              <button 
+                                className={styles['action-button']}
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleDelete('servicio', servicio.id_servicio);
                                 }}
                                 title="Eliminar servicio completo"
@@ -3481,109 +3702,38 @@ const AdminPanel = () => {
                                   <div className={styles['item-main-info']}>
                                     <div className={styles['item-service']}>
                                       <span className={styles['service-label']}>Servicio:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <input
-                                            type="text"
-                                            value={editingState.value}
-                                            onChange={(e) => setEditingState({...editingState, value: e.target.value})}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') handleInlineEditSave();
-                                              if (e.key === 'Escape') handleInlineEditCancel();
-                                            }}
-                                            className={styles['inline-edit-input']}
-                                            autoFocus
-                                            placeholder="Nombre del servicio"
-                                          />
-                                          {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['service-name']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
-                                          title="Doble clic para editar"
-                                        >
-                                          {highlightText(updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
-                                        </span>
-                                      )}
+                                      <span className={styles['service-name']}>
+                                        {highlightText(item.servicio_nombre)}
+                                      </span>
                                     </div>
                                     
                                     <div className={styles['item-subcategory']}>
                                       <span className={styles['subcategory-label']}>Subcategoría:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <select
-                                            value={editingState.value}
-                                            onChange={handleDropdownChange}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Escape') handleInlineEditCancel();
-                                            }}
-                                            className={styles['inline-edit-select']}
-                                            autoFocus
-                                          >
-                                            <option value="">Seleccione una subcategoría</option>
-                                            {inlineEditOptions.map(option => (
-                                              <option key={option.id} value={option.name}>
-                                                {option.name}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['subcategory-name']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
-                                          title="Doble clic para editar"
-                                        >
-                                          {highlightText(updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
-                                        </span>
-                                      )}
+                                      <span className={styles['subcategory-name']}>
+                                        {highlightText(item.subcategoria_nombre)}
+                                      </span>
                                     </div>
                                     
                                     <div className={styles['item-price-display']}>
                                       <span className={styles['price-label']}>Precio:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <div className={styles['price-edit-container']}>
-                                            <span className={styles['price-edit-symbol']}>$</span>
-                                            <input
-                                              type="text"
-                                              value={editingState.value}
-                                              onChange={handleInlineEditChange}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleInlineEditSave();
-                                                if (e.key === 'Escape') handleInlineEditCancel();
-                                              }}
-                                              className={styles['inline-edit-input']}
-                                              autoFocus
-                                              placeholder="0.00"
-                                            />
-                                            {editingState.isLoading && (
-                                              <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
-                                            )}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['price-value']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', updatedPrices[item.id_item] || item.precio)}
-                                          title="Doble clic para editar"
-                                        >
-                                          ${formatPrice(updatedPrices[item.id_item] || item.precio)}
-                                        </span>
-                                      )}
+                                      <span className={styles['price-value']}>
+                                        ${formatPrice(item.precio)}
+                                      </span>
                                     </div>
                                   </div>
                                   
-
-                                  
                                   <div className={styles['item-controls']}>
                                     <div className={styles['item-actions']}>
+                                      <button 
+                                        className={styles['action-button']}
+                                        onClick={() => {
+                                          setCurrentEditItem(item);
+                                          setShowItemForm(true);
+                                        }}
+                                        title="Editar ítem"
+                                      >
+                                        <FontAwesomeIcon icon={faEdit} />
+                                      </button>
                                       <button 
                                         className={styles['action-button']}
                                         onClick={() => handleDelete('item', item.id_items || item.id_item)}
@@ -3691,6 +3841,7 @@ const AdminPanel = () => {
             isLoading: false 
           })}
           onSave={handleCreateCategory}
+          allCategorias={allCategorias}  // Pass allCategorias to the modal
         />
       )}
       
@@ -3748,6 +3899,22 @@ const AdminPanel = () => {
           onConfirm={confirmDeleteCaracteristica}
           caracteristicaName={deleteCaracteristicaState.caracteristicaName}
           serviciosCount={deleteCaracteristicaState.serviciosCount}
+        />
+      )}
+      
+      {editDescriptionState.show && (
+        <EditServiceDescriptionModal
+          show={editDescriptionState.show}
+          onClose={() => setEditDescriptionState({
+            show: false,
+            servicioId: null,
+            servicioName: '',
+            currentDescription: '',
+            isLoading: false
+          })}
+          onSave={handleSaveServiceDescription}
+          servicioName={editDescriptionState.servicioName}
+          initialDescription={editDescriptionState.currentDescription}
         />
       )}
       

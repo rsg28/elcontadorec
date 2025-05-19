@@ -260,12 +260,12 @@ export const useAllServicios = () => {
   };
 
   /**
-   * Actualizar el nombre de un servicio existente
+   * Actualizar un servicio existente
    * @param {number} servicioId - ID del servicio a actualizar
-   * @param {string} newName - Nuevo nombre para el servicio
+   * @param {Object} updateData - Datos a actualizar (nombre y/o descripcion)
    * @returns {Promise<Object>} - Resultado de la operación
    */
-  const updateServicio = async (servicioId, newName) => {
+  const updateServicio = async (servicioId, updateData) => {
     try {
       setLoading(true);
       
@@ -275,14 +275,14 @@ export const useAllServicios = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      // First update the service in the backend
+      // Update the service in the backend
       const response = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ nombre: newName }),
+        body: JSON.stringify(updateData),
       });
       
       if (!response.ok) {
@@ -291,59 +291,19 @@ export const useAllServicios = () => {
       
       const updatedServicio = await response.json();
       
-      // Now we need to update all items that reference this service
-      // Get all items first
-      const itemsResponse = await fetch(`${API_BASE_URL}/items`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!itemsResponse.ok) {
-        console.warn('Could not fetch items to update service references');
-      } else {
-        const allItems = await itemsResponse.json();
-        
-        // Filter items that use this service
-        const itemsToUpdate = allItems.filter(item => item.id_servicio === servicioId);
-        
-        // Update each item's service_nombre field
-        for (const item of itemsToUpdate) {
-          try {
-            const itemId = item.id_items || item.id_item;
-            
-            await fetch(`${API_BASE_URL}/items/${itemId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ 
-                ...item,
-                servicio_nombre: newName
-              }),
-            });
-          } catch (itemError) {
-            console.warn(`Could not update item ${item.id_items || item.id_item} with new service name:`, itemError);
-          }
-        }
-      }
-      
-      // Actualizar la lista de servicios localmente
+      // Update local state
       setServicios(prevServicios => 
-        prevServicios.map(servicio => {
-          if (servicio.id_servicio === servicioId) {
-            return { ...servicio, nombre: newName };
-          }
-          return servicio;
-        })
+        prevServicios.map(s => 
+          s.id_servicio === servicioId 
+            ? { ...s, ...updateData }
+            : s
+        )
       );
       
       return { success: true, data: updatedServicio };
-    } catch (err) {
-      console.error('Error updating servicio:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (error) {
+      console.error('Error updating service:', error);
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }

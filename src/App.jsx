@@ -44,13 +44,18 @@ import ServicioPage from './pages/ServicioPage';
 import Navbar from './components/Navbar';
 // Import hooks
 import useAuth from './hooks/useAuth';
+import useCategorias from './hooks/useCategorias';
+import LoadingAnimation from './components/loadingAnimation';
+import { useAllServicios } from './hooks/useServicios';
+import './App.css'; // Make sure we have access to the styles
 
 // Home component for the landing page
 const Home = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const maxPages = 2; // Total number of pages in carousel
+  const { categorias, loading, error } = useCategorias();
+  const maxPages = Math.ceil(categorias.length / 5); // Calculate max pages based on categories per page
   
   // Helper to determine if buttons should be visible
   const isPrevButtonVisible = currentPage > 0;
@@ -59,20 +64,6 @@ const Home = () => {
   const handleCategoryClick = (categoryId) => {
     navigate(`/categoria/${categoryId}`);
   };
-
-  // Category data
-  const categories = [
-    { id: 1, title: 'Auditoría Externa', icon: faFileAlt, color: '#00b9f2' },
-    { id: 2, title: 'Devolución de impuestos', icon: faMoneyCheckAlt, color: '#3d7eac' },
-    { id: 3, title: 'Empresas', icon: faBuilding, color: '#3d7eac' },
-    { id: 4, title: 'Firma Electrónica', icon: faIdCard, color: '#00b9f2' },
-    { id: 5, title: 'IESS y MT', icon: faFileAlt, color: '#4d9de0' },
-    { id: 6, title: 'Legales', icon: faBalanceScale, color: '#4d9de0' },
-    { id: 7, title: 'Personas', icon: faUser, color: '#4d9de0' },
-    { id: 8, title: 'Planes Empresas', icon: faBuilding, color: '#4d9de0' },
-    { id: 9, title: 'Planes Personas', icon: faUser, color: '#3d7eac' },
-    { id: 10, title: 'Supercias', icon: faUserTie, color: '#00b9f2' }
-  ];
 
   // Improved navigation handlers with transition effect
   const handleNextPage = () => {
@@ -91,6 +82,26 @@ const Home = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <main className="main-content">
+        <div className="loading-container">
+          <LoadingAnimation />
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="main-content">
+        <div className="error-container">
+          <p>Error al cargar las categorías: {error}</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="main-content">
       <section className="categories-section">
@@ -108,16 +119,16 @@ const Home = () => {
           )}
           
           <div className="categories-grid" style={{ transform: `translateX(-${currentPage * 41}%)` }}>
-            {categories.map(category => (
+            {categorias.map(categoria => (
               <div 
-                key={category.id} 
+                key={categoria.id_categoria} 
                 className="category-card" 
-                onClick={() => handleCategoryClick(category.id)}
+                onClick={() => handleCategoryClick(categoria.id_categoria)}
               >
-                <div className="category-icon" style={{ backgroundColor: category.color }}>
-                  <FontAwesomeIcon icon={category.icon} />
+                <div className="category-icon" style={{ backgroundColor: categoria.color }}>
+                  <FontAwesomeIcon icon={faFileAlt} />
                 </div>
-                <h3 className="category-title">{category.title}</h3>
+                <h3 className="category-title">{categoria.nombre}</h3>
               </div>
             ))}
           </div>
@@ -140,8 +151,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      
     </main>
   );
 };
@@ -149,8 +158,8 @@ const Home = () => {
 // NavbarWrapper component to conditionally render the navbar
 const NavbarWrapper = () => {
   const location = useLocation();
-  // Only show navbar if we're not on the homepage, login, register, or thank-you page
-  const excludePaths = ['/', '/login', '/register', '/thank-you'];
+  // Only show navbar if we're not on the homepage, login, register, thank-you, or admin page
+  const excludePaths = ['/', '/login', '/register', '/thank-you', '/admin'];
   return !excludePaths.includes(location.pathname) && <Navbar />;
 };
 
@@ -160,22 +169,57 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { servicios, loading: serviciosLoading } = useAllServicios();
   
   // Check authentication status when component mounts and when auth state changes
   useEffect(() => {
-    // Check for auth token directly to ensure we catch the latest state
     const authToken = localStorage.getItem('authToken');
     const userObj = localStorage.getItem('user');
-    
-    // If we have both token and user data, consider user logged in
     setIsUserLoggedIn(!!authToken && !!userObj);
-  }, [isAuthenticated, user, location.pathname]); // Re-run when location changes (after registration redirect)
-  
+  }, [isAuthenticated, user, location.pathname]);
+
+  // Filter services based on search input
+  const filteredServices = servicios.filter(servicio => 
+    servicio.nombre.toLowerCase().includes(searchInput.toLowerCase())
+  ).slice(0, 5); // Limit to 5 suggestions
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
-  
+
+  const handleSearchChange = (e) => {
+    setSearchInput(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleSuggestionClick = (servicio) => {
+    setSearchInput('');
+    setShowSuggestions(false);
+    navigate(`/servicio/${servicio.id_servicio}`);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (filteredServices.length > 0) {
+      handleSuggestionClick(filteredServices[0]);
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Force true on thank-you page since we know user just registered
   const forceAuthenticated = location.pathname === '/thank-you' || isUserLoggedIn;
   
@@ -187,10 +231,40 @@ const Header = () => {
         </Link>
       </div>
       <div className="search-container">
-        <input type="text" placeholder="Busca en nuestro contenido..." className="search-input" />
-        <button className="search-button">
-          <FontAwesomeIcon icon={faSearch} className="search-icon" />
-        </button>
+        <form onSubmit={handleSearchSubmit} className="search-form">
+          <input 
+            type="text" 
+            placeholder="Busca en nuestro contenido..." 
+            className="search-input"
+            value={searchInput}
+            onChange={handleSearchChange}
+            onFocus={() => setShowSuggestions(true)}
+          />
+          <button type="submit" className="search-button">
+            <FontAwesomeIcon icon={faSearch} className="search-icon" />
+          </button>
+        </form>
+        
+        {showSuggestions && searchInput && !serviciosLoading && (
+          <div className="search-suggestions">
+            {filteredServices.length > 0 ? (
+              filteredServices.map(servicio => (
+                <div
+                  key={servicio.id_servicio}
+                  className="suggestion-item"
+                  onClick={() => handleSuggestionClick(servicio)}
+                >
+                  <FontAwesomeIcon icon={faSearch} className="suggestion-icon" />
+                  <span>{servicio.nombre}</span>
+                </div>
+              ))
+            ) : (
+              <div className="suggestion-item no-results">
+                No se encontraron resultados
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <div className="user-actions">
         {forceAuthenticated ? (
