@@ -119,7 +119,7 @@
 }
 
 .add-button {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
   color: #333;
   border: 1px solid #ddd;
   padding: 10px 20px;
@@ -129,16 +129,19 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .add-button svg {
   margin-right: 8px;
+  color: #555;
 }
 
 .add-button:hover {
-  background-color: #f5f5f5;
-  transform: none;
-  box-shadow: none;
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .loading-indicator, .error-message {
@@ -1936,12 +1939,12 @@ select.form-control {
 
 .admin-actions {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .add-category-button {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
   color: #333;
   border: 1px solid #ddd;
   padding: 10px 20px;
@@ -1952,18 +1955,208 @@ select.form-control {
   display: flex;
   align-items: center;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .add-category-button svg {
   margin-right: 8px;
-  color: #4285F4;
+  color: #555;
 }
 
 .add-category-button:hover {
-  background-color: #e9ecef;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .add-category-button:active {
   transform: translateY(1px);
+}
+
+.add-caracteristica-button,
+.assign-caracteristica-button {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.add-caracteristica-button:hover,
+.assign-caracteristica-button:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-caracteristica-button:active,
+.assign-caracteristica-button:active {
+  transform: translateY(1px);
+}
+
+.add-caracteristica-button svg,
+.assign-caracteristica-button svg {
+  margin-right: 8px;
+  color: #555;
+}
+
+/* Estilos para la vista de características */
+.caracteristicas-section {
+  margin-top: 20px;
+}
+
+.caracteristicas-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.caracteristica-tag {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #555;
+  background-color: rgba(0,0,0,0.02);
+  padding: 4px;
+  padding-right: 10px;
+  border-radius: 30px;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.caracteristica-icon-container {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.caracteristica-tag svg {
+  color: white;
+  font-size: 16px;
+}
+
+/* Estilos para el modal de característica */
+.caracteristica-form-group {
+  margin-bottom: 20px;
+}
+
+.color-preview {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 10px;
+  border: 1px solid #ddd;
+}
+
+@media (max-width: 768px) {
+  .admin-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .add-button,
+  .add-category-button,
+  .add-caracteristica-button,
+  .assign-caracteristica-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.manage-caracteristicas-button {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.manage-caracteristicas-button svg {
+  margin-right: 8px;
+  color: #555;
+}
+
+.manage-caracteristicas-button:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.manage-caracteristicas-button:active {
+  transform: translateY(1px);
+}
+
+/* Styles for characteristics list in modal */
+.caracteristicas-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.caracteristica-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  transition: all 0.2s ease;
+}
+
+.caracteristica-item:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  border-color: #ddd;
+}
+
+.caracteristica-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.caracteristica-details {
+  flex: 1;
+}
+
+.caracteristica-details h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.caracteristica-details p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.caracteristica-actions {
+  display: flex;
+  gap: 8px;
 } 

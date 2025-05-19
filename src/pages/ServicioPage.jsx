@@ -8,7 +8,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
-import LoadingAnimation from '../components/loadingAnimation';
 import './ServicioPage.css';
 
 // Mapa de iconos para convertir nombres de string a componentes de FontAwesome
@@ -85,7 +84,13 @@ const ServicioPage = () => {
 
   // Loading state
   if (serviciosLoading || categoriasLoading || loading) {
-    return <LoadingAnimation />;
+    return (
+      <div className="servicio-page-container">
+        <div className="loading-container">
+          Cargando...
+        </div>
+      </div>
+    );
   }
 
   // Error state

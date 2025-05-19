@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faSpinner, faExclamationTriangle, faPalette } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faPlus, faEdit, faTrash, faChevronDown, faChevronRight, 
+  faSearch, faDollarSign, faFilter, faTimes, faSave, 
+  faSpinner, faExclamationTriangle, faPalette, faListAlt, 
+  faLink, faFolder, faFileInvoice, faPaperPlane, faLock, 
+  faShieldAlt, faUsers, faCalculator, faChartLine, 
+  faMoneyBill, faReceipt, faHandHoldingDollar, faWallet, 
+  faCoins, faCreditCard, faPercentage, faCheck, faStar, 
+  faHeart, faThumbsUp, faBell 
+} from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
@@ -11,6 +20,33 @@ import useNotifications from '../hooks/useNotifications';
 import 'react-toastify/dist/ReactToastify.css';
 import styles from './AdminPanel.module.css';
 import LoadingAnimation from '../components/loadingAnimation';
+import useCaracteristicas from '../hooks/useCaracteristicas';
+
+// Hook para gestionar características ya importado desde hooks/useCaracteristicas
+
+// Lista de iconos comunes para elegir con sus referencias - definida globalmente
+const commonIcons = [
+  { name: 'folder', icon: faFolder },
+  { name: 'file-invoice', icon: faFileInvoice },
+  { name: 'paper-plane', icon: faPaperPlane },
+  { name: 'lock', icon: faLock },
+  { name: 'shield-alt', icon: faShieldAlt },
+  { name: 'users', icon: faUsers },
+  { name: 'calculator', icon: faCalculator },
+  { name: 'chart-line', icon: faChartLine },
+  { name: 'money-bill', icon: faMoneyBill },
+  { name: 'receipt', icon: faReceipt },
+  { name: 'hand-holding-dollar', icon: faHandHoldingDollar },
+  { name: 'wallet', icon: faWallet },
+  { name: 'coins', icon: faCoins },
+  { name: 'credit-card', icon: faCreditCard },
+  { name: 'percentage', icon: faPercentage },
+  { name: 'check', icon: faCheck },
+  { name: 'star', icon: faStar },
+  { name: 'heart', icon: faHeart },
+  { name: 'thumbs-up', icon: faThumbsUp },
+  { name: 'bell', icon: faBell }
+];
 
 // Item form modal component
 const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
@@ -1002,6 +1038,547 @@ const DeleteCategoryModal = ({ show, onClose, onConfirm, categoryName, serviceCo
   );
 };
 
+// Modal para crear una nueva característica
+const CreateCaracteristicaModal = ({ show, onClose, onSave }) => {
+  const [caracteristicaData, setCaracteristicaData] = useState({
+    nombre: '',
+    descripcion: '',
+    color: '#4285F4', // Color azul por defecto
+    imagen: 'star' // Icono por defecto (debe coincidir con uno de los nombres en commonIcons)
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      } else if (event.key === 'Enter' && event.ctrlKey && !isLoading) {
+        // Submit form with Ctrl+Enter
+        formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCaracteristicaData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleColorChange = (e) => {
+    setCaracteristicaData(prev => ({
+      ...prev,
+      color: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!caracteristicaData.nombre.trim()) {
+      return; // Don't submit if name is empty
+    }
+    
+    setIsLoading(true);
+    try {
+      await onSave(caracteristicaData);
+      // Form was submitted successfully
+    } catch (error) {
+      console.error("Error saving characteristic:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // We're using the global commonIcons array defined at the top of this file
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '500px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']} style={{ background: '#4a6cf7' }}>
+          <h2><FontAwesomeIcon icon={faPlus} className={styles['modal-header-icon']} /> Nueva Característica</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <form ref={formRef} onSubmit={handleSubmit} autoComplete="off">
+          <div className={styles['modal-body']} style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
+                Nombre de Característica <span style={{ color: 'red' }}>*</span>
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <input 
+                  type="text" 
+                  name="nombre"
+                  value={caracteristicaData.nombre} 
+                  onChange={handleInputChange} 
+                  className={styles['form-control']}
+                  placeholder="Ej: Atención personalizada, Soporte 24/7..."
+                  required
+                  autoFocus
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
+                Descripción
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <textarea 
+                  name="descripcion"
+                  value={caracteristicaData.descripcion} 
+                  onChange={handleInputChange} 
+                  className={styles['form-control']}
+                  placeholder="Describa esta característica..."
+                  rows="3"
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faPalette} className={styles['field-icon']} /> 
+                Color
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <input 
+                  type="color" 
+                  value={caracteristicaData.color} 
+                  onChange={handleColorChange} 
+                  style={{ width: '80px', height: '40px', cursor: 'pointer' }}
+                  disabled={isLoading}
+                />
+                <input 
+                  type="text" 
+                  name="color"
+                  value={caracteristicaData.color} 
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  style={{ width: '120px' }}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+                <div 
+                  style={{ 
+                    width: '60px', 
+                    height: '40px', 
+                    backgroundColor: caracteristicaData.color, 
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                  }} 
+                />
+              </div>
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faListAlt} className={styles['field-icon']} /> 
+                Ícono
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <select
+                  name="imagen"
+                  value={caracteristicaData.imagen}
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  disabled={isLoading}
+                >
+                  {commonIcons.map(({name, icon}) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <div className={styles['icon-preview']} style={{ marginTop: '10px' }}>
+                  <div 
+                    style={{ 
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: caracteristicaData.color,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <FontAwesomeIcon 
+                      icon={commonIcons.find(item => item.name === caracteristicaData.imagen)?.icon || faStar} 
+                      style={{ 
+                        fontSize: '20px', 
+                        color: 'white'
+                      }} 
+                    />
+                  </div>
+                  <span style={{ marginLeft: '10px' }}>Vista previa del ícono</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles['form-actions']} style={{ padding: '20px', gap: '20px' }}>
+            <button 
+              type="button" 
+              className={styles['cancel-button']} 
+              onClick={onClose}
+              disabled={isLoading}
+              style={{ minWidth: '120px', padding: '12px 20px' }}
+            >
+              <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className={styles['save-button']}
+              disabled={isLoading || !caracteristicaData.nombre.trim()}
+              style={{ 
+                fontSize: '1rem',
+                padding: '12px 24px',
+                background: '#4CAF50',
+                minWidth: '220px', 
+                fontWeight: 'bold',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+              }}
+            >
+              {isLoading ? 
+                <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '8px' }} /> Guardando...</> : 
+                <>
+                  <FontAwesomeIcon icon={faSave} style={{ marginRight: '8px' }} /> 
+                  GUARDAR CARACTERÍSTICA
+                </>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Modal para asignar una característica a un servicio
+const AssignCaracteristicaModal = ({ show, onClose, onSave, allServicios, allCaracteristicas }) => {
+  const [assignData, setAssignData] = useState({
+    servicioId: '',
+    caracteristicaId: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setAssignData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onSave(assignData.servicioId, assignData.caracteristicaId);
+    setIsLoading(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '500px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2><FontAwesomeIcon icon={faLink} className={styles['modal-header-icon']} /> Asignar Característica a Servicio</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit} autoComplete="off">
+          <div className={styles['modal-body']}>
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faListAlt} className={styles['field-icon']} /> 
+                Servicio
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <select
+                  name="servicioId"
+                  value={assignData.servicioId}
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  required
+                  disabled={isLoading}
+                >
+                  <option value="">Seleccione un servicio</option>
+                  {allServicios.map(servicio => (
+                    <option key={servicio.id_servicio} value={servicio.id_servicio}>
+                      {servicio.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className={styles['form-group']}>
+              <label className={styles['form-label']}>
+                <FontAwesomeIcon icon={faListAlt} className={styles['field-icon']} /> 
+                Característica
+              </label>
+              <div className={styles['form-control-wrapper']}>
+                <select
+                  name="caracteristicaId"
+                  value={assignData.caracteristicaId}
+                  onChange={handleInputChange}
+                  className={styles['form-control']}
+                  required
+                  disabled={isLoading}
+                >
+                  <option value="">Seleccione una característica</option>
+                  {allCaracteristicas.map(caracteristica => (
+                    <option key={caracteristica.id_caracteristicas} value={caracteristica.id_caracteristicas}>
+                      {caracteristica.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles['form-actions']}>
+            <button 
+              type="button" 
+              className={styles['cancel-button']} 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className={styles['save-button']}
+              disabled={isLoading || !assignData.servicioId || !assignData.caracteristicaId}
+            >
+              {isLoading ? 
+                <><FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '8px' }} /> Asignando...</> : 
+                <><FontAwesomeIcon icon={faLink} style={{ marginRight: '8px' }} /> Asignar Característica</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Add DeleteCaracteristicaModal component after AssignCaracteristicaModal
+const DeleteCaracteristicaModal = ({ show, onClose, onConfirm, caracteristicaName, serviciosCount }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '450px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2>Eliminar Característica</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <div className={styles['modal-body']}>
+          <div className={styles['warning-icon']}>
+            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
+          </div>
+          <p className={styles['warning-message']}>
+            Está a punto de eliminar la característica <strong>{caracteristicaName}</strong>.
+          </p>
+          
+          {serviciosCount > 0 && (
+            <>
+              <p className={styles['warning-details']}>
+                Esta acción eliminará:
+              </p>
+              <ul className={styles['warning-items']}>
+                <li>La relación con {serviciosCount} servicio(s)</li>
+              </ul>
+            </>
+          )}
+          
+          <p className={styles['warning-permanent']}>
+            Esta acción no se puede deshacer. ¿Está seguro que desea continuar?
+          </p>
+        </div>
+        
+        <div className={styles['modal-footer']}>
+          <button 
+            className={styles['cancel-button']} 
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancelar
+          </button>
+          <button 
+            className={styles['delete-button']} 
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? 
+              <><FontAwesomeIcon icon={faSpinner} spin /> Eliminando...</> : 
+              <><FontAwesomeIcon icon={faTrash} /> Eliminar Característica</>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add a new VerCaracteristicasModal component to list and manage characteristics
+const VerCaracteristicasModal = ({ show, onClose, caracteristicas, onDelete, onCreateNew }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isLoading) {
+        onClose();
+      }
+    }
+
+    if (show) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, onClose, isLoading]);
+  
+  if (!show) return null;
+  
+  return (
+    <div className={styles['modal-overlay']}>
+      <div className={styles['modal-content']} style={{ maxWidth: '700px' }}>
+        {isLoading && <LoadingAnimation />}
+        <div className={styles['modal-header']}>
+          <h2><FontAwesomeIcon icon={faListAlt} className={styles['modal-header-icon']} /> Gestionar Características</h2>
+          <button className={styles['close-button']} onClick={onClose} aria-label="Cerrar" disabled={isLoading}>×</button>
+        </div>
+        
+        <div className={styles['modal-body']} style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {caracteristicas.length === 0 ? (
+            <div className={styles['no-data']}>
+              No hay características disponibles
+            </div>
+          ) : (
+            <div className={styles['caracteristicas-list']}>
+              {caracteristicas.map(caract => (
+                <div key={caract.id_caracteristicas} className={styles['caracteristica-item']}>
+                  <div className={styles['caracteristica-info']}>
+                    <div 
+                      className={styles['caracteristica-icon-container']} 
+                      style={{ backgroundColor: caract.color || '#4285F4' }}
+                    >
+                      <FontAwesomeIcon 
+                        icon={commonIcons.find(item => item.name === caract.imagen)?.icon || faStar}
+                        style={{ color: 'white' }}
+                      />
+                    </div>
+                    <div className={styles['caracteristica-details']}>
+                      <h3>{caract.nombre}</h3>
+                      {caract.descripcion && <p>{caract.descripcion}</p>}
+                    </div>
+                  </div>
+                  <div className={styles['caracteristica-actions']}>
+                    <button 
+                      className={styles['action-button']}
+                      onClick={() => onDelete(caract.id_caracteristicas, caract.nombre)}
+                      title="Eliminar característica"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div className={styles['modal-footer']}>
+          <button 
+            className={styles['cancel-button']} 
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
+          <button 
+            className={styles['save-button']}
+            onClick={onCreateNew}
+            style={{ 
+              background: '#4CAF50',
+              color: 'white'
+            }}
+          >
+            <FontAwesomeIcon icon={faPlus} style={{ marginRight: '8px' }} /> 
+            Nueva Característica
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminPanel = () => {
   const { isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -1036,6 +1613,15 @@ const AdminPanel = () => {
     createCategoria,
     deleteCategoria
   } = useCategorias();
+  const { 
+    caracteristicas: allCaracteristicas, 
+    loading: caracteristicasLoading, 
+    error: caracteristicasError,
+    createCaracteristica,
+    assignCaracteristicaToServicio,
+    deleteCaracteristica,
+    fetchCaracteristicas
+  } = useCaracteristicas();
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
   
   const [adminChecking, setAdminChecking] = useState(true);
@@ -1084,10 +1670,11 @@ const AdminPanel = () => {
   
   // Loading and error states
   const loading = itemsLoading || 
+                 caracteristicasLoading ||
                  ((!itemsWithDetails || itemsWithDetails.length === 0) && !error) || 
                  (allServicios.length === 0 && !serviciosError) ||
                  (allCategorias.length === 0 && !categoriasError);
-  const error = itemsError || serviciosError || subcategoriasError || categoriasError;
+  const error = itemsError || serviciosError || subcategoriasError || categoriasError || caracteristicasError;
   
   // Check if user is authenticated and admin
   useEffect(() => {
@@ -2417,6 +3004,126 @@ const AdminPanel = () => {
   // Constante para color por defecto en caso de que una categoría no tenga color definido
   const DEFAULT_CATEGORY_COLOR = '#4285F4'; // Azul
 
+  // Dentro del componente AdminPanel, agregar el estado para características modales
+  const [createCaracteristicaState, setCreateCaracteristicaState] = useState({
+    show: false,
+    isLoading: false
+  });
+
+  const [assignCaracteristicaState, setAssignCaracteristicaState] = useState({
+    show: false,
+    isLoading: false
+  });
+  
+  // Add state for deleting characteristics
+  const [deleteCaracteristicaState, setDeleteCaracteristicaState] = useState({
+    show: false,
+    caracteristicaId: null,
+    caracteristicaName: '',
+    serviciosCount: 0,
+    isLoading: false
+  });
+
+  // Add state for viewing all characteristics
+  const [verCaracteristicasState, setVerCaracteristicasState] = useState({
+    show: false
+  });
+
+  // Añadir la función para manejar la creación de características
+  const handleCreateCaracteristica = async (caracteristicaData) => {
+    try {
+      const result = await createCaracteristica(caracteristicaData);
+      
+      if (result.success) {
+        success('Característica creada correctamente');
+        // Cerrar el modal
+        setCreateCaracteristicaState({
+          show: false,
+          isLoading: false
+        });
+      } else {
+        showError(`Error al crear característica: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating caracteristica:', error);
+      showError('Error inesperado al crear la característica');
+    }
+  };
+
+  // Función para manejar la asignación de características a servicios
+  const handleAssignCaracteristica = async (servicioId, caracteristicaId) => {
+    try {
+      const result = await assignCaracteristicaToServicio(servicioId, caracteristicaId);
+      
+      if (result.success) {
+        success('Característica asignada correctamente al servicio');
+        // Cerrar el modal
+        setAssignCaracteristicaState({
+          show: false,
+          isLoading: false
+        });
+      } else {
+        showError(`Error al asignar característica: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error assigning caracteristica:', error);
+      showError('Error inesperado al asignar la característica');
+    }
+  };
+
+  // Add method to handle iniciating deletion of a characteristic
+  const handleDeleteCaracteristica = (caracteristicaId, caracteristicaName) => {
+    // Here you would ideally first check how many services use this characteristic
+    // For now we'll assume none
+    
+    setDeleteCaracteristicaState({
+      show: true,
+      caracteristicaId,
+      caracteristicaName,
+      serviciosCount: 0,
+      isLoading: false
+    });
+  };
+
+  // Add method to confirm deletion of a characteristic
+  const confirmDeleteCaracteristica = async () => {
+    try {
+      setDeleteCaracteristicaState(prev => ({ ...prev, isLoading: true }));
+      
+      const { caracteristicaId } = deleteCaracteristicaState;
+      const result = await deleteCaracteristica(caracteristicaId);
+      
+      if (result.success) {
+        success('Característica eliminada correctamente');
+      } else {
+        showError(`Error al eliminar característica: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error in confirmDeleteCaracteristica:', error);
+      showError(`Error inesperado: ${error.message}`);
+    } finally {
+      // Close the modal regardless of result
+      setDeleteCaracteristicaState({
+        show: false,
+        caracteristicaId: null,
+        caracteristicaName: '',
+        serviciosCount: 0,
+        isLoading: false
+      });
+    }
+  };
+
+  // Add method to cancel deletion of a characteristic
+  const cancelDeleteCaracteristica = () => {
+    setDeleteCaracteristicaState({
+      show: false,
+      caracteristicaId: null,
+      caracteristicaName: '',
+      serviciosCount: 0,
+      isLoading: false
+    });
+  };
+
   if (adminChecking) {
     return (
       <div className="admin-panel-container">
@@ -2582,7 +3289,7 @@ const AdminPanel = () => {
       
       <div className={styles['admin-content']}>
         <div className={styles['admin-header']}>
-          <div className={styles['admin-actions']}>
+                    <div className={styles['admin-actions']}>
           <button 
             className={styles['add-button']}
             onClick={handleAddItem}
@@ -2594,6 +3301,18 @@ const AdminPanel = () => {
               onClick={() => setCreateCategoryState({ show: true, isLoading: false })}
             >
               <FontAwesomeIcon icon={faPlus} /> Nueva Categoría
+            </button>
+            <button 
+              className={styles['assign-caracteristica-button']}
+              onClick={() => setAssignCaracteristicaState({ show: true, isLoading: false })}
+            >
+              <FontAwesomeIcon icon={faLink} /> Asignar Característica
+            </button>
+            <button 
+              className={styles['manage-caracteristicas-button']}
+              onClick={() => setVerCaracteristicasState({ show: true })}
+            >
+              <FontAwesomeIcon icon={faListAlt} /> Gestionar Características
           </button>
           </div>
         </div>
@@ -2720,6 +3439,23 @@ const AdminPanel = () => {
                             />
                             <div className={styles['service-info']}>
                               <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
+                              {servicio.caracteristicas && servicio.caracteristicas.length > 0 && (
+                                <div className={styles['caracteristicas-container']} style={{ marginTop: '8px' }}>
+                                  {servicio.caracteristicas.map(caract => (
+                                    <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']}>
+                                      <div 
+                                        className={styles['caracteristica-icon-container']} 
+                                        style={{ backgroundColor: caract.color || '#4285F4' }}
+                                      >
+                                        <FontAwesomeIcon 
+                                          icon={commonIcons.find(item => item.name === caract.imagen)?.icon || faStar} 
+                                        />
+                                      </div>
+                                      <span>{caract.nombre}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div className={styles['service-stats']}>
                               <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
@@ -2965,6 +3701,53 @@ const AdminPanel = () => {
           onConfirm={confirmDeleteCategory}
           categoryName={deleteCategoryState.categoryName}
           serviceCount={deleteCategoryState.serviceCount}
+        />
+      )}
+      
+      {createCaracteristicaState.show && (
+        <CreateCaracteristicaModal
+          show={createCaracteristicaState.show}
+          onClose={() => setCreateCaracteristicaState({ 
+            show: false, 
+            isLoading: false 
+          })}
+          onSave={handleCreateCaracteristica}
+        />
+      )}
+      
+      {assignCaracteristicaState.show && (
+        <AssignCaracteristicaModal
+          show={assignCaracteristicaState.show}
+          onClose={() => setAssignCaracteristicaState({ 
+            show: false, 
+            isLoading: false 
+          })}
+          onSave={handleAssignCaracteristica}
+          allServicios={allServicios}
+          allCaracteristicas={allCaracteristicas}
+        />
+      )}
+      
+      {verCaracteristicasState.show && (
+        <VerCaracteristicasModal
+          show={verCaracteristicasState.show}
+          onClose={() => setVerCaracteristicasState({ show: false })}
+          caracteristicas={allCaracteristicas}
+          onDelete={handleDeleteCaracteristica}
+          onCreateNew={() => {
+            setVerCaracteristicasState({ show: false });
+            setCreateCaracteristicaState({ show: true, isLoading: false });
+          }}
+        />
+      )}
+      
+      {deleteCaracteristicaState.show && (
+        <DeleteCaracteristicaModal
+          show={deleteCaracteristicaState.show}
+          onClose={cancelDeleteCaracteristica}
+          onConfirm={confirmDeleteCaracteristica}
+          caracteristicaName={deleteCaracteristicaState.caracteristicaName}
+          serviciosCount={deleteCaracteristicaState.serviciosCount}
         />
       )}
       
