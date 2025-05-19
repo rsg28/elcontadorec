@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolderOpen, faFileAlt, faPaperPlane, faLock, faPlus, faMinus, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faFolderOpen, faFileAlt, faPaperPlane, faLock, 
+  faPlus, faMinus, faShoppingCart, faFolder, 
+  faFileInvoice, faShieldAlt, faUsers, faCalculator 
+} from '@fortawesome/free-solid-svg-icons';
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
+import LoadingAnimation from '../components/loadingAnimation';
 import './ServicioPage.css';
 
-const features = [
-  {
-    icon: faFolderOpen,
-    color: '#7c3aed',
-    title: 'Recopilación Documental',
-    desc: 'Descarga y análisis de los documentos electrónicos que constan en la base de datos del SRI y explican el uso habitual del contribuyente.'
-  },
-  {
-    icon: faFileAlt,
-    color: '#ef4444',
-    title: 'Elaboración de Declaración IVA mensual',
-    desc: 'Descarga y análisis de los documentos electrónicos que constan en la base de datos del SRI y explican el uso habitual del contribuyente.'
-  },
-  {
-    icon: faPaperPlane,
-    color: '#f59e42',
-    title: 'Presentación al SRI',
-    desc: 'Presentación electrónica de la declaración de IVA mensual en la cuenta tributaria del SRI en los plazos establecidos.'
-  },
-  {
-    icon: faLock,
-    color: '#0ea5e9',
-    title: 'Confidencialidad',
-    desc: 'Protegemos la información de nuestros clientes con los más altos estándares de seguridad.'
-  }
-];
+// Mapa de iconos para convertir nombres de string a componentes de FontAwesome
+const iconMap = {
+  'folder': faFolder,
+  'file-invoice': faFileInvoice,
+  'paper-plane': faPaperPlane,
+  'lock': faLock,
+  // Añadir más iconos según sea necesario
+  'folder-open': faFolderOpen,
+  'file-alt': faFileAlt,
+  'shield-alt': faShieldAlt,
+  'users': faUsers,
+  'calculator': faCalculator
+};
 
+// Los rangos de precio siguen siendo estáticos por ahora
 const priceRanges = [
   'Ventas Mensuales de $0 a $5000',
   'Ventas Mensuales de $5001 a $20000',
@@ -44,21 +37,63 @@ const ServicioPage = () => {
   const { id_servicio } = useParams();
   const [selectedRange, setSelectedRange] = useState(priceRanges[0]);
   const [quantity, setQuantity] = useState(1);
+  const [caracteristicas, setCaracteristicas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Fetch all servicios and categorias
   const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
   const { categorias: allCategorias, loading: categoriasLoading } = useCategorias();
 
+  // Fetch caracteristicas for this servicio
+  useEffect(() => {
+    const fetchCaracteristicas = async () => {
+      try {
+        setLoading(true);
+        // 1. Primero obtener las relaciones de servicio_caracteristicas
+        const response = await fetch(`/api/servicios/${id_servicio}/caracteristicas`);
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setCaracteristicas(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching caracteristicas:', err);
+        setError(err.message);
+        setCaracteristicas([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id_servicio) {
+      fetchCaracteristicas();
+    }
+  }, [id_servicio]);
+
   // Find the current servicio and its category
   const currentServicio = allServicios.find(s => String(s.id_servicio) === String(id_servicio));
   const currentCategoria = currentServicio && allCategorias.find(c => c.id_categoria === currentServicio.id_categoria);
 
+  // Get icon component from string name
+  const getIconComponent = (iconName) => {
+    return iconMap[iconName] || faFileAlt; // default icon if not found
+  };
+
   // Loading state
-  if (serviciosLoading || categoriasLoading) {
+  if (serviciosLoading || categoriasLoading || loading) {
+    return <LoadingAnimation />;
+  }
+
+  // Error state
+  if (error) {
     return (
       <div className="servicio-page-container">
-        <div className="loading-container">
-          Cargando...
+        <div className="error-container">
+          Error cargando características: {error}
         </div>
       </div>
     );
@@ -91,15 +126,21 @@ const ServicioPage = () => {
         </div>
         <div className="servicio-content">
           <div className="servicio-features">
-            {features.map((f, i) => (
-              <div key={i} className="feature-card">
-                <div className="feature-icon-container" style={{ background: f.color }}>
-                  <FontAwesomeIcon icon={f.icon} />
+            {caracteristicas.length > 0 ? (
+              caracteristicas.map((c, i) => (
+                <div key={i} className="feature-card">
+                  <div className="feature-icon-container" style={{ background: c.color || '#cccccc' }}>
+                    <FontAwesomeIcon icon={getIconComponent(c.imagen)} />
+                  </div>
+                  <div className="feature-title">{c.nombre}</div>
+                  <div className="feature-description">{c.descripcion}</div>
                 </div>
-                <div className="feature-title">{f.title}</div>
-                <div className="feature-description">{f.desc}</div>
+              ))
+            ) : (
+              <div className="no-features-message">
+                No hay características disponibles para este servicio
               </div>
-            ))}
+            )}
           </div>
           <div className="servicio-price-container">
             <div className="price-label">Seleccione un rango de ventas mensuales para obtener un precio</div>

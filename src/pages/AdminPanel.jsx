@@ -2632,8 +2632,8 @@ const AdminPanel = () => {
                       if (filters.categoriaId === 'all') {
                   const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
                         if (!hasMatchingItems) return false;
-                      }
-                      
+                  }
+                  
                       return true;
                     });
                   

@@ -7,6 +7,7 @@ import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
 import useSubcategorias from '../hooks/useSubcategorias';
 import useNotifications from '../hooks/useNotifications';
+import LoadingAnimation from '../components/loadingAnimation';
 import './CategoriaPage.css';
 import displayDefault from '../assets/display1.jpeg';
 
@@ -14,6 +15,9 @@ const CategoriaPage = () => {
   const { categoriaId } = useParams(); // Obtiene el ID de la categoría de la URL
   const navigate = useNavigate();
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
+  
+  // Add state for button loading
+  const [isNavigating, setIsNavigating] = useState(false);
   
   // Hooks for data
   const { 
@@ -237,12 +241,16 @@ const CategoriaPage = () => {
     });
   };
   
-  if (loading) {
-    return (
-      <div className="categoria-page-container">
-        <div className="loading-indicator">Cargando...</div>
-      </div>
-    );
+  // Handler for Ver Más button
+  const handleVerMas = (servicioId) => {
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate(`/servicio/${servicioId}`);
+    }, 300); // Small delay to show loading animation
+  };
+  
+  if (loading || isNavigating) {
+    return <LoadingAnimation />;
   }
   
   if (error) {
@@ -278,7 +286,7 @@ const CategoriaPage = () => {
                 ) : (
                   <img src={displayDefault} alt="Imagen por defecto" className="service-card-img" />
                 )}
-                <button className="service-card-btn small" onClick={() => navigate(`/servicio/${servicio.id_servicio}`)}>VER MÁS</button>
+                <button className="service-card-btn small" onClick={() => handleVerMas(servicio.id_servicio)}>VER MÁS</button>
               </div>
               <div className="service-card-right">
                 <label className="service-card-label">Seleccione una subcategoría para ver el precio</label>
