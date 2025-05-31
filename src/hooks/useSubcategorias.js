@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 const API_BASE_URL = '/api';
 
 /**
- * Hook personalizado para obtener subcategorías por servicio
- * @param {string} servicioId - ID del servicio (opcional)
+ * Hook personalizado para obtener todas las subcategorías
  * @returns {Object} - Objeto con las subcategorías, estado de carga y error, y funciones para manipular subcategorías
  */
-const useSubcategorias = (servicioId = null) => {
+const useSubcategorias = () => {
   const [subcategorias, setSubcategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,45 +39,6 @@ const useSubcategorias = (servicioId = null) => {
     }
   };
 
-  // Función para obtener subcategorías por ID de servicio
-  const fetchSubcategoriasByServicio = async (id) => {
-    if (!id) return [];
-    
-    try {
-      setLoading(true);
-      
-      const response = await fetch(`${API_BASE_URL}/subcategorias/servicio/${id}`, {
-        credentials: 'include' // Include cookies for authentication
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (id === servicioId) {
-        // Solo actualizar el estado si el ID coincide con el ID actual del hook
-        setSubcategorias(data);
-        setError(null);
-      }
-      
-      return data;
-    } catch (err) {
-      console.error('Error fetching subcategorias by servicio:', err);
-      if (id === servicioId) {
-        setError(err.message);
-        setSubcategorias([]);
-      }
-      return [];
-    } finally {
-      if (id === servicioId) {
-        setLoading(false);
-      }
-    }
-  };
-
   // Función para crear una nueva subcategoría
   const createSubcategoria = async (nuevaSubcategoria) => {
     try {
@@ -100,10 +60,8 @@ const useSubcategorias = (servicioId = null) => {
       
       const data = await response.json();
       
-      // Si estamos viendo las subcategorías del servicio al que pertenece la nueva, actualizar la lista
-      if (servicioId && parseInt(servicioId) === parseInt(nuevaSubcategoria.id_servicio)) {
-        setSubcategorias(prevSubcategorias => [...prevSubcategorias, data]);
-      }
+      // Agregar la nueva subcategoría al estado local
+      setSubcategorias(prevSubcategorias => [...prevSubcategorias, data]);
       
       setError(null);
       return { success: true, data };
@@ -186,24 +144,73 @@ const useSubcategorias = (servicioId = null) => {
     }
   };
 
-  // Efecto para cargar subcategorías iniciales
+  // Cargar todas las subcategorías al montar el componente
   useEffect(() => {
-    if (servicioId) {
-      fetchSubcategoriasByServicio(servicioId);
-    } else {
-      fetchAllSubcategorias();
-    }
-  }, [servicioId]);
+    fetchAllSubcategorias();
+  }, []);
 
   return { 
     subcategorias, 
     loading, 
     error,
     fetchAllSubcategorias,
-    fetchSubcategoriasByServicio,
     createSubcategoria,
     deleteSubcategoria,
     updateSubcategoria
+  };
+};
+
+/**
+ * Hook especializado para obtener subcategorías de un servicio específico
+ * @param {string|number} servicioId - ID del servicio
+ * @returns {Object} - Objeto con las subcategorías, estado de carga y error
+ */
+export const useSubcategoriasByServicio = (servicioId) => {
+  const [subcategorias, setSubcategorias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Función para obtener subcategorías por servicio
+  const fetchSubcategorias = async () => {
+    if (!servicioId) {
+      setSubcategorias([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/subcategorias/servicio/${servicioId}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      setSubcategorias(data);
+      
+    } catch (err) {
+      console.error(`Error fetching subcategorias for servicio ${servicioId}:`, err);
+      setError(err.message);
+      setSubcategorias([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refrescar subcategorías cuando cambie el servicioId
+  useEffect(() => {
+    fetchSubcategorias();
+  }, [servicioId]);
+
+  return { 
+    subcategorias, 
+    loading, 
+    error,
+    refetch: fetchSubcategorias
   };
 };
 

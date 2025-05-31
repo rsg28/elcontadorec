@@ -57,35 +57,37 @@ export const useAllServicios = () => {
     try {
       setLoading(true);
       
-      // Get all services
+      // Get all services (already includes Items with Subcategoria data)
       const serviciosResponse = await fetch(`${API_BASE_URL}/servicios`);
       if (!serviciosResponse.ok) {
         throw new Error(`Error fetching services: ${serviciosResponse.status}`);
       }
       const serviciosData = await serviciosResponse.json();
       
-      // Add subcategories to each service
-      const serviciosWithDetails = await Promise.all(serviciosData.map(async (servicio) => {
-        // Get subcategories for this service
-        try {
-          const subcategoriasResponse = await fetch(`${API_BASE_URL}/subcategorias/servicio/${servicio.id_servicio}`);
-          if (subcategoriasResponse.ok) {
-            const subcategoriasData = await subcategoriasResponse.json();
-            return { 
-              ...servicio, 
-              subcategorias: subcategoriasData
-            };
-          }
-        } catch (err) {
-          console.error(`Error fetching subcategories for service ${servicio.id_servicio}:`, err);
+      // Process services to extract subcategories from Items
+      const serviciosWithDetails = serviciosData.map((servicio) => {
+        // Extract unique subcategories from the Items array
+        const subcategorias = [];
+        const seenSubcategoryIds = new Set();
+        
+        if (servicio.Items && Array.isArray(servicio.Items)) {
+          servicio.Items.forEach(item => {
+            if (item.Subcategoria && !seenSubcategoryIds.has(item.Subcategoria.id_subcategoria)) {
+              subcategorias.push({
+                id_subcategoria: item.Subcategoria.id_subcategoria,
+                nombre: item.Subcategoria.nombre,
+                id_servicio: servicio.id_servicio
+              });
+              seenSubcategoryIds.add(item.Subcategoria.id_subcategoria);
+            }
+          });
         }
         
-        // Return service with empty subcategories if error
         return { 
           ...servicio, 
-          subcategorias: []
+          subcategorias: subcategorias
         };
-      }));
+      });
       
       setServicios(serviciosWithDetails);
       setError(null);
@@ -145,59 +147,6 @@ export const useAllServicios = () => {
       return { success: true, data: newServicio };
     } catch (err) {
       console.error('Error creating servicio:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Crear una nueva subcategoría (requiere autenticación de administrador)
-   * @param {Object} subcategoriaData - Datos de la subcategoría a crear
-   * @returns {Promise<Object>} - Resultado de la operación
-   */
-  const createSubcategoria = async (subcategoriaData) => {
-    try {
-      setLoading(true);
-      
-      // Get authentication token
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/subcategorias`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(subcategoriaData),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-      
-      const newSubcategoria = await response.json();
-      
-      // Actualizar la lista de servicios localmente añadiendo la subcategoría
-      setServicios(prevServicios => {
-        return prevServicios.map(servicio => {
-          if (servicio.id_servicio == subcategoriaData.id_servicio) {
-            return {
-              ...servicio,
-              subcategorias: [...servicio.subcategorias, newSubcategoria]
-            };
-          }
-          return servicio;
-        });
-      });
-      
-      return { success: true, data: newSubcategoria };
-    } catch (err) {
-      console.error('Error creating subcategoria:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -314,7 +263,6 @@ export const useAllServicios = () => {
     loading, 
     error, 
     createServicio, 
-    createSubcategoria,
     deleteServicio,
     updateServicio,
     fetchAllServicios,
