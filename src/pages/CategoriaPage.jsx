@@ -26,17 +26,20 @@ const CategoriaPage = () => {
     error: itemsError,
     refreshItems 
   } = useItems();
+
   const { 
     servicios: allServicios, 
     loading: serviciosLoading, 
     error: serviciosError,
     fetchAllServicios 
   } = useAllServicios();
+
   const { 
     categorias: allCategorias, 
     loading: categoriasLoading, 
     error: categoriasError 
   } = useCategorias();
+  
   const {
     subcategorias: allSubcategorias,
     loading: subcategoriasLoading,
@@ -73,10 +76,6 @@ const CategoriaPage = () => {
   
   // Handle subcategoria selection
   const handleSubcategoriaChange = (servicioId, subcategoriaId, items) => {
-    console.log('DEBUG - servicioId:', servicioId, 'type:', typeof servicioId);
-    console.log('DEBUG - subcategoriaId:', subcategoriaId, 'type:', typeof subcategoriaId);
-    console.log('DEBUG - items:', items);
-
     // Reset to 0 if no subcategoria selected
     if (!subcategoriaId || subcategoriaId === "") {
       setSelectedPrices(prev => ({
@@ -95,20 +94,11 @@ const CategoriaPage = () => {
       const itemServicioId = Number(item.id_servicio);
       const itemSubcategoriaId = Number(item.id_subcategoria);
       
-      console.log('DEBUG - Comparing:', {
-        itemServicioId,
-        servicioIdNum,
-        itemSubcategoriaId,
-        subcategoriaIdNum,
-        matches: itemServicioId === servicioIdNum && itemSubcategoriaId === subcategoriaIdNum
-      });
-      
       return itemServicioId === servicioIdNum && itemSubcategoriaId === subcategoriaIdNum;
     });
 
-    console.log('DEBUG - Matching item:', matchingItem);
-
     // Update price
+    // you can put a function in a setState to consider the previous state (which is the argument)
     setSelectedPrices(prev => ({
       ...prev,
       [servicioId]: matchingItem ? matchingItem.precio : 0
