@@ -52,34 +52,11 @@ import './App.css'; // Make sure we have access to the styles
 // Home component for the landing page
 const Home = () => {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const { categorias, loading, error } = useCategorias();
-  const maxPages = Math.ceil(categorias.length / 5); // Calculate max pages based on categories per page
-  
-  // Helper to determine if buttons should be visible
-  const isPrevButtonVisible = currentPage > 0;
 
   // Handler for category card clicks
   const handleCategoryClick = (categoryId) => {
     navigate(`/categoria/${categoryId}`);
-  };
-
-  // Improved navigation handlers with transition effect
-  const handleNextPage = () => {
-    if (!isTransitioning && currentPage < maxPages - 1) {
-      setIsTransitioning(true);
-      setCurrentPage(prev => prev + 1);
-      setTimeout(() => setIsTransitioning(false), 500); // Match transition time in CSS
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (!isTransitioning && currentPage > 0) {
-      setIsTransitioning(true);
-      setCurrentPage(prev => prev - 1);
-      setTimeout(() => setIsTransitioning(false), 500); // Match transition time in CSS
-    }
   };
 
   if (loading) {
@@ -108,17 +85,7 @@ const Home = () => {
         <h2 className="section-title">Todas las Categorías</h2>
         
         <div className="categories-container">
-          {isPrevButtonVisible && (
-            <button 
-              className="carousel-button prev" 
-              onClick={handlePrevPage}
-              aria-label="Categorías anteriores"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-          )}
-          
-          <div className="categories-grid" style={{ transform: `translateX(-${currentPage * 41}%)` }}>
+          <div className="categories-grid">
             {categorias.map(categoria => (
               <div 
                 key={categoria.id_categoria} 
@@ -130,23 +97,6 @@ const Home = () => {
                 </div>
                 <h3 className="category-title">{categoria.nombre}</h3>
               </div>
-            ))}
-          </div>
-          
-          <div className="carousel-dots">
-            {Array.from({ length: maxPages }).map((_, index) => (
-              <button 
-                key={index}
-                className={`carousel-dot ${currentPage === index ? 'active' : ''}`}
-                onClick={() => {
-                  if (!isTransitioning && currentPage !== index) {
-                    setIsTransitioning(true);
-                    setCurrentPage(index);
-                    setTimeout(() => setIsTransitioning(false), 500);
-                  }
-                }}
-                aria-label={`Ir a página ${index + 1}`}
-              />
             ))}
           </div>
         </div>
@@ -161,6 +111,130 @@ const NavbarWrapper = () => {
   // Only show navbar if we're not on the homepage, login, register, thank-you, or admin page
   const excludePaths = ['/', '/login', '/register', '/thank-you', '/admin'];
   return !excludePaths.includes(location.pathname) && <Navbar />;
+};
+
+// FooterWrapper component to conditionally render the footer
+const FooterWrapper = () => {
+  const location = useLocation();
+  // Exclude footer from login, register, and thank-you pages
+  const excludePaths = ['/login', '/register', '/thank-you'];
+  
+  if (excludePaths.includes(location.pathname)) {
+    return null;
+  }
+  
+  return (
+    <footer className="footer">
+      <div className="footer-content">
+        <div className="footer-column footer-about">
+          <div className="footer-logo">
+            <img src={fullLogoImage} alt="El Contador EC" className="logo-small" />
+          </div>
+          <p className="footer-description">
+            Somos expertos en servicios contables y tributarios, ofreciendo soluciones personalizadas para individuos y empresas en Ecuador.
+          </p>
+          <div className="footer-social">
+            <a href="#" className="social-icon facebook"><i className="fab fa-facebook-f"></i></a>
+            <a href="#" className="social-icon twitter"><i className="fab fa-twitter"></i></a>
+            <a href="#" className="social-icon instagram"><i className="fab fa-instagram"></i></a>
+            <a href="#" className="social-icon linkedin"><i className="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        
+        <div className="footer-column footer-links">
+          <h4 className="footer-title">Enlaces Rápidos</h4>
+          <ul>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/">Inicio</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/servicios">Servicios</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/nosotros">Nosotros</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/planes">Planes y Precios</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/faq">Preguntas Frecuentes</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/contacto">Contacto</Link>
+            </li>
+          </ul>
+        </div>
+        
+        <div className="footer-column footer-services">
+          <h4 className="footer-title">Nuestros Servicios</h4>
+          <ul>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/2">Declaraciones Mensuales</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/2">Declaraciones Anuales</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/1">Impuesto a la Renta</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/5">Devoluciones SRI</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/3">Auditoría Externa</Link>
+            </li>
+            <li>
+              <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
+              <Link to="/categoria/4">Servicios Legales</Link>
+            </li>
+          </ul>
+        </div>
+        
+        <div className="footer-column footer-contact">
+          <h4 className="footer-title">Contáctanos</h4>
+          <div className="contact-info">
+            <p>
+              <FontAwesomeIcon icon={faMapMarkerAlt} className="contact-icon" />
+              <span>Quito, Ecuador</span>
+            </p>
+            <p>
+              <FontAwesomeIcon icon={faPhone} className="contact-icon" />
+              <span>+593 98 765 4321</span>
+            </p>
+            <p>
+              <FontAwesomeIcon icon={faEnvelope} className="contact-icon" />
+              <span>info@elcontadorec.com</span>
+            </p>
+            <p>
+              <FontAwesomeIcon icon={faClock} className="contact-icon" />
+              <span>Lun - Vie: 9:00 - 17:00</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="footer-bottom">
+        <div className="copyright">
+          &copy; {new Date().getFullYear()} El Contador EC. Todos los derechos reservados.
+        </div>
+        <div className="footer-bottom-links">
+          <Link to="/terminos">Términos y Condiciones</Link>
+          <Link to="/privacidad">Política de Privacidad</Link>
+        </div>
+      </div>
+    </footer>
+  );
 };
 
 // Header component with authentication awareness
@@ -327,117 +401,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         
-        <footer className="footer">
-          <div className="footer-top-wave"></div>
-          <div className="footer-content">
-            <div className="footer-column footer-about">
-              <div className="footer-logo">
-                <img src={fullLogoImage} alt="El Contador EC" className="logo-small" />
-              </div>
-              <p className="footer-description">
-                Somos expertos en servicios contables y tributarios, ofreciendo soluciones personalizadas para individuos y empresas en Ecuador.
-              </p>
-              <div className="footer-social">
-                <a href="#" className="social-icon facebook"><i className="fab fa-facebook-f"></i></a>
-                <a href="#" className="social-icon twitter"><i className="fab fa-twitter"></i></a>
-                <a href="#" className="social-icon instagram"><i className="fab fa-instagram"></i></a>
-                <a href="#" className="social-icon linkedin"><i className="fab fa-linkedin-in"></i></a>
-              </div>
-            </div>
-            
-            <div className="footer-column footer-links">
-              <h4 className="footer-title">Enlaces Rápidos</h4>
-              <ul>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/">Inicio</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/servicios">Servicios</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/nosotros">Nosotros</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/planes">Planes y Precios</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/faq">Preguntas Frecuentes</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/contacto">Contacto</Link>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="footer-column footer-services">
-              <h4 className="footer-title">Nuestros Servicios</h4>
-              <ul>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/2">Declaraciones Mensuales</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/2">Declaraciones Anuales</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/1">Impuesto a la Renta</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/5">Devoluciones SRI</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/3">Auditoría Externa</Link>
-                </li>
-                <li>
-                  <FontAwesomeIcon icon={faChevronRight} className="footer-icon" />
-                  <Link to="/categoria/4">Servicios Legales</Link>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="footer-column footer-contact">
-              <h4 className="footer-title">Contáctanos</h4>
-              <div className="contact-info">
-                <p>
-                  <FontAwesomeIcon icon={faMapMarkerAlt} className="contact-icon" />
-                  <span>Quito, Ecuador</span>
-                </p>
-                <p>
-                  <FontAwesomeIcon icon={faPhone} className="contact-icon" />
-                  <span>+593 98 765 4321</span>
-                </p>
-                <p>
-                  <FontAwesomeIcon icon={faEnvelope} className="contact-icon" />
-                  <span>info@elcontadorec.com</span>
-                </p>
-                <p>
-                  <FontAwesomeIcon icon={faClock} className="contact-icon" />
-                  <span>Lun - Vie: 9:00 - 17:00</span>
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="footer-bottom">
-            <div className="copyright">
-              &copy; {new Date().getFullYear()} El Contador EC. Todos los derechos reservados.
-            </div>
-            <div className="footer-bottom-links">
-              <Link to="/terminos">Términos y Condiciones</Link>
-              <Link to="/privacidad">Política de Privacidad</Link>
-            </div>
-          </div>
-        </footer>
+        <FooterWrapper />
       </div>
     </Router>
   );

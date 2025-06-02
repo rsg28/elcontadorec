@@ -186,7 +186,7 @@ const CategoriaPage = () => {
           return;
         }
 
-        // Fetch data in parallel
+        // Fetch data in parallel. Promise.all allows to run multiple processes in parallel.
         const [serviciosResult, itemsResult] = await Promise.all([
           fetchAllServicios(),
           refreshItems()
