@@ -40,6 +40,39 @@ const ServiceImageUpload = ({
       return;
     }
 
+    // Validate image dimensions
+    try {
+      const dimensions = await validateImageDimensions(file);
+      const { width, height } = dimensions;
+      
+      // Define minimum and maximum dimensions
+      const MIN_WIDTH = 300;
+      const MIN_HEIGHT = 200;
+      const MAX_WIDTH = 2000;
+      const MAX_HEIGHT = 2000;
+      
+      if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+        setError(`La imagen es muy pequeña. Mínimo: ${MIN_WIDTH}x${MIN_HEIGHT} píxeles. Actual: ${width}x${height} píxeles`);
+        return;
+      }
+      
+      if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        setError(`La imagen es muy grande. Máximo: ${MAX_WIDTH}x${MAX_HEIGHT} píxeles. Actual: ${width}x${height} píxeles`);
+        return;
+      }
+      
+      // Optional: Check aspect ratio (recommended range)
+      const aspectRatio = width / height;
+      if (aspectRatio < 0.5 || aspectRatio > 3) {
+        setError(`La relación de aspecto de la imagen no es recomendada. Actual: ${aspectRatio.toFixed(2)}:1. Recomendado: entre 0.5:1 y 3:1`);
+        return;
+      }
+      
+    } catch (dimensionError) {
+      setError('Error al validar las dimensiones de la imagen');
+      return;
+    }
+
     setUploading(true);
     setError('');
 
@@ -72,6 +105,29 @@ const ServiceImageUpload = ({
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  // Validate image dimensions
+  const validateImageDimensions = (file) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          width: img.width,
+          height: img.height
+        });
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('No se pudo cargar la imagen'));
+      };
+      
+      img.src = url;
+    });
   };
 
   // Handle image deletion
@@ -170,6 +226,7 @@ const ServiceImageUpload = ({
                 {uploading ? 'Subiendo imagen...' : 'Haga clic para subir una imagen'}
               </p>
               <small>Formatos: JPG, PNG, GIF (Máx. 10MB)</small>
+              <small>Dimensiones: 300x200 - 2000x2000 píxeles</small>
             </div>
           </div>
         )}
