@@ -133,7 +133,7 @@ const CategoriaPage = () => {
           serviceInfo: {
             nombre: servicio.nombre || 'Servicio sin nombre',
             descripcion: servicio.descripcion || 'Sin descripción disponible',
-            imagen_url: servicio.imagen_url || null
+            imagen_url: servicio.imagen || null
           }
         };
       }
@@ -147,7 +147,7 @@ const CategoriaPage = () => {
         serviceInfo: {
           nombre: firstItem.servicio_nombre || servicio.nombre || 'Servicio sin nombre',
           descripcion: firstItem.descripcion || servicio.descripcion || 'Sin descripción disponible',
-          imagen_url: firstItem.imagen_url || servicio.imagen_url || null
+          imagen_url: servicio.imagen || null
         }
       };
     });
@@ -307,11 +307,30 @@ const CategoriaPage = () => {
               <div className="service-card-left">
                 <h2 className="service-card-title">{serviceInfo.nombre}</h2>
                 <p className="service-card-desc">{serviceInfo.descripcion}</p>
-                {serviceInfo.imagen_url ? (
-                  <img src={serviceInfo.imagen_url} alt={serviceInfo.nombre} className="service-card-img" />
-                ) : (
-                  <img src={displayDefault} alt="Imagen por defecto" className="service-card-img" />
-                )}
+                <div className="service-image-container">
+                  {serviceInfo.imagen_url ? (
+                    <img 
+                      src={serviceInfo.imagen_url} 
+                      alt={serviceInfo.nombre} 
+                      className="service-card-img"
+                      onError={(e) => {
+                        // If S3 image fails to load, fallback to default image
+                        console.log('Failed to load service image:', serviceInfo.imagen_url);
+                        e.target.src = displayDefault;
+                        e.target.alt = "Imagen por defecto";
+                      }}
+                      onLoad={() => {
+                        console.log('Successfully loaded service image:', serviceInfo.imagen_url);
+                      }}
+                    />
+                  ) : (
+                    <img 
+                      src={displayDefault} 
+                      alt="Imagen por defecto" 
+                      className="service-card-img" 
+                    />
+                  )}
+                </div>
                 <button className="service-card-btn small" onClick={() => handleVerMas(servicio.id_servicio)}>VER MÁS</button>
               </div>
               <div className="service-card-right">

@@ -9,6 +9,7 @@ import {
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
 import LoadingAnimation from '../components/loadingAnimation';
+import displayDefault from '../assets/default-service.jpg'; // Add default image import
 import './ServicioPage.css';
 
 // Mapa de iconos para convertir nombres de string a componentes de FontAwesome
@@ -125,15 +126,43 @@ const ServicioPage = () => {
       </div>
       <div className="servicio-card">
         <div className="servicio-header">
-          <h1 className="servicio-title">{currentServicio.nombre}</h1>
-          <div className="servicio-description">
-            {currentServicio.descripcion ? (
-              currentServicio.descripcion
-            ) : (
-              <span className="no-description-message">
-                Este servicio aún no tiene una descripción detallada. Por favor, contáctenos para más información.
-              </span>
-            )}
+          <div className="servicio-title-section">
+            <h1 className="servicio-title">{currentServicio.nombre}</h1>
+            <div className="servicio-description">
+              {currentServicio.descripcion ? (
+                currentServicio.descripcion
+              ) : (
+                <span className="no-description-message">
+                  Este servicio aún no tiene una descripción detallada. Por favor, contáctenos para más información.
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="servicio-image-section">
+            <div className="servicio-image-container">
+              {currentServicio.imagen ? (
+                <img 
+                  src={currentServicio.imagen} 
+                  alt={currentServicio.nombre} 
+                  className="servicio-main-img"
+                  onError={(e) => {
+                    // If S3 image fails to load, fallback to default image
+                    console.log('Failed to load service image:', currentServicio.imagen);
+                    e.target.src = displayDefault;
+                    e.target.alt = "Imagen por defecto";
+                  }}
+                  onLoad={() => {
+                    console.log('Successfully loaded service image:', currentServicio.imagen);
+                  }}
+                />
+              ) : (
+                <img 
+                  src={displayDefault} 
+                  alt="Imagen por defecto" 
+                  className="servicio-main-img" 
+                />
+              )}
+            </div>
           </div>
         </div>
         <div className="servicio-content">
