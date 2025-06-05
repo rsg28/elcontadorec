@@ -252,7 +252,7 @@ const Header = () => {
     const authToken = localStorage.getItem('authToken');
     const userObj = localStorage.getItem('user');
     setIsUserLoggedIn(!!authToken && !!userObj);
-  }, [isAuthenticated, user, location.pathname]);
+  }, [!!isAuthenticated, user?.id, location.pathname]);
 
   // Filter services based on search input
   const filteredServices = servicios.filter(servicio => 

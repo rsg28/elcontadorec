@@ -225,6 +225,12 @@ export const useItemOperations = ({
           setExpandedServices(currentExpandedState);
           
           success('Item creado correctamente');
+          
+          // Reload the entire page after successfully adding an item
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000); // Small delay to show the success message
+          
           return { success: true };
         } else {
           showError(`Error al agregar ítem: ${result.error}`);
