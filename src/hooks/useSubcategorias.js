@@ -44,13 +44,19 @@ const useSubcategorias = () => {
     try {
       setLoading(true);
       
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
       const response = await fetch(`${API_BASE_URL}/subcategorias`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(nuevaSubcategoria),
-        credentials: 'include' // Para enviar cookies de autenticación
+        body: JSON.stringify(nuevaSubcategoria)
       });
       
       if (!response.ok) {
@@ -79,9 +85,17 @@ const useSubcategorias = () => {
     try {
       setLoading(true);
       
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
       const response = await fetch(`${API_BASE_URL}/subcategorias/${id}`, {
         method: 'DELETE',
-        credentials: 'include' // Para enviar cookies de autenticación
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (!response.ok) {
@@ -110,13 +124,19 @@ const useSubcategorias = () => {
     try {
       setLoading(true);
       
+      // Get authentication token
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
+      }
+      
       const response = await fetch(`${API_BASE_URL}/subcategorias/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(datosActualizados),
-        credentials: 'include' // Para enviar cookies de autenticación
+        body: JSON.stringify(datosActualizados)
       });
       
       if (!response.ok) {

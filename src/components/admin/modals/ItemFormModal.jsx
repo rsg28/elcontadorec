@@ -282,7 +282,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
   
   return (
     <div className={styles['modal-overlay']}>
-      <div className={styles['modal-content']} style={{ maxWidth: '550px' }}>
+      <div className={styles['modal-content']} style={{ maxWidth: '900px', minWidth: '800px', width: '90vw' }}>
         <div className={styles['modal-header']} style={{ borderRadius: '8px 8px 0 0' }}>
           <h2>
             {editItem ? (
@@ -295,10 +295,10 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
         </div>
         
         <form onSubmit={handleSubmit} autoComplete="off">
-          <div className={styles['modal-body']} style={{ padding: '25px 30px' }}>
+          <div className={styles['modal-body']} style={{ padding: '45px 50px' }}>
             <div className={styles['form-grid']}>
-              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
-                <label htmlFor="categoria" className={styles['form-label']}>
+              <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
+                <label htmlFor="categoria" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
                   Categoría <span className={styles['required-mark']}>*</span>
                 </label>
@@ -311,6 +311,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     onKeyDown={(e) => handleKeyDown(e, 'categoria')}
                     required
                     className={styles['form-control']}
+                    style={{ padding: '12px 16px', fontSize: '15px' }}
                   >
                     <option value="">Seleccione una categoría</option>
                     {allCategorias.map(categoria => (
@@ -326,8 +327,8 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 </div>
               </div>
             
-              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
-                <label htmlFor="servicio" className={styles['form-label']}>
+              <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
+                <label htmlFor="servicio" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
                   Servicio <span className={styles['required-mark']}>*</span>
                 </label>
@@ -343,6 +344,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                       required
                       placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
                       className={styles['form-control']}
+                      style={{ padding: '12px 16px', fontSize: '15px' }}
                       disabled={!formData.categoria}
                       autoComplete="off"
                     />
@@ -372,8 +374,8 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 )}
               </div>
             
-              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
-                <label htmlFor="subcategoria" className={styles['form-label']}>
+              <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
+                <label htmlFor="subcategoria" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
                   Subcategoría <span className={styles['required-mark']}>*</span>
                 </label>
@@ -389,6 +391,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                       required
                       placeholder="Escriba para buscar o agregar subcategoría"
                       className={styles['form-control']}
+                      style={{ padding: '12px 16px', fontSize: '15px' }}
                       autoComplete="off"
                     />
                     {!formData.subcategoria && 
@@ -411,13 +414,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                 </div>
               </div>
 
-              <div className={styles['form-group']} style={{ marginBottom: '25px' }}>
-                <label htmlFor="precio" className={styles['form-label']}>
+              <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
+                <label htmlFor="precio" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faDollarSign} className={styles['field-icon']} /> 
                   Precio <span className={styles['required-mark']}>*</span>
                 </label>
-                <div className={styles['enhanced-price-input']}>
-                  <span className={styles['currency-symbol']}>$</span>
+                <div className={styles['form-control-wrapper']}>
                   <input
                     id="precio"
                     type="text"
@@ -427,7 +429,8 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     required
                     placeholder="0.00"
                     inputMode="decimal"
-                    className={`${styles['form-control']} ${styles['price-control']}`}
+                    className={styles['form-control']}
+                    style={{ padding: '12px 16px', fontSize: '15px' }}
                     autoComplete="off"
                   />
                 </div>
@@ -435,11 +438,11 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
             </div>
           </div>
           
-          <div className={styles['form-actions']} style={{ padding: '20px 30px', borderTop: '1px solid #eee' }}>
-            <button type="button" className={styles['cancel-button']} onClick={onClose}>
+          <div className={styles['form-actions']} style={{ padding: '30px 50px', borderTop: '1px solid #eee' }}>
+            <button type="button" className={styles['cancel-button']} style={{ padding: '12px 24px', fontSize: '15px' }} onClick={onClose}>
               <FontAwesomeIcon icon={faTimes} style={{ marginRight: '8px' }} /> Cancelar
             </button>
-            <button type="submit" className={styles['save-button']}>
+            <button type="submit" className={styles['save-button']} style={{ padding: '12px 24px', fontSize: '15px' }}>
               <FontAwesomeIcon icon={faSave} style={{ marginRight: '8px' }} /> {editItem ? 'Actualizar' : 'Guardar'} Ítem
             </button>
           </div>

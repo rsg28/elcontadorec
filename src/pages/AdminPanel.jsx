@@ -70,14 +70,19 @@ const AdminPanel = () => {
     loading: serviciosLoading, 
     error: serviciosError, 
     createServicio, 
-    createSubcategoria,
     deleteServicio,
     updateServicio,
     fetchAllServicios,
     setServicios: setAllServicios 
   } = useAllServicios();
   
-  const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
+  const { 
+    subcategorias: allSubcategorias, 
+    loading: subcategoriasLoading, 
+    error: subcategoriasError,
+    createSubcategoria,
+    deleteSubcategoria
+  } = useSubcategorias();
   
   const { 
     categorias: allCategorias, 
@@ -149,7 +154,7 @@ const AdminPanel = () => {
   } = useAdminPanelState();
   
   // Use extracted business logic hooks
-  const { handleSaveItem, confirmDeleteItem, forceRefresh } = useItemOperations({
+  const { handleSaveItem, confirmDeleteItem, forceRefresh, cleanupUnusedSubcategorias } = useItemOperations({
     addItem,
     updateItem,
     deleteItem,
@@ -160,6 +165,7 @@ const AdminPanel = () => {
     itemsWithDetails,
     createServicio,
     createSubcategoria,
+    deleteSubcategoria,
     deleteServicio,
     fetchAllServicios,
     expandedServices,
@@ -179,6 +185,7 @@ const AdminPanel = () => {
     itemsWithDetails,
     expandedServices,
     setExpandedServices,
+    cleanupUnusedSubcategorias,
     success,
     showError
   });
@@ -194,7 +201,11 @@ const AdminPanel = () => {
     createCategoria,
     updateCategoria,
     deleteCategoria,
+    deleteServicio,
     refreshItems,
+    itemsWithDetails,
+    allServicios,
+    cleanupUnusedSubcategorias,
     success,
     showError
   });
@@ -209,10 +220,20 @@ const AdminPanel = () => {
   
   // Use extracted filter utility
   const filteredItems = useMemo(() => {
-    return filterItems(itemsWithDetails, filters, allServicios);
+    try {
+      // Ensure we have valid data before filtering
+      if (!Array.isArray(itemsWithDetails) || !Array.isArray(allServicios)) {
+        return [];
+      }
+      
+      return filterItems(itemsWithDetails, filters, allServicios);
+    } catch (error) {
+      console.error('Error filtering items:', error);
+      return itemsWithDetails || [];
+    }
   }, [itemsWithDetails, filters, allServicios]);
   
-  // Check if user is authenticated and admin
+  // Check if user is authenticated and admin - run only once on mount
   useEffect(() => {
     let isMounted = true;
 
@@ -249,7 +270,7 @@ const AdminPanel = () => {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isAdmin, navigate, setAdminChecking, setIsAdminUser]);
+  }, []); // Empty dependency array - run only once on mount
 
   // Initialize expanded services based on allServicios data - only on first load
   useEffect(() => {
@@ -257,23 +278,28 @@ const AdminPanel = () => {
       setExpandedServices({});
       isInitialLoadRef.current = false;
     }
-  }, [allServicios, setExpandedServices, isInitialLoadRef]);
+  }, [allServicios]);
 
   // Auto-expand first few items when search term is applied
   useEffect(() => {
     if (filters.searchTerm.trim() !== '') {
-      const newExpandedItems = { ...expandedItems };
-      
-      filteredItems.slice(0, 3).forEach(item => {
-        const itemId = item.id_items || item.id_item;
-        if (itemId && !newExpandedItems[itemId]) {
-          newExpandedItems[itemId] = true;
-        }
+      setExpandedItems(prevExpandedItems => {
+        const newExpandedItems = { ...prevExpandedItems };
+        let hasChanges = false;
+        
+        filteredItems.slice(0, 3).forEach(item => {
+          const itemId = item.id_items || item.id_item;
+          if (itemId && !newExpandedItems[itemId]) {
+            newExpandedItems[itemId] = true;
+            hasChanges = true;
+          }
+        });
+        
+        // Only update if there are actual changes
+        return hasChanges ? newExpandedItems : prevExpandedItems;
       });
-      
-      setExpandedItems(newExpandedItems);
     }
-  }, [filters.searchTerm, filteredItems, expandedItems, setExpandedItems]);
+  }, [filters.searchTerm, filteredItems]); // Removed expandedItems from dependencies to prevent infinite loop
 
   // Toggle item expansion
   const toggleItemExpansion = (itemId) => {
@@ -285,11 +311,22 @@ const AdminPanel = () => {
 
   // Handle real-time filter change
   const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    try {
+      const { name, value } = e.target;
+      
+      // Validate input
+      if (typeof name !== 'string' || typeof value !== 'string') {
+        console.error('Invalid filter input:', { name, value });
+        return;
+      }
+      
+      setFilters(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } catch (error) {
+      console.error('Error in handleFilterChange:', error);
+    }
   };
 
   // Debounced price filter to avoid too many re-renders when typing numbers
@@ -569,12 +606,8 @@ const AdminPanel = () => {
     }
   };
 
-  // Check if any filter is active
-  const isFilterActive = filters.searchTerm !== '' || 
-                        filters.minPrice !== '' || 
-                        filters.maxPrice !== '' || 
-                        filters.servicioId !== 'all' ||
-                        filters.categoriaId !== 'all';
+  // Check if any filter is active - use imported function
+  const isAnyFilterActive = isFilterActive(filters);
 
   if (adminChecking) {
     return (
@@ -683,7 +716,6 @@ const AdminPanel = () => {
                   Precio mínimo
                 </label>
                 <div className={styles['price-input-container']}>
-                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="minPrice"
@@ -704,7 +736,6 @@ const AdminPanel = () => {
                   Precio máximo
                 </label>
                 <div className={styles['price-input-container']}>
-                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="maxPrice"
@@ -721,9 +752,9 @@ const AdminPanel = () => {
             <div className={styles['search-field']} style={{ width: '100%' }}>
               <div className={styles['actions-row']}>
                 <button 
-                  className={`${styles['clear-filters-btn']} ${isFilterActive ? styles['active'] : ''}`}
+                  className={`${styles['clear-filters-btn']} ${isAnyFilterActive ? styles['active'] : ''}`}
                   onClick={clearFilters}
-                  disabled={!isFilterActive}
+                  disabled={!isAnyFilterActive}
                 >
                   <FontAwesomeIcon icon={faTimes} /> Limpiar filtros
                 </button>
@@ -732,7 +763,7 @@ const AdminPanel = () => {
           </div>
         </div>
         
-        {isFilterActive && (
+        {isAnyFilterActive && (
           <div className={styles['search-results-info']}>
             Mostrando {filteredCount} de {totalCount} ítems
           </div>
@@ -874,12 +905,12 @@ const AdminPanel = () => {
                   </div>
                   
                   <div className={styles['category-services']}>
-                    {category.services.map(servicio => {
+                    {category.services.map((servicio, serviceIndex) => {
                       // Get items for this service
                       const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
                       
                       return (
-                        <div key={servicio.id_servicio} className={styles['service-group']}>
+                        <div key={`service-${servicio.id_servicio}-${category.id}-${serviceIndex}`} className={styles['service-group']}>
                           <div 
                             className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
                             style={{ borderLeft: `4px solid ${category.color}` }}
@@ -953,21 +984,35 @@ const AdminPanel = () => {
                           </div>
                           
                           <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
-                            {servicioItems.map(item => (
-                              <div key={item.id_items || item.id_item} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
+                            {servicioItems.map((item, itemIndex) => (
+                              <div key={`item-${item.id_items || item.id_item}-${servicio.id_servicio}-${itemIndex}`} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
                                 <div className={styles['item-header']}>
                                   <div className={styles['item-main-info']}>
                                     <div className={styles['item-service']}>
                                       <span className={styles['service-label']}>Servicio:</span>
                                       <span className={styles['service-name']}>
-                                        {highlightText(item.servicio_nombre)}
+                                        {(() => {
+                                          try {
+                                            return highlightText(item.servicio_nombre, filters.searchTerm, styles);
+                                          } catch (error) {
+                                            console.error('Error highlighting service name:', error);
+                                            return item.servicio_nombre;
+                                          }
+                                        })()}
                                       </span>
                                     </div>
                                     
                                     <div className={styles['item-subcategory']}>
                                       <span className={styles['subcategory-label']}>Subcategoría:</span>
                                       <span className={styles['subcategory-name']}>
-                                        {highlightText(item.subcategoria_nombre)}
+                                        {(() => {
+                                          try {
+                                            return highlightText(item.subcategoria_nombre, filters.searchTerm, styles);
+                                          } catch (error) {
+                                            console.error('Error highlighting subcategory name:', error);
+                                            return item.subcategoria_nombre;
+                                          }
+                                        })()}
                                       </span>
                                     </div>
                                     

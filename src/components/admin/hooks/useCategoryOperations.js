@@ -8,7 +8,11 @@ export const useCategoryOperations = ({
   createCategoria,
   updateCategoria,
   deleteCategoria,
+  deleteServicio,
   refreshItems,
+  itemsWithDetails,
+  allServicios,
+  cleanupUnusedSubcategorias,
   success,
   showError
 }) => {
@@ -87,6 +91,25 @@ export const useCategoryOperations = ({
       setDeleteCategoryState(prev => ({ ...prev, isLoading: true }));
       
       const { categoryId } = deleteCategoryState;
+      
+      // Before deleting the category, collect all items in this category for subcategoria cleanup
+      const itemsInThisCategory = itemsWithDetails.filter(item => item.id_categoria === categoryId);
+      
+      // Get all services in this category
+      const servicesInCategory = allServicios.filter(service => service.id_categoria === categoryId);
+      
+      console.log(`Deleting category ${categoryId} with ${servicesInCategory.length} services and ${itemsInThisCategory.length} items`);
+      
+      // First, delete all services in this category (which will delete their items)
+      for (const service of servicesInCategory) {
+        console.log(`Deleting service ${service.id_servicio}: ${service.nombre}`);
+        const serviceResult = await deleteServicio(service.id_servicio);
+        if (!serviceResult.success) {
+          throw new Error(`Error al eliminar servicio "${service.nombre}": ${serviceResult.error}`);
+        }
+      }
+      
+      // Now delete the category itself (should succeed since all services are gone)
       const result = await deleteCategoria(categoryId);
       
       setDeleteCategoryState({
@@ -99,7 +122,12 @@ export const useCategoryOperations = ({
       
       if (result.success) {
         await refreshItems();
-        success('Categoría eliminada correctamente junto con todos sus servicios');
+        success(`Categoría eliminada correctamente junto con ${servicesInCategory.length} servicio(s) y ${itemsInThisCategory.length} ítem(s)`);
+        
+        // Cleanup unused subcategorias from the deleted category
+        if (itemsInThisCategory.length > 0 && cleanupUnusedSubcategorias) {
+          await cleanupUnusedSubcategorias(itemsInThisCategory);
+        }
       } else {
         showError(`Error al eliminar categoría: ${result.error}`);
       }
@@ -115,7 +143,7 @@ export const useCategoryOperations = ({
         isLoading: false
       });
     }
-  }, [deleteCategoria, refreshItems, success, showError]);
+  }, [deleteCategoria, deleteServicio, itemsWithDetails, allServicios, cleanupUnusedSubcategorias, refreshItems, success, showError]);
 
   // Cancel category deletion
   const cancelDeleteCategory = useCallback((setDeleteCategoryState) => {

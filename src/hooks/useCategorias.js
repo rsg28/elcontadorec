@@ -181,7 +181,13 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/categorias/${id}`, {
+      // Ensure ID is a number
+      const categoryId = parseInt(id);
+      if (isNaN(categoryId)) {
+        throw new Error('ID de categoría inválido');
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/categorias/${categoryId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -189,7 +195,28 @@ const useCategorias = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
+        // Try to get more detailed error information from the response
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.text();
+          if (errorData) {
+            // Try to parse as JSON first
+            try {
+              const jsonError = JSON.parse(errorData);
+              if (jsonError.error) {
+                errorMessage = jsonError.error;
+              } else if (jsonError.message) {
+                errorMessage = jsonError.message;
+              }
+            } catch {
+              // If not JSON, use the text as is
+              errorMessage = errorData;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing server response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
       
       // Actualizar la lista de categorías localmente

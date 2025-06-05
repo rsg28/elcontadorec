@@ -12,6 +12,7 @@ export const useServiceOperations = ({
   itemsWithDetails,
   expandedServices,
   setExpandedServices,
+  cleanupUnusedSubcategorias,
   success,
   showError
 }) => {
@@ -39,7 +40,12 @@ export const useServiceOperations = ({
     try {
       setDeleteServiceState(prev => ({ ...prev, isLoading: true }));
       
-      const result = await deleteServicio(deleteServiceState.servicioId);
+      const { servicioId } = deleteServiceState;
+      
+      // Before deleting the service, collect all items in this service for subcategoria cleanup
+      const itemsInThisService = itemsWithDetails.filter(item => item.id_servicio === servicioId);
+      
+      const result = await deleteServicio(servicioId);
       
       setDeleteServiceState({
         show: false,
@@ -67,6 +73,11 @@ export const useServiceOperations = ({
         }
         
         success(successMessage);
+        
+        // Cleanup unused subcategorias from the deleted service
+        if (itemsInThisService.length > 0 && cleanupUnusedSubcategorias) {
+          await cleanupUnusedSubcategorias(itemsInThisService, [servicioId]);
+        }
       } else {
         console.error('Error en la operación:', result.error);
         showError(`Error al eliminar servicio: ${result.error}`);
@@ -84,7 +95,7 @@ export const useServiceOperations = ({
         isLoading: false 
       });
     }
-  }, [deleteServicio, fetchAllServicios, refreshItems, expandedServices, setExpandedServices, success, showError]);
+  }, [deleteServicio, itemsWithDetails, cleanupUnusedSubcategorias, fetchAllServicios, refreshItems, expandedServices, setExpandedServices, success, showError]);
 
   // Cancel service deletion
   const cancelDeleteService = useCallback((setDeleteServiceState) => {

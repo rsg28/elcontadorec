@@ -132,8 +132,7 @@ const useItems = () => {
       // If subcategoria is a string (name), create a new subcategoria
       if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
         const subcategoriaResult = await createSubcategoria({ 
-          nombre: subcategoriaId,
-          id_servicio: servicioId
+          nombre: subcategoriaId
         });
         
         if (!subcategoriaResult.success) {
@@ -228,8 +227,7 @@ const useItems = () => {
         } else {
           // Create new subcategoria if not found
           const subcategoriaResult = await createSubcategoria({ 
-            nombre: subcategoriaId,
-            id_servicio: servicioId
+            nombre: subcategoriaId
           });
           
           if (!subcategoriaResult.success) {

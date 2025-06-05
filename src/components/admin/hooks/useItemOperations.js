@@ -15,6 +15,7 @@ export const useItemOperations = ({
   itemsWithDetails,
   createServicio,
   createSubcategoria,
+  deleteSubcategoria,
   deleteServicio,
   fetchAllServicios,
   expandedServices,
@@ -42,6 +43,43 @@ export const useItemOperations = ({
       }, 10);
     }
   }, [filters.searchTerm, filters.minPrice, setFilters]);
+
+  // Reusable function to cleanup unused subcategorias
+  const cleanupUnusedSubcategorias = useCallback(async (itemsToDelete, excludeServiceIds = []) => {
+    // Collect all unique subcategorias from the items being deleted
+    const subcategoriasToCheck = [...new Set(itemsToDelete.map(item => ({
+      id: item.id_subcategoria,
+      nombre: item.subcategoria_nombre
+    })).filter(subcat => subcat.id))];
+
+    // Check each subcategoria to see if it's still being used
+    for (const subcatInfo of subcategoriasToCheck) {
+      // Count remaining items that use this subcategoria (excluding deleted items and services)
+      const remainingItemsWithSubcategoria = itemsWithDetails.filter(item => 
+        item.id_subcategoria === subcatInfo.id && 
+        !itemsToDelete.some(deletedItem => 
+          (deletedItem.id_items === item.id_items || deletedItem.id_item === item.id_item)
+        ) &&
+        !excludeServiceIds.includes(item.id_servicio)
+      );
+      
+      // If no other items use this subcategoria, delete it
+      if (remainingItemsWithSubcategoria.length === 0) {
+        try {
+          const deleteSubcatResult = await deleteSubcategoria(subcatInfo.id);
+          
+          if (deleteSubcatResult.success) {
+            success(`Subcategoría eliminada automáticamente (no estaba siendo utilizada)`);
+          } else {
+            warning(`No se pudo eliminar la subcategoría: ${deleteSubcatResult.error}`);
+          }
+        } catch (subcatError) {
+          console.error('Error deleting unused subcategoria:', subcatError);
+          warning(`Error al eliminar subcategoría no utilizada: ${subcatError.message}`);
+        }
+      }
+    }
+  }, [itemsWithDetails, deleteSubcategoria, success, warning]);
 
   // Handle saving or updating an item
   const handleSaveItem = useCallback(async (itemData, itemId) => {
@@ -91,30 +129,24 @@ export const useItemOperations = ({
       
       // Handle subcategory creation if needed
       if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
-        if (!itemData.id_servicio || isNaN(parseInt(itemData.id_servicio))) {
-          showError('Error: El servicio no existe o no es válido');
-          return;
-        }
-        
         try {
           const existingSubcategory = allSubcategorias.find(s => 
-            s.nombre.toLowerCase() === itemData.id_subcategoria.toLowerCase() &&
-            s.id_servicio === itemData.id_servicio
+            s.nombre.toLowerCase() === itemData.id_subcategoria.toLowerCase()
           );
           
           if (existingSubcategory) {
-            warning(`Ya existe una subcategoría con el nombre "${itemData.id_subcategoria}" para este servicio. Se usará la subcategoría existente.`);
+            warning(`Ya existe una subcategoría con el nombre "${itemData.id_subcategoria}". Se usará la subcategoría existente.`);
             itemData.id_subcategoria = existingSubcategory.id_subcategoria;
             itemData.subcategoria_nombre = existingSubcategory.nombre;
           } else {
             const result = await createSubcategoria({ 
-              nombre: itemData.id_subcategoria,
-              id_servicio: itemData.id_servicio
+              nombre: itemData.id_subcategoria
             });
             
             if (result.success) {
               itemData.id_subcategoria = result.data.id_subcategoria;
               itemData.subcategoria_nombre = result.data.nombre;
+              success(`Nueva subcategoría "${result.data.nombre}" creada exitosamente`);
             } else {
               showError(`Error al crear subcategoría: ${result.error}`);
               return;
@@ -218,17 +250,34 @@ export const useItemOperations = ({
       
       const { itemId, isLastItem, servicioId } = deleteItemState;
       
+      // Find the item being deleted to get its subcategoria
+      const itemToDelete = itemsWithDetails.find(item => 
+        (item.id_items === itemId || item.id_item === itemId)
+      );
+      
       if (isLastItem) {
+        // Before deleting the service, collect all items in this service for subcategoria cleanup
+        const itemsInThisService = itemsWithDetails.filter(item => item.id_servicio === servicioId);
+        
         const result = await deleteServicio(servicioId);
         if (result.success) {
           success('Servicio y todos sus ítems eliminados correctamente');
+          
+          // Cleanup unused subcategorias from the deleted service
+          await cleanupUnusedSubcategorias(itemsInThisService, [servicioId]);
         } else {
           showError(`Error al eliminar servicio: ${result.error}`);
         }
       } else {
         const result = await deleteItem(itemId);
+        
         if (result.success) {
           success('Ítem eliminado correctamente');
+          
+          // Cleanup unused subcategorias from the deleted item
+          if (itemToDelete) {
+            await cleanupUnusedSubcategorias([itemToDelete]);
+          }
         } else {
           showError(`Error al eliminar ítem: ${result.error}`);
         }
@@ -255,11 +304,12 @@ export const useItemOperations = ({
       showError(`Error inesperado: ${error.message}`);
       setDeleteItemState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [deleteItem, deleteServicio, refreshItems, fetchAllServicios, expandedServices, setExpandedServices, success, showError]);
+  }, [deleteItem, deleteServicio, itemsWithDetails, cleanupUnusedSubcategorias, refreshItems, fetchAllServicios, expandedServices, setExpandedServices, success, showError]);
 
   return {
     handleSaveItem,
     confirmDeleteItem,
-    forceRefresh
+    forceRefresh,
+    cleanupUnusedSubcategorias
   };
 }; 
