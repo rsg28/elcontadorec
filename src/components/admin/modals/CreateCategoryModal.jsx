@@ -7,6 +7,15 @@ import {
 import styles from '../../../pages/AdminPanel.module.css';
 import { commonIcons } from '../utils/commonIcons.jsx';
 
+// Function to normalize text by removing accents/tildes
+const normalizeText = (text) => {
+  return text
+    .toLowerCase()
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove accent marks
+    .trim();
+};
+
 const CreateCategoryModal = ({ show, onClose, onSave, allCategorias }) => {
   const [categoryData, setCategoryData] = useState({
     nombre: '',
@@ -62,9 +71,10 @@ const CreateCategoryModal = ({ show, onClose, onSave, allCategorias }) => {
       return;
     }
 
-    // Check if category name already exists
+    // Check if category name already exists (considering accents as equal)
+    const normalizedInputName = normalizeText(categoryData.nombre);
     const categoryExists = allCategorias.some(
-      cat => cat.nombre.toLowerCase() === categoryData.nombre.toLowerCase().trim()
+      cat => normalizeText(cat.nombre) === normalizedInputName
     );
 
     if (categoryExists) {

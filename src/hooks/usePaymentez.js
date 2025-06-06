@@ -11,6 +11,7 @@ const usePaymentez = () => {
   const API_BASE_URL = '/api/cards';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [cards, setCards] = useState([]);
 
   const loadUserToken = () => {
     try {
@@ -50,16 +51,17 @@ const usePaymentez = () => {
       });
 
       if (!response.ok) {
-
-        console.log("Error al cargar las tarjetas");
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       
+      setCards(data);
       return data;
-    } catch (err) {
-      setError(err.message || 'An error occurred while fetching cards');
+    } catch (error) {
+      // Error loading cards - handle silently or with proper error state
+      setCards([]);
+      setError(error.message || 'An error occurred while fetching cards');
       return null;
     } finally {
       setLoading(false);
@@ -102,7 +104,8 @@ const usePaymentez = () => {
     loading,
     error,
     getAllCards,
-    deleteCard
+    deleteCard,
+    cards
   };
 };
 

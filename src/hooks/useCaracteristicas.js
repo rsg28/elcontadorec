@@ -235,20 +235,51 @@ const useCaracteristicas = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
+      // Try different possible request body formats
+      const requestBody = { id_caracteristicas: caracteristicaId };
+      console.log('Sending request to assign caracteristica:');
+      console.log('URL:', `${API_BASE_URL}/servicios/${servicioId}/caracteristicas`);
+      console.log('Body:', requestBody);
+      console.log('Service ID:', servicioId);
+      console.log('Caracteristica ID:', caracteristicaId);
+      
       const response = await fetch(`${API_BASE_URL}/servicios/${servicioId}/caracteristicas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ id_caracteristicas: caracteristicaId }),
+        body: JSON.stringify(requestBody),
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
+        // Try to get error details from response
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (parseError) {
+          // If can't parse as JSON, try as text
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          } catch (textError) {
+            // Use the original error message
+          }
+        }
+        console.log('Error response body:', errorMessage);
+        throw new Error(errorMessage);
       }
       
       const result = await response.json();
+      console.log('Success response:', result);
       return { success: true, data: result };
     } catch (err) {
       console.error(`Error al asociar característica #${caracteristicaId} al servicio #${servicioId}:`, err);

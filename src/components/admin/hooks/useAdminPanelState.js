@@ -78,7 +78,8 @@ export const useAdminPanelState = () => {
   // Create caracteristica modal state
   const [createCaracteristicaState, setCreateCaracteristicaState] = useState({
     show: false,
-    isLoading: false
+    isLoading: false,
+    editingCaracteristica: null
   });
 
   // Assign caracteristica modal state

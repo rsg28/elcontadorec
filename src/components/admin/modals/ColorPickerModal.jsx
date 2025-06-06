@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import styles from '../../../pages/AdminPanel.module.css';
 import LoadingAnimation from '../../loadingAnimation';
 
@@ -107,7 +107,7 @@ const ColorPickerModal = ({ show, onClose, onSave, categoriaId, initialColor, ca
             >
               {isLoading ? 
                 <><FontAwesomeIcon icon={faSpinner} spin /> Guardando...</> : 
-                <><FontAwesomeIcon icon={faSave} /> Guardar</>
+                <>Guardar</>
               }
             </button>
           </div>

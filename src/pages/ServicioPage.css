@@ -16,9 +16,9 @@
 .servicio-category-title {
   color: #21707b;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 25px;
   margin-bottom: 12px;
-  padding-left: 12px;
+  padding-left: 0px;
 }
 
 .servicio-card {
@@ -36,7 +36,7 @@
 
 .servicio-header {
   display: flex;
-  gap: 2rem;
+  gap: 0.5rem;
   margin-bottom: 2rem;
   align-items: flex-start;
 }
@@ -48,6 +48,9 @@
 .servicio-image-section {
   flex: 0 0 300px;
   max-width: 300px;
+  margin-left: -70px;
+  position: relative;
+  left: -50px;
 }
 
 .servicio-image-container {
@@ -62,14 +65,8 @@
   object-fit: cover;
   border-radius: var(--radius-md, 12px);
   border: 1px solid #e0e0e0;
-  transition: all 0.3s ease;
   background-color: #f8f9fa;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.servicio-main-img:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .servicio-title {
@@ -85,6 +82,7 @@
   margin-top: 6px;
   margin-bottom: 18px;
   line-height: 1.5;
+  max-width: 900px;
 }
 
 .no-description-message {

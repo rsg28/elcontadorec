@@ -98,11 +98,11 @@ export const useCategoryOperations = ({
       // Get all services in this category
       const servicesInCategory = allServicios.filter(service => service.id_categoria === categoryId);
       
-      console.log(`Deleting category ${categoryId} with ${servicesInCategory.length} services and ${itemsInThisCategory.length} items`);
+      // Delete category with associated services and items
       
       // First, delete all services in this category (which will delete their items)
       for (const service of servicesInCategory) {
-        console.log(`Deleting service ${service.id_servicio}: ${service.nombre}`);
+        // Delete service and its items
         const serviceResult = await deleteServicio(service.id_servicio);
         if (!serviceResult.success) {
           throw new Error(`Error al eliminar servicio "${service.nombre}": ${serviceResult.error}`);

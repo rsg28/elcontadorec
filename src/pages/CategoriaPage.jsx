@@ -315,12 +315,11 @@ const CategoriaPage = () => {
                       className="service-card-img"
                       onError={(e) => {
                         // If S3 image fails to load, fallback to default image
-                        console.log('Failed to load service image:', serviceInfo.imagen_url);
                         e.target.src = displayDefault;
                         e.target.alt = "Imagen por defecto";
                       }}
                       onLoad={() => {
-                        console.log('Successfully loaded service image:', serviceInfo.imagen_url);
+                        // Image loaded successfully - no need to log
                       }}
                     />
                   ) : (

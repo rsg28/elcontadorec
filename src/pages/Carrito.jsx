@@ -80,9 +80,9 @@ const Carrito = () => {
   const total = subtotal + iva;
 
   // Handle form submission
-  const handleSubmit = (values, { setSubmitting }) => {
-    console.log('Form submitted:', values);
-    setSubmitting(false);
+  const handleSubmit = (values) => {
+    // Handle form submission here
+    // You can process the form data or send it to an API
   };
   
 /* 

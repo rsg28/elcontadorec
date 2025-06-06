@@ -48,7 +48,7 @@ const TokenizationForm = () => {
     script.charset = 'UTF-8';
     
     script.onload = () => {
-      console.log('Paymentez script loaded');
+      // Paymentez script loaded successfully
       setState(prev => ({ ...prev, loaded: true }));
     };
     
@@ -94,8 +94,20 @@ const TokenizationForm = () => {
       if (status === 'valid') {
         alert("Tarjeta guardada correctamente");
       } else if (status === "review") {
-        console.log("Tarjeta en revisión");
-        alert("Tarjeta en revisión");
+        // Card under review - handle appropriately
+        setState(prev => ({
+          ...prev,
+          responseText: 'Tarjeta en revisión. Por favor, intente con otra tarjeta.',
+          loading: false,
+          ui: {
+            ...prev.ui,
+            isSubmitBtnDisabled: false
+          }
+        }));
+        
+        if (submitBtnRef.current) {
+          submitBtnRef.current.innerText = 'Guardar tarjeta';
+        }
       } else if (status === 403 || status === 404) {
         alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
       } else {
@@ -145,7 +157,7 @@ const TokenizationForm = () => {
     if (state.paymentGateway) {
       try {
         await state.paymentGateway.tokenize();
-        console.log("Tokenization successful");
+        // Tokenization successful - handled by callback
       } catch (error) {
         console.error('Tokenization error:', error);
         setState(prev => ({

@@ -157,9 +157,16 @@ const Cards = ({facturaFormValues}) => {
         return CARD_BRANDS[type] || CARD_BRANDS.default;
     };
 
-    const handlePay = () => {
-        // Payment logic will be implemented here
-        console.log('Payment initiated with card token:', selectedCardToken);
+    const handlePayment = async () => {
+        if (!selectedCardToken) {
+            alert('Por favor, selecciona una tarjeta de crédito');
+            return;
+        }
+
+        // Payment initiated with selected card
+        // Add your payment processing logic here
+        
+        alert(`Pago iniciado con la tarjeta seleccionada`);
     };
 
     useEffect(() => {
@@ -233,7 +240,7 @@ const Cards = ({facturaFormValues}) => {
             <TokenizationForm />
             <div style={styles.paymentButtonContainer}>
                 <button 
-                    onClick={handlePay}
+                    onClick={handlePayment}
                     disabled={!selectedCardToken || cards.cards.length === 0}
                     style={{
                         ...styles.paymentButton,

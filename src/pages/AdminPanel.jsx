@@ -100,8 +100,9 @@ const AdminPanel = () => {
     createCaracteristica,
     assignCaracteristicaToServicio,
     deleteCaracteristica,
-    fetchCaracteristicas,
-    addCaracteristicaToServicio
+    addCaracteristicaToServicio,
+    updateCaracteristica,
+    removeCaracteristicaFromServicio
   } = useCaracteristicas();
   
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
@@ -422,23 +423,47 @@ const AdminPanel = () => {
   };
 
   // Caracteristica handlers
-  const handleCreateCaracteristica = async (caracteristicaData) => {
+  const handleCreateCaracteristica = async (caracteristicaDataOrId, caracteristicaData = null) => {
     try {
-      const result = await createCaracteristica(caracteristicaData);
+      let result;
+      
+      // Check if we're editing (two parameters) or creating (one parameter)
+      if (caracteristicaData !== null) {
+        // Editing: first param is ID, second is data
+        result = await updateCaracteristica(caracteristicaDataOrId, caracteristicaData);
+      } else {
+        // Creating: first param is data
+        result = await createCaracteristica(caracteristicaDataOrId);
+      }
       
       if (result.success) {
-        success('Característica creada correctamente');
+        const action = caracteristicaData !== null ? 'actualizada' : 'creada';
+        success(`Característica ${action} correctamente`);
         setCreateCaracteristicaState({
           show: false,
-          isLoading: false
+          isLoading: false,
+          editingCaracteristica: null
         });
+        // Refresh characteristics list
+        // await fetchCaracteristicas();
       } else {
-        showError(`Error al crear característica: ${result.error}`);
+        showError(`Error al ${caracteristicaData !== null ? 'actualizar' : 'crear'} característica: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error creating caracteristica:', error);
-      showError('Error inesperado al crear la característica');
+      console.error('Error with caracteristica:', error);
+      showError(`Error inesperado al ${caracteristicaData !== null ? 'actualizar' : 'crear'} la característica`);
     }
+  };
+
+  const handleEditCaracteristica = (caracteristica) => {
+    setCreateCaracteristicaState({
+      show: true,
+      isLoading: false,
+      editingCaracteristica: caracteristica
+    });
+    
+    // Close the VerCaracteristicasModal
+    setVerCaracteristicasState({ show: false });
   };
 
   const handleAssignCaracteristica = async (servicioId, caracteristicaId) => {
@@ -608,6 +633,26 @@ const AdminPanel = () => {
 
   // Check if any filter is active - use imported function
   const isAnyFilterActive = isFilterActive(filters);
+
+  const handleUnlinkCaracteristica = async (servicioId, caracteristicaId) => {
+    try {
+      const result = await removeCaracteristicaFromServicio(servicioId, caracteristicaId);
+      
+      if (result.success) {
+        success('Característica desasignada correctamente del servicio');
+        setAssignCaracteristicaState({
+          show: false,
+          isLoading: false
+        });
+        await fetchAllServicios();
+      } else {
+        showError(`Error al desasignar característica: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error unlinking caracteristica:', error);
+      showError('Error inesperado al desasignar la característica');
+    }
+  };
 
   if (adminChecking) {
     return (
@@ -1185,9 +1230,11 @@ const AdminPanel = () => {
           show={createCaracteristicaState.show}
           onClose={() => setCreateCaracteristicaState({ 
             show: false, 
-            isLoading: false 
+            isLoading: false,
+            editingCaracteristica: null
           })}
           onSave={handleCreateCaracteristica}
+          caracteristica={createCaracteristicaState.editingCaracteristica}
         />
       )}
       
@@ -1199,6 +1246,7 @@ const AdminPanel = () => {
             isLoading: false 
           })}
           onSave={handleAssignCaracteristica}
+          onUnlink={handleUnlinkCaracteristica}
           allServicios={allServicios}
           allCaracteristicas={allCaracteristicas}
         />
@@ -1214,6 +1262,7 @@ const AdminPanel = () => {
             setVerCaracteristicasState({ show: false });
             setCreateCaracteristicaState({ show: true, isLoading: false });
           }}
+          onEdit={handleEditCaracteristica}
         />
       )}
       
