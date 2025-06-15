@@ -38,7 +38,8 @@ import {
   DeleteCaracteristicaModal,
   VerCaracteristicasModal,
   EditServiceDescriptionModal,
-  ServiceImageModal
+  ServiceImageModal,
+  ChangeCategoryIconModal
 } from '../components/admin/modals';
 import { filterItems, isFilterActive, highlightText, formatPrice } from '../components/admin/utils/filterUtils.jsx';
 import { commonIcons, DEFAULT_CATEGORY_COLOR } from '../components/admin/utils/commonIcons.jsx';
@@ -151,7 +152,9 @@ const AdminPanel = () => {
     setEditDescriptionState,
     serviceImageState,
     setServiceImageState,
-    isInitialLoadRef
+    isInitialLoadRef,
+    changeCategoryIconState,
+    setChangeCategoryIconState
   } = useAdminPanelState();
   
   // Use extracted business logic hooks
@@ -197,7 +200,9 @@ const AdminPanel = () => {
     handleSaveColor, 
     handleDeleteCategory, 
     confirmDeleteCategory, 
-    cancelDeleteCategory 
+    cancelDeleteCategory,
+    handleOpenIconPicker,
+    handleSaveIcon
   } = useCategoryOperations({
     createCategoria,
     updateCategoria,
@@ -533,19 +538,19 @@ const AdminPanel = () => {
   };
 
   // Service description handler
-  const handleSaveServiceDescription = async (description) => {
+  const handleSaveServiceDescription = async (serviceData) => {
     try {
       const { servicioId } = editDescriptionState;
-      const result = await updateServicio(servicioId, { descripcion: description });
+      const result = await updateServicio(servicioId, serviceData);
       
       if (result.success) {
         setAllServicios(prev => prev.map(s => 
           s.id_servicio === servicioId 
-            ? { ...s, descripcion: description }
+            ? { ...s, ...serviceData }
             : s
         ));
         
-        success('Descripción del servicio actualizada correctamente');
+        success('Servicio actualizado correctamente');
         setEditDescriptionState({
           show: false,
           servicioId: null,
@@ -554,11 +559,11 @@ const AdminPanel = () => {
           isLoading: false
         });
       } else {
-        showError(`Error al actualizar descripción: ${result.error}`);
+        showError(`Error al actualizar servicio: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error saving service description:', error);
-      showError('Error inesperado al guardar la descripción');
+      console.error('Error saving service:', error);
+      showError('Error inesperado al guardar el servicio');
     }
   };
 
@@ -655,11 +660,7 @@ const AdminPanel = () => {
   };
 
   if (adminChecking) {
-    return (
-      <div className="admin-panel-container">
-        <div className="loading-indicator">Verificando permisos de administrador...</div>
-      </div>
-    );
+    return <LoadingAnimation />;
   }
 
   if (!isAdminUser) {
@@ -888,243 +889,268 @@ const AdminPanel = () => {
                     id: categoria.id_categoria,
                     name: categoria.nombre,
                     color: categoria.color || DEFAULT_CATEGORY_COLOR,
+                    icon: categoria.imagen || 'folder',
                     services: categoryServices
                   };
                 })
-                .map(category => (
-                <div key={`category-${category.id}`} className={styles['category-group']}>
-                  <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
-                    <h2 className={styles['category-name']}>{category.name}</h2>
-                    <div className={styles['category-stats']}>
-                      {category.services.length} servicio(s)
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        className={styles['color-picker-button']}
-                        onClick={(e) => handleOpenColorPicker(e, category.id, category.name, category.color, setColorPickerState)}
-                        title="Cambiar color de la categoría"
-                        style={{ 
-                          background: 'rgba(255, 255, 255, 0.2)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '5px 8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faPalette} />
-                      </button>
-                      <button 
-                        className={styles['delete-category-button']}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCategory(category.id, category.name, category.services.length, setDeleteCategoryState);
-                        }}
-                        title="Eliminar categoría y todos sus servicios"
-                        style={{ 
-                          background: 'rgba(255, 255, 255, 0.2)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '5px 8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 0, 0, 0.7)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className={styles['category-services']}>
-                    {category.services.map((servicio, serviceIndex) => {
-                      // Get items for this service
-                      const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
-                      
-                      return (
-                        <div key={`service-${servicio.id_servicio}-${category.id}-${serviceIndex}`} className={styles['service-group']}>
-                          <div 
-                            className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
-                            style={{ borderLeft: `4px solid ${category.color}` }}
-                            onClick={() => toggleServiceExpansion(servicio.id_servicio)}
-                          >
-                            <FontAwesomeIcon 
-                              icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
-                              className={styles['expand-icon']} 
-                            />
-                            <div className={styles['service-info']}>
-                              <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
-                              {servicio.caracteristicas && servicio.caracteristicas.length > 0 && (
-                                <div className={styles['caracteristicas-container']} style={{ marginTop: '8px' }}>
-                                  {servicio.caracteristicas.map(caract => (
-                                    <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']}>
-                                      <div 
-                                        className={styles['caracteristica-icon-container']} 
-                                        style={{ backgroundColor: caract.color || '#4285F4' }}
-                                      >
-                                        <FontAwesomeIcon 
-                                          icon={commonIcons.find(item => item.name === caract.imagen)?.icon || faStar} 
-                                        />
-                                      </div>
-                                      <span>{caract.nombre}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            <div className={styles['service-stats']}>
-                              <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
-                            </div>
-                            <div className={styles['service-actions']}>
-                              <button 
-                                className={styles['action-button']}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditDescriptionState({
-                                    show: true,
-                                    servicioId: servicio.id_servicio,
-                                    servicioName: servicio.nombre,
-                                    currentDescription: servicio.descripcion || '',
-                                    isLoading: false
-                                  });
-                                }}
-                                title="Editar descripción del servicio"
-                              >
-                                <FontAwesomeIcon icon={faEdit} />
-                              </button>
-                              <button 
-                                className={styles['action-button']}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenServiceImageModal(servicio, category);
-                                }}
-                                title="Gestionar imagen del servicio"
-                              >
-                                <FontAwesomeIcon icon={faImage} />
-                              </button>
-                              <button 
-                                className={styles['action-button']}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete('servicio', servicio.id_servicio);
-                                }}
-                                title="Eliminar servicio completo"
-                              >
-                                <FontAwesomeIcon icon={faTrash} />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
-                            {servicioItems.map((item, itemIndex) => (
-                              <div key={`item-${item.id_items || item.id_item}-${servicio.id_servicio}-${itemIndex}`} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
-                                <div className={styles['item-header']}>
-                                  <div className={styles['item-main-info']}>
-                                    <div className={styles['item-service']}>
-                                      <span className={styles['service-label']}>Servicio:</span>
-                                      <span className={styles['service-name']}>
-                                        {(() => {
-                                          try {
-                                            return highlightText(item.servicio_nombre, filters.searchTerm, styles);
-                                          } catch (error) {
-                                            console.error('Error highlighting service name:', error);
-                                            return item.servicio_nombre;
-                                          }
-                                        })()}
-                                      </span>
-                                    </div>
-                                    
-                                    <div className={styles['item-subcategory']}>
-                                      <span className={styles['subcategory-label']}>Subcategoría:</span>
-                                      <span className={styles['subcategory-name']}>
-                                        {(() => {
-                                          try {
-                                            return highlightText(item.subcategoria_nombre, filters.searchTerm, styles);
-                                          } catch (error) {
-                                            console.error('Error highlighting subcategory name:', error);
-                                            return item.subcategoria_nombre;
-                                          }
-                                        })()}
-                                      </span>
-                                    </div>
-                                    
-                                    <div className={styles['item-price-display']}>
-                                      <span className={styles['price-label']}>Precio:</span>
-                                      <span className={styles['price-value']}>
-                                        ${formatPrice(item.precio)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className={styles['item-controls']}>
-                                    <div className={styles['item-actions']}>
-                                      <button 
-                                        className={styles['action-button']}
-                                        onClick={() => {
-                                          setCurrentEditItem(item);
-                                          setShowItemForm(true);
-                                        }}
-                                        title="Editar ítem"
-                                      >
-                                        <FontAwesomeIcon icon={faEdit} />
-                                      </button>
-                                      <button 
-                                        className={styles['action-button']}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDelete('item', item.id_items || item.id_item);
-                                        }}
-                                        title="Eliminar ítem"
-                                      >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {(item.descripcion || item.opciones) && (
-                                  <div className={`${styles['item-details']} ${expandedItems[item.id_items || item.id_item] ? styles['expanded'] : ''}`}>
-                                    <div className={styles['item-section']}>
-                                      <div className={styles['item-section-row']}>
-                                        {item.descripcion && (
-                                          <div className={styles['item-detail']}>
-                                            <span className={styles['detail-label']}>Descripción:</span>
-                                            <span className={styles['detail-value']}>{item.descripcion}</span>
-                                          </div>
-                                        )}
-                                        
-                                        {item.opciones && (
-                                          <div className={styles['item-detail']}>
-                                            <span className={styles['detail-label']}>Opciones:</span>
-                                            <span className={styles['detail-value']}>{item.opciones}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                .map(category => {
+                  return (
+                    <div key={`category-${category.id}`} className={styles['category-group']}>
+                      <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
+                        <h2 className={styles['category-name']}>{category.name}</h2>
+                        <div className={styles['category-stats']}>
+                          {category.services.length} servicio(s)
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className={styles['icon-picker-button']}
+                            onClick={(e) => handleOpenIconPicker(e, category.id, category.name, category.icon, setChangeCategoryIconState)}
+                            title="Cambiar icono de la categoría"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faImage} />
+                          </button>
+                          <button 
+                            className={styles['color-picker-button']}
+                            onClick={(e) => handleOpenColorPicker(e, category.id, category.name, category.color, setColorPickerState)}
+                            title="Cambiar color de la categoría"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faPalette} />
+                          </button>
+                          <button 
+                            className={styles['delete-category-button']}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(category.id, category.name, category.services.length, setDeleteCategoryState);
+                            }}
+                            title="Eliminar categoría y todos sus servicios"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 0, 0, 0.7)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className={styles['category-services']}>
+                        {category.services.map((servicio, serviceIndex) => {
+                          // Get items for this service
+                          const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
+                          
+                          return (
+                            <div key={`service-${servicio.id_servicio}-${category.id}-${serviceIndex}`} className={styles['service-group']}>
+                              <div 
+                                className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
+                                style={{ borderLeft: `4px solid ${category.color}` }}
+                                onClick={() => toggleServiceExpansion(servicio.id_servicio)}
+                              >
+                                <FontAwesomeIcon 
+                                  icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
+                                  className={styles['expand-icon']} 
+                                />
+                                <div className={styles['service-info']}>
+                                  <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
+                                  {servicio.caracteristicas && servicio.caracteristicas.length > 0 && (
+                                    <div className={styles['caracteristicas-container']} style={{ marginTop: '8px' }}>
+                                      {servicio.caracteristicas.map(caract => (
+                                        <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']}>
+                                          <div 
+                                            className={styles['caracteristica-icon-container']} 
+                                            style={{ backgroundColor: caract.color || '#4285F4' }}
+                                          >
+                                            <FontAwesomeIcon 
+                                              icon={commonIcons.find(item => item.name === caract.imagen)?.icon || faStar} 
+                                            />
+                                          </div>
+                                          <span>{caract.nombre}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className={styles['service-stats']}>
+                                  <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
+                                </div>
+                                <div className={styles['service-actions']}>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditDescriptionState({
+                                        show: true,
+                                        servicioId: servicio.id_servicio,
+                                        servicioName: servicio.nombre,
+                                        currentDescription: servicio.descripcion || '',
+                                        isLoading: false
+                                      });
+                                    }}
+                                    title="Editar servicio (nombre y descripción)"
+                                  >
+                                    <FontAwesomeIcon icon={faEdit} />
+                                  </button>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenServiceImageModal(servicio, category);
+                                    }}
+                                    title="Gestionar imagen del servicio"
+                                  >
+                                    <FontAwesomeIcon icon={faImage} />
+                                  </button>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete('servicio', servicio.id_servicio);
+                                    }}
+                                    title="Eliminar servicio completo"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
+                                {servicioItems.map((item, itemIndex) => (
+                                  <div key={`item-${item.id_items || item.id_item}-${servicio.id_servicio}-${itemIndex}`} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
+                                    <div className={styles['item-header']}>
+                                      <div className={styles['item-main-info']}>
+                                        <div className={styles['item-service']}>
+                                          <span className={styles['service-label']}>Servicio:</span>
+                                          <span className={styles['service-name']}>
+                                            {(() => {
+                                              try {
+                                                return highlightText(item.servicio_nombre, filters.searchTerm, styles);
+                                              } catch (error) {
+                                                console.error('Error highlighting service name:', error);
+                                                return item.servicio_nombre;
+                                              }
+                                            })()}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className={styles['item-subcategory']}>
+                                          <span className={styles['subcategory-label']}>Subcategoría:</span>
+                                          <span className={styles['subcategory-name']}>
+                                            {(() => {
+                                              try {
+                                                return highlightText(item.subcategoria_nombre, filters.searchTerm, styles);
+                                              } catch (error) {
+                                                console.error('Error highlighting subcategory name:', error);
+                                                return item.subcategoria_nombre;
+                                              }
+                                            })()}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className={styles['item-price-display']}>
+                                          <span className={styles['price-label']}>Precio:</span>
+                                          <span className={styles['price-value']}>
+                                            ${formatPrice(item.precio)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className={styles['item-controls']}>
+                                        <div className={styles['item-actions']}>
+                                          <button 
+                                            className={styles['action-button']}
+                                            onClick={() => {
+                                              setCurrentEditItem(item);
+                                              setShowItemForm(true);
+                                            }}
+                                            title="Editar ítem"
+                                          >
+                                            <FontAwesomeIcon icon={faEdit} />
+                                          </button>
+                                          <button 
+                                            className={styles['action-button']}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDelete('item', item.id_items || item.id_item);
+                                            }}
+                                            title="Eliminar ítem"
+                                          >
+                                            <FontAwesomeIcon icon={faTrash} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {(item.descripcion || item.opciones) && (
+                                      <div className={`${styles['item-details']} ${expandedItems[item.id_items || item.id_item] ? styles['expanded'] : ''}`}>
+                                        <div className={styles['item-section']}>
+                                          <div className={styles['item-section-row']}>
+                                            {item.descripcion && (
+                                              <div className={styles['item-detail']}>
+                                                <span className={styles['detail-label']}>Descripción:</span>
+                                                <span className={styles['detail-value']}>{item.descripcion}</span>
+                                              </div>
+                                            )}
+                                            
+                                            {item.opciones && (
+                                              <div className={styles['item-detail']}>
+                                                <span className={styles['detail-label']}>Opciones:</span>
+                                                <span className={styles['detail-value']}>{item.opciones}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
             )}
           </div>
         )}
@@ -1304,6 +1330,24 @@ const AdminPanel = () => {
           onImageUpdated={handleServiceImageUpdated}
           servicio={serviceImageState.servicio}
           categoria={serviceImageState.categoria}
+        />
+      )}
+      
+      {changeCategoryIconState.show && (
+        <ChangeCategoryIconModal
+          show={changeCategoryIconState.show}
+          onClose={() => setChangeCategoryIconState({
+            show: false,
+            categoriaId: null,
+            categoriaName: '',
+            currentIcon: '',
+            isLoading: false
+          })}
+          onSave={(categoriaId, iconData) => handleSaveIcon(categoriaId, iconData, setChangeCategoryIconState)}
+          categoriaId={changeCategoryIconState.categoriaId}
+          categoriaName={changeCategoryIconState.categoriaName}
+          currentIcon={changeCategoryIconState.currentIcon}
+          isLoading={changeCategoryIconState.isLoading}
         />
       )}
       

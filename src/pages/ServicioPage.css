@@ -31,13 +31,13 @@
   padding: 36px 36px 32px 36px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 .servicio-header {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   align-items: flex-start;
 }
 
@@ -79,7 +79,7 @@
 .servicio-description {
   color: #888;
   font-size: 17px;
-  margin-top: 6px;
+  margin-top: 16px;
   margin-bottom: 18px;
   line-height: 1.5;
   max-width: 900px;
@@ -218,6 +218,38 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.price-display {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  border-left: 4px solid #21707b;
+}
+
+.selected-price {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.total-price {
+  font-size: 16px;
+  color: #21707b;
+  font-weight: 600;
+}
+
+.no-subcategories-message {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #ddd;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .loading-container, 

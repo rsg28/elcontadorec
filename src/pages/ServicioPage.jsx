@@ -26,19 +26,12 @@ const iconMap = {
   'calculator': faCalculator
 };
 
-// Los rangos de precio siguen siendo estáticos por ahora
-const priceRanges = [
-  'Ventas Mensuales de $0 a $5000',
-  'Ventas Mensuales de $5001 a $20000',
-  'Ventas Mensuales de $20001 a $50000',
-  'Ventas Mensuales de $50001 o más'
-];
-
 const ServicioPage = () => {
   const { id_servicio } = useParams();
-  const [selectedRange, setSelectedRange] = useState(priceRanges[0]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [caracteristicas, setCaracteristicas] = useState([]);
+  const [servicioItems, setServicioItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -72,6 +65,35 @@ const ServicioPage = () => {
 
     if (id_servicio) {
       fetchCaracteristicas();
+    }
+  }, [id_servicio]);
+
+  // Fetch items (subcategories) for this servicio
+  useEffect(() => {
+    const fetchServicioItems = async () => {
+      try {
+        const response = await fetch(`/api/items/servicio/${id_servicio}`);
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setServicioItems(data);
+        
+        // Set the first item as selected by default
+        if (data.length > 0) {
+          setSelectedSubcategory(data[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching servicio items:', err);
+        setError(err.message);
+        setServicioItems([]);
+      }
+    };
+
+    if (id_servicio) {
+      fetchServicioItems();
     }
   }, [id_servicio]);
 
@@ -183,39 +205,68 @@ const ServicioPage = () => {
             )}
           </div>
           <div className="servicio-price-container">
-            <div className="price-label">Seleccione un rango de ventas mensuales para obtener un precio</div>
-            <select 
-              className="price-select"
-              value={selectedRange} 
-              onChange={e => setSelectedRange(e.target.value)}
-            >
-              {priceRanges.map((r, i) => <option key={i} value={r}>{r}</option>)}
-            </select>
-            <div className="quantity-container">
-              <span className="quantity-text">necesito</span>
-              <button 
-                className="quantity-button" 
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              >
-                <FontAwesomeIcon icon={faMinus} />
-              </button>
-              <input 
-                className="quantity-input"
-                type="text" 
-                value={quantity} 
-                readOnly 
-              />
-              <button 
-                className="quantity-button" 
-                onClick={() => setQuantity(q => q + 1)}
-              >
-                <FontAwesomeIcon icon={faPlus} />
-              </button>
-              <span className="quantity-text">declaración(es)</span>
+            <div className="price-label">
+              {servicioItems.length > 0 ? 'Seleccione una subcategoría:' : 'No hay subcategorías disponibles para este servicio'}
             </div>
-            <button className="add-to-cart-button">
-              Agregar al carrito <FontAwesomeIcon icon={faShoppingCart} />
-            </button>
+            {servicioItems.length > 0 ? (
+              <>
+                <select 
+                  className="price-select"
+                  value={selectedSubcategory ? selectedSubcategory.id_items : ''} 
+                  onChange={e => {
+                    const selectedItem = servicioItems.find(item => 
+                      String(item.id_items) === String(e.target.value)
+                    );
+                    setSelectedSubcategory(selectedItem);
+                  }}
+                >
+                  {servicioItems.map((item) => (
+                    <option key={item.id_items} value={item.id_items}>
+                      {item.Subcategoria?.nombre || 'Sin subcategoría'}
+                    </option>
+                  ))}
+                </select>
+                <div className="quantity-container">
+                  <span className="quantity-text">necesito</span>
+                  <button 
+                    className="quantity-button" 
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  >
+                    <FontAwesomeIcon icon={faMinus} />
+                  </button>
+                  <input 
+                    className="quantity-input"
+                    type="text" 
+                    value={quantity} 
+                    readOnly 
+                  />
+                  <button 
+                    className="quantity-button" 
+                    onClick={() => setQuantity(q => q + 1)}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                  </button>
+                  <span className="quantity-text">declaración(es)</span>
+                </div>
+                {selectedSubcategory && (
+                  <div className="price-display">
+                    <div className="selected-price">
+                      Precio unitario: <strong>${parseFloat(selectedSubcategory.precio).toFixed(2)}</strong>
+                    </div>
+                    <div className="total-price">
+                      Total: <strong>${(parseFloat(selectedSubcategory.precio) * quantity).toFixed(2)}</strong>
+                    </div>
+                  </div>
+                )}
+                <button className="add-to-cart-button">
+                  Agregar al carrito <FontAwesomeIcon icon={faShoppingCart} />
+                </button>
+              </>
+            ) : (
+              <div className="no-subcategories-message">
+                Este servicio aún no tiene subcategorías definidas. Por favor, contáctenos para más información.
+              </div>
+            )}
           </div>
         </div>
       </div>

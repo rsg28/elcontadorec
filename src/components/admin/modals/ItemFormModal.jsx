@@ -286,7 +286,13 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
         <div className={styles['modal-header']} style={{ borderRadius: '8px 8px 0 0' }}>
           <h2>
             {editItem ? (
-              <><FontAwesomeIcon icon={faEdit} className={styles['modal-header-icon']} /> Editar Ítem</>
+              <>
+                <FontAwesomeIcon icon={faEdit} className={styles['modal-header-icon']} /> 
+                Editar Ítem
+                <small style={{ display: 'block', fontSize: '14px', fontWeight: 'normal', color: '#666', marginTop: '5px' }}>
+                  Solo se puede editar: Subcategoría y Precio
+                </small>
+              </>
             ) : (
               <><FontAwesomeIcon icon={faPlus} className={styles['modal-header-icon']} /> Agregar Nuevo Ítem</>
             )}
@@ -300,7 +306,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
                 <label htmlFor="categoria" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
-                  Categoría <span className={styles['required-mark']}>*</span>
+                  Categoría {editItem ? '(No editable)' : <span className={styles['required-mark']}>*</span>}
                 </label>
                 <div className={styles['form-control-wrapper']}>
                   <select
@@ -311,7 +317,14 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     onKeyDown={(e) => handleKeyDown(e, 'categoria')}
                     required
                     className={styles['form-control']}
-                    style={{ padding: '12px 16px', fontSize: '15px' }}
+                    style={{ 
+                      padding: '12px 16px', 
+                      fontSize: '15px',
+                      backgroundColor: editItem ? '#f5f5f5' : 'white',
+                      color: editItem ? '#666' : '#333',
+                      cursor: editItem ? 'not-allowed' : 'pointer'
+                    }}
+                    disabled={!!editItem} // Disable category selection when editing
                   >
                     <option value="">Seleccione una categoría</option>
                     {allCategorias.map(categoria => (
@@ -325,12 +338,18 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     ))}
                   </select>
                 </div>
+                {editItem && (
+                  <div className={styles['field-description']} style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '5px', color: '#f39c12' }} />
+                    La categoría no puede ser modificada al editar un ítem
+                  </div>
+                )}
               </div>
             
               <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
                 <label htmlFor="servicio" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faEdit} className={styles['field-icon']} /> 
-                  Servicio <span className={styles['required-mark']}>*</span>
+                  Servicio {editItem ? '(No editable)' : <span className={styles['required-mark']}>*</span>}
                 </label>
                 <div className={styles['autocomplete-container']} ref={servicioInputRef}>
                   <div className={styles['form-control-wrapper']}>
@@ -342,17 +361,26 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                       onChange={handleChange}
                       onKeyDown={(e) => handleKeyDown(e, 'servicio')}
                       required
-                      placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
+                      placeholder={
+                        editItem ? "Servicio actual (no editable)" :
+                        formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"
+                      }
                       className={styles['form-control']}
-                      style={{ padding: '12px 16px', fontSize: '15px' }}
-                      disabled={!formData.categoria}
+                      style={{ 
+                        padding: '12px 16px', 
+                        fontSize: '15px',
+                        backgroundColor: (!formData.categoria || editItem) ? '#f5f5f5' : 'white',
+                        color: (!formData.categoria || editItem) ? '#666' : '#333',
+                        cursor: (!formData.categoria || editItem) ? 'not-allowed' : 'text'
+                      }}
+                      disabled={!formData.categoria || !!editItem} // Disable when editing or no category selected
                       autoComplete="off"
                     />
-                    {!formData.servicio && formData.categoria && 
+                    {!formData.servicio && formData.categoria && !editItem && 
                       <FontAwesomeIcon icon={faSearch} className={styles['input-icon']} />
                     }
                   </div>
-                  {suggestions.servicios.length > 0 && (
+                  {suggestions.servicios.length > 0 && !editItem && (
                     <ul className={styles['suggestions-list']}>
                       {suggestions.servicios.map((suggestion, index) => (
                         <li 
@@ -366,7 +394,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     </ul>
                   )}
                 </div>
-                {!formData.categoria && (
+                {editItem ? (
+                  <div className={styles['field-description']} style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '5px', color: '#f39c12' }} />
+                    El servicio no puede ser modificado al editar un ítem
+                  </div>
+                ) : !formData.categoria && (
                   <div className={styles['field-description']}>
                     <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '5px', fontSize: '12px', color: '#f39c12' }} />
                     Primero seleccione una categoría para ver servicios disponibles
@@ -377,7 +410,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
                 <label htmlFor="subcategoria" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faFilter} className={styles['field-icon']} /> 
-                  Subcategoría <span className={styles['required-mark']}>*</span>
+                  Subcategoría {editItem && <span style={{ color: '#2e7d3a', fontWeight: 'bold' }}>(Editable)</span>} <span className={styles['required-mark']}>*</span>
                 </label>
                 <div className={styles['autocomplete-container']} ref={subcategoriaInputRef}>
                   <div className={styles['form-control-wrapper']}>
@@ -391,7 +424,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                       required
                       placeholder="Escriba para buscar o agregar subcategoría"
                       className={styles['form-control']}
-                      style={{ padding: '12px 16px', fontSize: '15px' }}
+                      style={{ 
+                        padding: '12px 16px', 
+                        fontSize: '15px',
+                        borderColor: editItem ? '#2e7d3a' : '#ddd',
+                        borderWidth: editItem ? '2px' : '1px'
+                      }}
                       autoComplete="off"
                     />
                     {!formData.subcategoria && 
@@ -417,7 +455,7 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
               <div className={styles['form-group']} style={{ marginBottom: '40px' }}>
                 <label htmlFor="precio" className={styles['form-label']} style={{ fontSize: '16px', marginBottom: '10px' }}>
                   <FontAwesomeIcon icon={faDollarSign} className={styles['field-icon']} /> 
-                  Precio <span className={styles['required-mark']}>*</span>
+                  Precio {editItem && <span style={{ color: '#2e7d3a', fontWeight: 'bold' }}>(Editable)</span>} <span className={styles['required-mark']}>*</span>
                 </label>
                 <div className={styles['form-control-wrapper']}>
                   <input
@@ -430,7 +468,12 @@ const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, all
                     placeholder="0.00"
                     inputMode="decimal"
                     className={styles['form-control']}
-                    style={{ padding: '12px 16px', fontSize: '15px' }}
+                    style={{ 
+                      padding: '12px 16px', 
+                      fontSize: '15px',
+                      borderColor: editItem ? '#2e7d3a' : '#ddd',
+                      borderWidth: editItem ? '2px' : '1px'
+                    }}
                     autoComplete="off"
                   />
                 </div>

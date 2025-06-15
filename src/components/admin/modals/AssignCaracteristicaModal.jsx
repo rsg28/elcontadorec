@@ -285,6 +285,12 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
       return;
     }
 
+    // Check maximum characteristics limit for assign mode
+    if (mode === 'assign' && servicioCaracteristicas.length >= 4) {
+      setError('No se pueden asignar más de 4 características por servicio');
+      return;
+    }
+
     if (mode === 'unlink' && !canUnlink) {
       setError('Esta característica no está asignada al servicio seleccionado');
       return;
@@ -481,31 +487,49 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
             </div>
 
             {/* Show current characteristics for selected service */}
-            {selectedServicio && selectedServicio.caracteristicas && selectedServicio.caracteristicas.length > 0 && (
+            {selectedServicio && (
               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                <div style={{ fontSize: '14px', color: '#666', marginBottom: '14px', fontWeight: '600' }}>
-                  Características actuales del servicio:
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>
+                    Características actuales del servicio:
+                  </div>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    fontWeight: '600',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    backgroundColor: servicioCaracteristicas.length >= 4 ? '#dc3545' : servicioCaracteristicas.length >= 3 ? '#ffc107' : '#28a745',
+                    color: 'white'
+                  }}>
+                    {servicioCaracteristicas.length}/4 características
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {selectedServicio.caracteristicas.map(caract => (
-                    <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']} style={{ fontSize: '13px', padding: '8px 12px' }}>
-                      <div 
-                        className={styles['caracteristica-icon-container']} 
-                        style={{ 
-                          backgroundColor: caract.color || '#4285F4',
-                          width: '24px',
-                          height: '24px'
-                        }}
-                      >
-                        <FontAwesomeIcon 
-                          icon={getIconComponent(caract.imagen)} 
-                          style={{ fontSize: '12px', color: 'white' }}
-                        />
+                {servicioCaracteristicas.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {servicioCaracteristicas.map(caract => (
+                      <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']} style={{ fontSize: '13px', padding: '8px 12px' }}>
+                        <div 
+                          className={styles['caracteristica-icon-container']} 
+                          style={{ 
+                            backgroundColor: caract.color || '#4285F4',
+                            width: '24px',
+                            height: '24px'
+                          }}
+                        >
+                          <FontAwesomeIcon 
+                            icon={getIconComponent(caract.imagen)} 
+                            style={{ fontSize: '12px', color: 'white' }}
+                          />
+                        </div>
+                        <span>{caract.nombre}</span>
                       </div>
-                      <span>{caract.nombre}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '14px', color: '#999', fontStyle: 'italic' }}>
+                    No hay características asignadas a este servicio
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -622,7 +646,7 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
                 backgroundColor: '#f8f9fa', 
                 borderRadius: '10px',
                 border: mode === 'assign' 
-                  ? `3px solid ${isAlreadyAssigned ? '#dc3545' : '#28a745'}`
+                  ? `3px solid ${isAlreadyAssigned || servicioCaracteristicas.length >= 4 ? '#dc3545' : '#28a745'}`
                   : '3px solid #dc3545',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}>
@@ -660,6 +684,11 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
                         <div style={{ color: '#dc3545', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600' }}>
                           <FontAwesomeIcon icon={faExclamationTriangle} size="lg" />
                           Ya asignada
+                        </div>
+                      ) : servicioCaracteristicas.length >= 4 ? (
+                        <div style={{ color: '#dc3545', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600' }}>
+                          <FontAwesomeIcon icon={faExclamationTriangle} size="lg" />
+                          Límite alcanzado
                         </div>
                       ) : (
                         <div style={{ color: '#28a745', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600' }}>
@@ -765,6 +794,7 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
               !formData.servicioId || 
               !formData.caracteristicaId || 
               (mode === 'assign' && isAlreadyAssigned) ||
+              (mode === 'assign' && servicioCaracteristicas.length >= 4) ||
               (mode === 'unlink' && !canUnlink) ||
               !!error
             }
@@ -774,18 +804,19 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
-              backgroundColor: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'unlink' && !canUnlink) || !!error) 
+              backgroundColor: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'assign' && servicioCaracteristicas.length >= 4) || (mode === 'unlink' && !canUnlink) || !!error) 
                 ? '#dc3545' 
                 : (mode === 'assign' ? '#28a745' : '#dc3545'),
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              opacity: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'unlink' && !canUnlink) || !!error) ? 0.7 : 1,
-              cursor: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'unlink' && !canUnlink) || !!error) ? 'not-allowed' : 'pointer'
+              opacity: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'assign' && servicioCaracteristicas.length >= 4) || (mode === 'unlink' && !canUnlink) || !!error) ? 0.7 : 1,
+              cursor: (isLoading || !formData.servicioId || !formData.caracteristicaId || (mode === 'assign' && isAlreadyAssigned) || (mode === 'assign' && servicioCaracteristicas.length >= 4) || (mode === 'unlink' && !canUnlink) || !!error) ? 'not-allowed' : 'pointer'
             }}
             title={
               mode === 'assign' ? (
                 isAlreadyAssigned ? 'Esta característica ya está asignada al servicio seleccionado' :
+                servicioCaracteristicas.length >= 4 ? 'No se pueden asignar más de 4 características por servicio' :
                 !formData.servicioId ? 'Seleccione un servicio primero' :
                 !formData.caracteristicaId ? 'Seleccione una característica primero' :
                 error ? error :
@@ -809,6 +840,11 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
                 <>
                   <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '10px' }} />
                   Ya Asignada
+                </>
+              ) : servicioCaracteristicas.length >= 4 ? (
+                <>
+                  <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '10px' }} />
+                  Límite Alcanzado
                 </>
               ) : (
                 <>

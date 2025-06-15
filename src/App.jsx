@@ -47,6 +47,7 @@ import useAuth from './hooks/useAuth';
 import useCategorias from './hooks/useCategorias';
 import LoadingAnimation from './components/loadingAnimation';
 import { useAllServicios } from './hooks/useServicios';
+import { commonIcons } from './components/admin/utils/commonIcons.jsx';
 import './App.css'; // Make sure we have access to the styles
 
 // Home component for the landing page
@@ -93,7 +94,10 @@ const Home = () => {
                 onClick={() => handleCategoryClick(categoria.id_categoria)}
               >
                 <div className="category-icon" style={{ backgroundColor: categoria.color }}>
-                  <FontAwesomeIcon icon={faFileAlt} />
+                  <FontAwesomeIcon 
+                    icon={commonIcons.find(item => item.name === categoria.imagen)?.icon || commonIcons[0].icon}
+                    style={{ fontSize: '24px' }}
+                  />
                 </div>
                 <h3 className="category-title">{categoria.nombre}</h3>
               </div>
@@ -116,8 +120,13 @@ const NavbarWrapper = () => {
 // FooterWrapper component to conditionally render the footer
 const FooterWrapper = () => {
   const location = useLocation();
-  // Exclude footer from login, register, and thank-you pages
+  // Exclude footer from login, register, thank-you pages, and admin page when loading
   const excludePaths = ['/login', '/register', '/thank-you'];
+  
+  // Don't show footer on admin page when checking permissions
+  if (location.pathname === '/admin') {
+    return null;
+  }
   
   if (excludePaths.includes(location.pathname)) {
     return null;

@@ -122,7 +122,7 @@ export const useCategoryOperations = ({
       
       if (result.success) {
         await refreshItems();
-        success(`Categoría eliminada correctamente junto con ${servicesInCategory.length} servicio(s) y ${itemsInThisCategory.length} ítem(s)`);
+        success(`Categoría eliminada correctamente junto con ${servicesInCategory.length} servicio(s), ${itemsInThisCategory.length} ítem(s) y todas las imágenes de S3`);
         
         // Cleanup unused subcategorias from the deleted category
         if (itemsInThisCategory.length > 0 && cleanupUnusedSubcategorias) {
@@ -156,12 +156,52 @@ export const useCategoryOperations = ({
     });
   }, []);
 
+  // Handle icon picker opening
+  const handleOpenIconPicker = useCallback((e, categoriaId, categoriaName, currentIcon, setChangeCategoryIconState) => {
+    e.stopPropagation();
+    setChangeCategoryIconState({
+      show: true,
+      categoriaId,
+      categoriaName,
+      currentIcon,
+      isLoading: false
+    });
+  }, []);
+
+  // Handle icon saving
+  const handleSaveIcon = useCallback(async (categoriaId, iconData, setChangeCategoryIconState) => {
+    try {
+      const result = await updateCategoria(categoriaId, iconData);
+      
+      if (result.success) {
+        success('Icono de categoría actualizado correctamente');
+        setChangeCategoryIconState({
+          show: false,
+          categoriaId: null,
+          categoriaName: '',
+          currentIcon: '',
+          isLoading: false
+        });
+        return { success: true };
+      } else {
+        showError(`Error al actualizar icono: ${result.error}`);
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Error saving icon:', error);
+      showError('Error inesperado al guardar el icono');
+      return { success: false };
+    }
+  }, [updateCategoria, success, showError]);
+
   return {
     handleCreateCategory,
     handleOpenColorPicker,
     handleSaveColor,
     handleDeleteCategory,
     confirmDeleteCategory,
-    cancelDeleteCategory
+    cancelDeleteCategory,
+    handleOpenIconPicker,
+    handleSaveIcon
   };
 }; 

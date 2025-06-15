@@ -96,7 +96,7 @@ export const useItemOperations = ({
         return;
       }
       
-      // Handle service creation if needed
+      // Handle service creation/update if needed
       if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
         try {
           const existingService = allServicios.find(s => 
@@ -124,6 +124,15 @@ export const useItemOperations = ({
           console.error('Error al crear servicio:', serviceError);
           showError(`Error al crear servicio: ${serviceError.message}`);
           return;
+        }
+      } else if (itemId) {
+        // For existing items, keep the same service ID (service name cannot be changed)
+        const currentItem = itemsWithDetails.find(item => 
+          (item.id_items === itemId || item.id_item === itemId)
+        );
+        
+        if (currentItem) {
+          itemData.id_servicio = currentItem.id_servicio;
         }
       }
       
@@ -173,8 +182,38 @@ export const useItemOperations = ({
       
       // Save or update item
       if (itemId) {
+        // Store the old item data before updating for subcategory cleanup
+        const oldItem = itemsWithDetails.find(item => 
+          (item.id_items === itemId || item.id_item === itemId)
+        );
+        
         const result = await updateItem(itemId, itemData);
         if (result.success) {
+          
+          // Handle subcategory cleanup if subcategory changed
+          if (oldItem && oldItem.id_subcategoria !== itemData.id_subcategoria) {
+            // Check if the old subcategory is still being used by other items
+            const otherItemsUsingOldSubcat = itemsWithDetails.filter(item => 
+              item.id_subcategoria === oldItem.id_subcategoria && 
+              (item.id_items !== itemId && item.id_item !== itemId)
+            );
+            
+            if (otherItemsUsingOldSubcat.length === 0) {
+              // Delete the old subcategory since no other items use it
+              try {
+                const deleteSubcatResult = await deleteSubcategoria(oldItem.id_subcategoria);
+                if (deleteSubcatResult.success) {
+                  success(`Subcategoría anterior "${oldItem.subcategoria_nombre}" eliminada (ya no estaba siendo utilizada)`);
+                } else {
+                  warning(`No se pudo eliminar la subcategoría anterior: ${deleteSubcatResult.error}`);
+                }
+              } catch (subcatError) {
+                console.error('Error deleting old subcategoria:', subcatError);
+                warning(`Error al eliminar subcategoría anterior: ${subcatError.message}`);
+              }
+            }
+          }
+          
           const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
           await refreshItems();
           forceRefresh();

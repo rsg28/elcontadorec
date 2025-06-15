@@ -118,6 +118,15 @@ export const useAdminPanelState = () => {
     categoria: null,
     isLoading: false
   });
+
+  // Change category icon modal state
+  const [changeCategoryIconState, setChangeCategoryIconState] = useState({
+    show: false,
+    categoriaId: null,
+    categoriaName: '',
+    currentIcon: '',
+    isLoading: false
+  });
   
   // Initial load reference to prevent unnecessary re-renders
   const isInitialLoadRef = useRef(true);
@@ -176,6 +185,8 @@ export const useAdminPanelState = () => {
     setEditDescriptionState,
     serviceImageState,
     setServiceImageState,
+    changeCategoryIconState,
+    setChangeCategoryIconState,
     
     // Refs
     isInitialLoadRef

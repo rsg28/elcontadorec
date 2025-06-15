@@ -52,6 +52,8 @@ const DeleteCategoryModal = ({ show, onClose, onConfirm, categoryName, serviceCo
           </p>
           <ul className={styles['warning-items']}>
             <li>{serviceCount} servicio(s) y todos sus ítems</li>
+            <li>Todas las imágenes de servicios almacenadas en S3</li>
+            <li>Imágenes de categoría (thumbnails) si existen</li>
           </ul>
           <p className={styles['warning-permanent']}>
             Esta acción no se puede deshacer. ¿Está seguro que desea continuar?

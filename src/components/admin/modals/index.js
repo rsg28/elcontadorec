@@ -10,6 +10,7 @@ export { default as DeleteCaracteristicaModal } from './DeleteCaracteristicaModa
 export { default as VerCaracteristicasModal } from './VerCaracteristicasModal';
 export { default as EditServiceDescriptionModal } from './EditServiceDescriptionModal';
 export { default as ServiceImageModal } from './ServiceImageModal';
+export { default as ChangeCategoryIconModal } from './ChangeCategoryIconModal';
 
 // Additional modals to be extracted:
 // - DeleteItemModal
