@@ -114,66 +114,77 @@ const Carrito = () => {
         {/* Columna izquierda - Carrito */}
         <div className="carrito-items-container">
           <div className="carrito-header">
-            <FontAwesomeIcon icon={faShoppingCart} className="carrito-icon" />
-            <h2>Mi Carrito</h2>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#222', display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
+              Mi Carrito
+              <span style={{
+                background: '#e0e0e0',
+                color: '#444',
+                borderRadius: '50%',
+                padding: '4px 14px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                marginLeft: '8px',
+                display: 'inline-block',
+                minWidth: '36px',
+                textAlign: 'center'
+              }}>{cartItems.length}</span>
+            </h1>
           </div>
           
           {cartItems.map(item => (
-            <div key={item.id} className="carrito-item">
-              <div className="item-imagen">
+            <div key={item.id} className="carrito-item redesigned-item">
+              <div className="carrito-item-image">
                 <img src={item.imagen} alt={item.nombre} />
               </div>
-              <div className="item-detalles">
-                <h3 className="item-nombre">{item.nombre}</h3>
-                <div className="item-metadata">
-                  <div className="item-cantidad">
-                    <span className="meta-label">CANTIDAD:</span>
-                    <div className="cantidad-controls">
-                      <button 
-                        className="cantidad-btn"
-                        onClick={() => updateQuantity(item.id, item.cantidad - 1)}
-                      >
-                        <FontAwesomeIcon icon={faMinus} />
-                      </button>
-                      <input 
-                        type="text" 
-                        value={item.cantidad} 
-                        readOnly 
-                        className="cantidad-input"
-                      />
-                      <button 
-                        className="cantidad-btn"
-                        onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                      >
-                        <FontAwesomeIcon icon={faPlus} />
-                      </button>
-                    </div>
+              <div className="carrito-item-details">
+                <div className="carrito-item-title">{item.nombre}</div>
+                <div className="carrito-item-subtitle">{item.ventas}</div>
+                <div className="carrito-item-qty-price">
+                  <div className="carrito-item-qty">
+                    <button 
+                      className="cantidad-btn"
+                      onClick={() => updateQuantity(item.id, item.cantidad - 1)}
+                    >
+                      <FontAwesomeIcon icon={faMinus} />
+                    </button>
+                    <input 
+                      type="text" 
+                      value={item.cantidad} 
+                      readOnly 
+                      className="cantidad-input"
+                    />
+                    <button 
+                      className="cantidad-btn"
+                      onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                    >
+                      <FontAwesomeIcon icon={faPlus} />
+                    </button>
                   </div>
-                  <div className="item-ventas">
-                    <span className="meta-label">VENTAS:</span>
-                    <span className="meta-value">{item.ventas}</span>
-                  </div>
+                  <div className="carrito-item-price">${item.subtotal.toFixed(2)}</div>
                 </div>
-                <div className="item-subtotal">
-                  <span className="meta-label">SUBTOTAL DEL SERVICIO:</span>
-                  <span className="meta-value">USD ${item.subtotal.toFixed(2)}</span>
-                </div>
+                <div className="carrito-item-subtotal">Subtotal</div>
               </div>
+              <button className="carrito-item-remove" onClick={() => setCartItems(cartItems.filter(ci => ci.id !== item.id))}>
+                &#10005;
+              </button>
             </div>
           ))}
-          
-          <div className="carrito-totales">
-            <div className="total-row">
-              <span className="total-label">SUBTOTAL:</span>
-              <span className="total-value">USD ${subtotal.toFixed(2)}</span>
+          <div className="carrito-summary">
+            <div className="carrito-summary-row">
+              <span>Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
-            <div className="total-row">
-              <span className="total-label">IVA 15%:</span>
-              <span className="total-value">USD ${iva.toFixed(2)}</span>
+            <div className="carrito-summary-row">
+              <span>IVA 15%</span>
+              <span>${iva.toFixed(2)}</span>
             </div>
-            <div className="total-row total-final">
-              <span className="total-label">TOTAL:</span>
-              <span className="total-value">USD ${total.toFixed(2)}</span>
+            <div className="carrito-summary-row">
+              <span>Descuento 0%</span>
+              <span>$0.00</span>
+            </div>
+            <div className="carrito-summary-total">
+              <span>Total</span>
+              <span style={{fontWeight: 'bold', fontSize: '1.2rem'}}>${total.toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -63,7 +63,6 @@ const AdminPanel = () => {
     updateItem,
     refreshItems,
     updateLocalItems,
-    setItemsWithDetails
   } = useItems();
   
   const { 
@@ -119,11 +118,6 @@ const AdminPanel = () => {
     expandedServices,
     setExpandedServices,
     updatedServiceNames,
-    setUpdatedServiceNames,
-    updatedSubcategoryNames,
-    setUpdatedSubcategoryNames,
-    updatedPrices,
-    setUpdatedPrices,
     showItemForm,
     setShowItemForm,
     currentEditItem,
