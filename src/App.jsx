@@ -93,10 +93,13 @@ const Home = () => {
                 className="category-card" 
                 onClick={() => handleCategoryClick(categoria.id_categoria)}
               >
-                <div className="category-icon" style={{ backgroundColor: categoria.color }}>
+                <div 
+                  className="category-icon category-icon-dynamic" 
+                  style={{ '--category-color': categoria.color }}
+                >
                   <FontAwesomeIcon 
                     icon={commonIcons.find(item => item.name === categoria.imagen)?.icon || commonIcons[0].icon}
-                    style={{ fontSize: '24px' }}
+                    className="category-icon-svg"
                   />
                 </div>
                 <h3 className="category-title">{categoria.nombre}</h3>
@@ -317,7 +320,7 @@ const Header = () => {
         <form onSubmit={handleSearchSubmit} className="search-form">
           <input 
             type="text" 
-            placeholder="Busca en nuestro contenido..." 
+            placeholder="Busca tu servicio contable..." 
             className="search-input"
             value={searchInput}
             onChange={handleSearchChange}

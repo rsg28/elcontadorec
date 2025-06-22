@@ -46,10 +46,10 @@ const ServiceImageUpload = ({
       const { width, height } = dimensions;
       
       // Define minimum and maximum dimensions
-      const MIN_WIDTH = 300;
-      const MIN_HEIGHT = 200;
-      const MAX_WIDTH = 2000;
-      const MAX_HEIGHT = 2000;
+      const MIN_WIDTH = 400;
+      const MIN_HEIGHT = 400;
+      const MAX_WIDTH = 1200;
+      const MAX_HEIGHT = 1200;
       
       if (width < MIN_WIDTH || height < MIN_HEIGHT) {
         setError(`La imagen es muy pequeña. Mínimo: ${MIN_WIDTH}x${MIN_HEIGHT} píxeles. Actual: ${width}x${height} píxeles`);
@@ -61,10 +61,10 @@ const ServiceImageUpload = ({
         return;
       }
       
-      // Optional: Check aspect ratio (recommended range)
+      // Check for square aspect ratio (recommended for service cards)
       const aspectRatio = width / height;
-      if (aspectRatio < 0.5 || aspectRatio > 3) {
-        setError(`La relación de aspecto de la imagen no es recomendada. Actual: ${aspectRatio.toFixed(2)}:1. Recomendado: entre 0.5:1 y 3:1`);
+      if (aspectRatio < 0.8 || aspectRatio > 1.25) {
+        setError(`Se recomienda una imagen cuadrada o casi cuadrada. Actual: ${aspectRatio.toFixed(2)}:1. Recomendado: entre 0.8:1 y 1.25:1 para mejor visualización en las tarjetas de servicio`);
         return;
       }
       
@@ -226,7 +226,8 @@ const ServiceImageUpload = ({
                 {uploading ? 'Subiendo imagen...' : 'Haga clic para subir una imagen'}
               </p>
               <small>Formatos: JPG, PNG, GIF (Máx. 10MB)</small>
-              <small>Dimensiones: 300x200 - 2000x2000 píxeles</small>
+              <small>Dimensiones: 400x400 - 1200x1200 píxeles (preferiblemente cuadradas)</small>
+              <small>Las imágenes cuadradas se ven mejor en las tarjetas de servicio</small>
             </div>
           </div>
         )}

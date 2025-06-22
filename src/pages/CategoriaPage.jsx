@@ -304,36 +304,37 @@ const CategoriaPage = () => {
         ) : (
           getServicesWithItems().map(({ servicio, items, subcategorias, serviceInfo }) => (
             <div key={servicio.id_servicio} className="service-card">
-              <div className="service-card-left">
+              {/* Column 1: Image */}
+              <div className="service-card-image">
+                {serviceInfo.imagen_url ? (
+                  <img 
+                    src={serviceInfo.imagen_url} 
+                    alt={serviceInfo.nombre} 
+                    className="service-card-img"
+                    onError={(e) => {
+                      e.target.src = displayDefault;
+                      e.target.alt = "Imagen por defecto";
+                    }}
+                  />
+                ) : (
+                  <img 
+                    src={displayDefault} 
+                    alt="Imagen por defecto" 
+                    className="service-card-img" 
+                  />
+                )}
+              </div>
+              
+              {/* Column 2: Details */}
+              <div className="service-card-details">
                 <h2 className="service-card-title">{serviceInfo.nombre}</h2>
                 <p className="service-card-desc">{serviceInfo.descripcion}</p>
-                <div className="service-image-container">
-                  {serviceInfo.imagen_url ? (
-                    <img 
-                      src={serviceInfo.imagen_url} 
-                      alt={serviceInfo.nombre} 
-                      className="service-card-img"
-                      onError={(e) => {
-                        // If S3 image fails to load, fallback to default image
-                        e.target.src = displayDefault;
-                        e.target.alt = "Imagen por defecto";
-                      }}
-                      onLoad={() => {
-                        // Image loaded successfully - no need to log
-                      }}
-                    />
-                  ) : (
-                    <img 
-                      src={displayDefault} 
-                      alt="Imagen por defecto" 
-                      className="service-card-img" 
-                    />
-                  )}
-                </div>
-                <button className="service-card-btn small" onClick={() => handleVerMas(servicio.id_servicio)}>VER MÁS</button>
+                <button className="service-card-link" onClick={() => handleVerMas(servicio.id_servicio)}>Ver más</button>
               </div>
-              <div className="service-card-right">
-                <label className="service-card-label">Seleccione una subcategoría para ver el precio</label>
+
+              {/* Column 3: Actions */}
+              <div className="service-card-actions">
+                <label className="service-card-label">Seleccione un rango de ventas mensuales para obtener un precio</label>
                 <select
                   className="service-card-select"
                   defaultValue={subcategorias.length === 1 ? subcategorias[0].id_subcategoria : ""}
@@ -363,15 +364,9 @@ const CategoriaPage = () => {
                   </div>
                   <span>declaración(es)</span>
                 </div>
-                <div className="service-card-precio-row">
-                  <span className="service-card-precio-label">PRECIO:</span>
-                  <span className="service-card-precio">
-                    ${formatPrice(selectedPrices[servicio.id_servicio] || 0)}
-                  </span>
-                  <button className="service-card-cart-btn">
-                    Agregar al carrito <i className="fa fa-shopping-cart"></i>
-                  </button>
-                </div>
+                <button className="service-card-cart-btn">
+                  Agregar al carrito <i className="fa fa-shopping-cart"></i>
+                </button>
               </div>
             </div>
           ))

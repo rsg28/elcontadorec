@@ -179,7 +179,10 @@ const Perfil = () => {
         <aside className="perfil-sidebar">
           <ul>
             <li className="sidebar-active">
-              <FontAwesomeIcon icon={faUser} /> Mi perfil
+              <div className="sidebar-icon-circle">
+                <FontAwesomeIcon icon={faUser} />
+              </div>
+              Mi perfil
             </li>
             <li className="has-sub">
               <FontAwesomeIcon icon={faShoppingBag} /> Mis pedidos
