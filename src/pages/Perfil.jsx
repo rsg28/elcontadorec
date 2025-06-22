@@ -185,7 +185,10 @@ const Perfil = () => {
               Mi perfil
             </li>
             <li className="has-sub">
-              <FontAwesomeIcon icon={faShoppingBag} /> Mis pedidos
+              <div className="sidebar-icon-circle-gray">
+                <FontAwesomeIcon icon={faShoppingBag} />
+              </div>
+              Mis pedidos
             </li>
             <ul className="sidebar-sub">
               <li>Pedidos pendientes</li>
@@ -193,13 +196,19 @@ const Perfil = () => {
             </ul>
             <li className="sidebar-logout">
               <button type="button" className="logout-btn" onClick={() => { logout(); window.location.href = '/'; }}>
-                <FontAwesomeIcon icon={faTools} /> Cerrar sesión
-                  </button>
+                <div className="sidebar-icon-circle-logout">
+                  <FontAwesomeIcon icon={faTools} />
+                </div>
+                Cerrar sesión
+              </button>
             </li>
             {isUserAdmin && (
               <li className="sidebar-admin">
                 <Link to="/admin" className="admin-panel-link">
-                  <FontAwesomeIcon icon={faUserCog} className="admin-icon" /> Panel de Administración
+                  <div className="admin-icon">
+                    <FontAwesomeIcon icon={faUserCog} />
+                  </div>
+                  Panel de Administración
                 </Link>
               </li>
             )}
