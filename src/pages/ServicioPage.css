@@ -28,7 +28,7 @@
   background: #fff;
   border-radius: 32px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-  padding: 36px 36px 32px 36px;
+  padding: 36px 36px 0px 36px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -100,6 +100,11 @@
   gap: 24px;
   flex-wrap: wrap;
   align-items: flex-start;
+}
+
+.servicio-features-wrapper {
+  position: relative;
+  top: -230px;
 }
 
 .servicio-features {
@@ -334,4 +339,20 @@
   .servicio-main-img {
     height: 180px;
   }
+}
+
+.servicio-banner {
+  max-width: 95%;
+  width: 95%;
+  margin: 24px auto 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.banner-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
 } 

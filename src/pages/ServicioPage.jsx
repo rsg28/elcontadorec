@@ -9,7 +9,6 @@ import {
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
 import LoadingAnimation from '../components/loadingAnimation';
-import displayDefault from '../assets/default-service.jpg'; // Add default image import
 import './ServicioPage.css';
 
 // Mapa de iconos para convertir nombres de string a componentes de FontAwesome
@@ -34,6 +33,7 @@ const ServicioPage = () => {
   const [servicioItems, setServicioItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bannerImage, setBannerImage] = useState(null);
 
   // Fetch all servicios and categorias
   const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
@@ -97,6 +97,27 @@ const ServicioPage = () => {
     }
   }, [id_servicio]);
 
+  // Fetch random banner image
+  useEffect(() => {
+    const fetchRandomBanner = async () => {
+      try {
+        const response = await fetch('/api/banners/random');
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setBannerImage(data.data.url);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching banner:', err);
+        // Don't set error state for banner failures - just don't show banner
+      }
+    };
+
+    fetchRandomBanner();
+  }, []);
+
   // Find the current servicio and its category
   const currentServicio = allServicios.find(s => String(s.id_servicio) === String(id_servicio));
   const currentCategoria = currentServicio && allCategorias.find(c => c.id_categoria === currentServicio.id_categoria);
@@ -159,50 +180,6 @@ const ServicioPage = () => {
                 </span>
               )}
             </div>
-          </div>
-          <div className="servicio-image-section">
-            <div className="servicio-image-container">
-              {currentServicio.imagen ? (
-                <img 
-                  src={currentServicio.imagen} 
-                  alt={currentServicio.nombre} 
-                  className="servicio-main-img"
-                  onError={(e) => {
-                    // If S3 image fails to load, fallback to default image
-                    e.target.src = displayDefault;
-                    e.target.alt = "Imagen por defecto";
-                  }}
-                  onLoad={() => {
-                    // Image loaded successfully - no need to log
-                  }}
-                />
-              ) : (
-                <img 
-                  src={displayDefault} 
-                  alt="Imagen por defecto" 
-                  className="servicio-main-img" 
-                />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="servicio-content">
-          <div className="servicio-features">
-            {caracteristicas.length > 0 ? (
-              caracteristicas.map((c, i) => (
-                <div key={i} className="feature-card">
-                  <div className="feature-icon-container" style={{ background: c.color || '#cccccc' }}>
-                    <FontAwesomeIcon icon={getIconComponent(c.imagen)} />
-                  </div>
-                  <div className="feature-title">{c.nombre}</div>
-                  <div className="feature-description">{c.descripcion}</div>
-                </div>
-              ))
-            ) : (
-              <div className="no-features-message">
-                Este servicio aún no tiene características definidas. Por favor, contáctenos para conocer más detalles sobre los beneficios y características específicas de este servicio.
-              </div>
-            )}
           </div>
           <div className="servicio-price-container">
             <div className="price-label">
@@ -269,7 +246,40 @@ const ServicioPage = () => {
             )}
           </div>
         </div>
+        <div className="servicio-features-wrapper">
+          <div className="servicio-features">
+            {caracteristicas.length > 0 ? (
+              caracteristicas.map((c, i) => (
+                <div key={i} className="feature-card">
+                  <div className="feature-icon-container" style={{ background: c.color || '#cccccc' }}>
+                    <FontAwesomeIcon icon={getIconComponent(c.imagen)} />
+                  </div>
+                  <div className="feature-title">{c.nombre}</div>
+                  <div className="feature-description">{c.descripcion}</div>
+                </div>
+              ))
+            ) : (
+              <div className="no-features-message">
+                Este servicio aún no tiene características definidas. Por favor, contáctenos para conocer más detalles sobre los beneficios y características específicas de este servicio.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+      
+      {/* Banner Section - Outside servicio-card */}
+      {bannerImage && (
+        <div className="servicio-banner">
+          <img 
+            src={bannerImage} 
+            alt="Banner promocional" 
+            className="banner-image"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

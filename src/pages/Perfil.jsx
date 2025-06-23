@@ -24,25 +24,23 @@ import displayImage from '../assets/display1.jpeg';
 import useAuth from '../hooks/useAuth';
 
 const Perfil = () => {
-  const { user, isAuthenticated, isAdmin, loading, logout } = useAuth();
-  const [editMode, setEditMode] = useState({
-    nombres: false,
-    apellidos: false,
-    telefono: false,
-    correo: false
-  });
+  const { user, isAuthenticated, isAdmin, loading, logout, getUserProfile } = useAuth();
+  const [isEditMode, setIsEditMode] = useState(false);
   const [editData, setEditData] = useState({
     nombres: '',
     apellidos: '',
     telefono: '',
-    correo: ''
+    correo: '',
+    numero_documento: '',
+    ciudad: ''
   });
   const [editing, setEditing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [fullUserProfile, setFullUserProfile] = useState(null);
   
-  // Check admin status on component mount
+  // Check admin status and fetch full profile on component mount
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (isAuthenticated()) {
@@ -56,8 +54,22 @@ const Perfil = () => {
       }
     };
     
+    const fetchFullProfile = async () => {
+      if (isAuthenticated()) {
+        try {
+          const profileResult = await getUserProfile();
+          if (profileResult.success) {
+            setFullUserProfile(profileResult.data);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      }
+    };
+    
     checkAdminStatus();
-  }, [isAuthenticated, isAdmin]);
+    fetchFullProfile();
+  }, []); // Empty dependency array - run only once on mount
 
   // Redirect if not authenticated
   if (!isAuthenticated() && !loading) {
@@ -79,33 +91,35 @@ const Perfil = () => {
   ]);
 
   useEffect(() => {
-    if (user) {
+    if (fullUserProfile) {
       setEditData({
-        nombres: user.nombres || '',
-        apellidos: user.apellidos || '',
-        telefono: user.telefono || '',
-        correo: user.correo || ''
+        nombres: fullUserProfile.nombres || '',
+        apellidos: fullUserProfile.apellidos || '',
+        telefono: fullUserProfile.telefono || '',
+        correo: fullUserProfile.correo || '',
+        numero_documento: fullUserProfile.numero_documento || '',
+        ciudad: fullUserProfile.ciudad || ''
       });
     }
-  }, [user]);
+  }, [fullUserProfile]);
 
-  const handleEdit = (field) => {
-    setEditMode({
-      ...editMode,
-      [field]: true
-    });
+  const handleEditClick = () => {
+    setIsEditMode(true);
   };
 
-  const handleCancel = (field) => {
-    setEditMode({
-      ...editMode,
-      [field]: false
-    });
-    // Reset the field to original value
-    setEditData({
-      ...editData,
-      [field]: user[field] || ''
-    });
+  const handleCancel = () => {
+    setIsEditMode(false);
+    // Reset all fields to original values
+    if (fullUserProfile) {
+      setEditData({
+        nombres: fullUserProfile.nombres || '',
+        apellidos: fullUserProfile.apellidos || '',
+        telefono: fullUserProfile.telefono || '',
+        correo: fullUserProfile.correo || '',
+        numero_documento: fullUserProfile.numero_documento || '',
+        ciudad: fullUserProfile.ciudad || ''
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -116,24 +130,50 @@ const Perfil = () => {
     });
   };
 
-  const handleSave = (field) => {
-    // Here you would typically call an API to update the user data
-    setEditing(true);
-    
-    // Simulate an API call
-    setTimeout(() => {
-      setEditMode({
-        ...editMode,
-        [field]: false
+  const handleSave = async () => {
+    try {
+      setEditing(true);
+      setErrorMessage('');
+      
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(editData),
       });
-      setSuccessMessage(`Se ha actualizado tu ${getFieldLabel(field)} correctamente.`);
-      setEditing(false);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar perfil');
+      }
+
+      // Update the full profile with new data
+      setFullUserProfile(data);
+      setIsEditMode(false);
+      setSuccessMessage('Perfil actualizado correctamente');
       
       // Clear success message after a few seconds
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-    }, 1000);
+      
+    } catch (err) {
+      setErrorMessage(err.message);
+      setTimeout(() => {
+        setErrorMessage('');
+      }, 5000);
+    } finally {
+      setEditing(false);
+    }
   };
 
   const getFieldLabel = (field) => {
@@ -217,6 +257,18 @@ const Perfil = () => {
         <div className="perfil-content">
           <h2 className="perfil-title">Mi perfil</h2>
           <p className="perfil-subtitle">Aquí podrás actualizar la información de tu cuenta</p>
+          
+          {successMessage && (
+            <div className="perfil-success-message">
+              {successMessage}
+            </div>
+          )}
+          
+          {errorMessage && (
+            <div className="perfil-error-message">
+              {errorMessage}
+            </div>
+          )}
           <div className="perfil-card-outer">
             <div className="perfil-card">
               <div className="perfil-avatar-big">
@@ -226,28 +278,84 @@ const Perfil = () => {
               <div className="perfil-card-info">
                 <div className="perfil-card-header">
                   <span className="perfil-card-name">{formatFullName()}</span>
-                  <button className="perfil-card-edit-btn">Editar</button>
+                  {!isEditMode ? (
+                    <button className="perfil-card-edit-btn" onClick={handleEditClick}>Editar</button>
+                  ) : (
+                    <button className="perfil-card-edit-btn" onClick={handleCancel}>Cancelar</button>
+                  )}
                 </div>
                 <div className="perfil-card-sub">Apellidos y Nombre</div>
                 <div className="perfil-card-fields">
                 <div>
-                    <div>{user?.correo}</div>
+                    {isEditMode ? (
+                      <input
+                        type="email"
+                        name="correo"
+                        value={editData.correo}
+                        onChange={handleChange}
+                        className="perfil-field-input"
+                        placeholder="Email"
+                      />
+                    ) : (
+                      <div className={!fullUserProfile?.correo ? 'perfil-field-na' : ''}>{fullUserProfile?.correo || 'NA'}</div>
+                    )}
                     <div className="perfil-card-label">Email</div>
                   </div>
                   <div>
-                    <div>{user?.numero_documento}</div>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        name="numero_documento"
+                        value={editData.numero_documento}
+                        onChange={handleChange}
+                        className="perfil-field-input"
+                        placeholder="Cédula/RUC"
+                      />
+                    ) : (
+                      <div className={!fullUserProfile?.numero_documento ? 'perfil-field-na' : ''}>{fullUserProfile?.numero_documento || 'NA'}</div>
+                    )}
                     <div className="perfil-card-label">Cédula/RUC</div>
                   </div>
                   <div>
-                    <div>{user?.telefono}</div>
+                    {isEditMode ? (
+                      <input
+                        type="tel"
+                        name="telefono"
+                        value={editData.telefono}
+                        onChange={handleChange}
+                        className="perfil-field-input"
+                        placeholder="Celular"
+                      />
+                    ) : (
+                      <div className={!fullUserProfile?.telefono ? 'perfil-field-na' : ''}>{fullUserProfile?.telefono || 'NA'}</div>
+                    )}
                     <div className="perfil-card-label">Celular</div>
                   </div>
                   <div>
-                    <div>{user?.ciudad}</div>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        name="ciudad"
+                        value={editData.ciudad}
+                        onChange={handleChange}
+                        className="perfil-field-input"
+                        placeholder="Ciudad"
+                      />
+                    ) : (
+                      <div className={!fullUserProfile?.ciudad ? 'perfil-field-na' : ''}>{fullUserProfile?.ciudad || 'NA'}</div>
+                    )}
                     <div className="perfil-card-label">Ciudad</div>
                   </div>
                 </div>
-                <button className="perfil-card-save-btn">Guardar <FontAwesomeIcon icon={faCheckCircle} /></button>
+                {isEditMode && (
+                  <button 
+                    className="perfil-card-save-btn" 
+                    onClick={handleSave}
+                    disabled={editing}
+                  >
+                    {editing ? 'Guardando...' : 'Guardar'} <FontAwesomeIcon icon={faCheckCircle} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
