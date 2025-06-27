@@ -2071,7 +2071,8 @@ select.form-control {
   .add-button,
   .add-category-button,
   .add-caracteristica-button,
-  .assign-caracteristica-button {
+  .assign-caracteristica-button,
+  .banner-upload-button {
     width: 100%;
     justify-content: center;
   }
@@ -2104,6 +2105,36 @@ select.form-control {
 }
 
 .manage-caracteristicas-button:active {
+  transform: translateY(1px);
+}
+
+.banner-upload-button {
+  background-color: #e8f4fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(25, 118, 210, 0.1);
+}
+
+.banner-upload-button svg {
+  margin-right: 8px;
+  color: #1976d2;
+}
+
+.banner-upload-button:hover {
+  background-color: #d1e7fd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(25, 118, 210, 0.15);
+}
+
+.banner-upload-button:active {
   transform: translateY(1px);
 }
 

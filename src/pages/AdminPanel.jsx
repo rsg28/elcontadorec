@@ -41,6 +41,7 @@ import {
   ServiceImageModal,
   ChangeCategoryIconModal
 } from '../components/admin/modals';
+import BannerUploadModal from '../components/admin/modals/BannerUploadModal';
 import { filterItems, isFilterActive, highlightText, formatPrice } from '../components/admin/utils/filterUtils.jsx';
 import { commonIcons, DEFAULT_CATEGORY_COLOR } from '../components/admin/utils/commonIcons.jsx';
 
@@ -148,7 +149,9 @@ const AdminPanel = () => {
     setServiceImageState,
     isInitialLoadRef,
     changeCategoryIconState,
-    setChangeCategoryIconState
+    setChangeCategoryIconState,
+    bannerUploadState,
+    setBannerUploadState
   } = useAdminPanelState();
   
   // Use extracted business logic hooks
@@ -653,6 +656,20 @@ const AdminPanel = () => {
     }
   };
 
+  // Banner upload handlers
+  const handleOpenBannerUpload = () => {
+    setBannerUploadState({ show: true, isLoading: false });
+  };
+
+  const handleCloseBannerUpload = () => {
+    setBannerUploadState({ show: false, isLoading: false });
+  };
+
+  const handleBannerUploadSuccess = (data) => {
+    success('Banner subido exitosamente');
+    handleCloseBannerUpload();
+  };
+
   if (adminChecking) {
     return <LoadingAnimation />;
   }
@@ -836,7 +853,13 @@ const AdminPanel = () => {
               onClick={() => setVerCaracteristicasState({ show: true })}
             >
               <FontAwesomeIcon icon={faListAlt} /> Gestionar Características
-          </button>
+            </button>
+            <button 
+              className={styles['banner-upload-button']}
+              onClick={handleOpenBannerUpload}
+            >
+              <FontAwesomeIcon icon={faImage} /> Subir Banner
+            </button>
           </div>
         </div>
         
@@ -1342,6 +1365,14 @@ const AdminPanel = () => {
           categoriaName={changeCategoryIconState.categoriaName}
           currentIcon={changeCategoryIconState.currentIcon}
           isLoading={changeCategoryIconState.isLoading}
+        />
+      )}
+      
+      {bannerUploadState.show && (
+        <BannerUploadModal
+          isOpen={bannerUploadState.show}
+          onClose={handleCloseBannerUpload}
+          onSuccess={handleBannerUploadSuccess}
         />
       )}
       

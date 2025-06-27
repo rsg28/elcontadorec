@@ -127,6 +127,12 @@ export const useAdminPanelState = () => {
     currentIcon: '',
     isLoading: false
   });
+
+  // Banner upload modal state
+  const [bannerUploadState, setBannerUploadState] = useState({
+    show: false,
+    isLoading: false
+  });
   
   // Initial load reference to prevent unnecessary re-renders
   const isInitialLoadRef = useRef(true);
@@ -187,6 +193,8 @@ export const useAdminPanelState = () => {
     setServiceImageState,
     changeCategoryIconState,
     setChangeCategoryIconState,
+    bannerUploadState,
+    setBannerUploadState,
     
     // Refs
     isInitialLoadRef
