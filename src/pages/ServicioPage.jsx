@@ -164,7 +164,7 @@ const ServicioPage = () => {
     <div className="servicio-page-container">
       <div className="servicio-category-container">
         <div className="servicio-category-title">
-          {currentCategoria.nombre.toUpperCase()}
+          {currentCategoria.nombre.toUpperCase()} &gt; {currentServicio.nombre}
         </div>
       </div>
       <div className="servicio-card">
@@ -260,7 +260,7 @@ const ServicioPage = () => {
               ))
             ) : (
               <div className="no-features-message">
-                Este servicio aún no tiene características definidas. Por favor, contáctenos para conocer más detalles sobre los beneficios y características específicas de este servicio.
+                Este servicio aún no tiene características definidas.
               </div>
             )}
           </div>

@@ -14,7 +14,7 @@
 }
 
 .servicio-category-title {
-  color: #21707b;
+  color: #1e5a65;
   font-weight: 700;
   font-size: 25px;
   margin-bottom: 12px;
@@ -70,7 +70,7 @@
 }
 
 .servicio-title {
-  color: #21707b;
+  color: #1e5a65;
   font-weight: 700;
   font-size: 36px;
   margin: 0;
@@ -141,6 +141,7 @@
 }
 
 .feature-title {
+  color: #1e5a65;
   font-weight: 700;
   font-size: 16px;
   margin-bottom: 6px;
@@ -286,8 +287,11 @@
   border-radius: 12px;
   border-left: 4px solid #ddd;
   text-align: center;
-  width: 100%;
-  margin: 10px 0;
+  width: 50%;
+  max-width: 400px;
+  margin: 10px auto;
+  position: relative;
+  right: 200px;
   font-size: 16px;
   line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
