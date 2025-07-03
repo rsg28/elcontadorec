@@ -83,16 +83,27 @@ const Carrito = () => {
   const handleSubmit = (values, { setSubmitting }) => {
     console.log('Form submitted:', values);
     setSubmitting(false);
+    // Store form values for payment
+    setFacturaFormValues(values);
   };
   
-/* 
-  // Manejar cambio de método de pago
-  const handlePaymentMethodChange = (method) => {
-    setFormData({
-      ...formData,
-      metodoPago: method
-    });
-  };*/
+  // State to hold validated form values for payment
+  const [facturaFormValues, setFacturaFormValues] = useState(null);
+  
+  // Handle payment errors
+  const [paymentError, setPaymentError] = useState(null);
+
+  // Handle payment submission
+  const handlePaymentSubmit = (paymentResult) => {
+    if (paymentResult.success) {
+      // Handle successful payment
+      console.log('Payment successful:', paymentResult);
+      // Could redirect to success page or show success message
+    } else {
+      // Handle payment error
+      setPaymentError(paymentResult.error || 'Error en el proceso de pago');
+    }
+  };
 
   // Handle form validation
   const handleFormValidation = (isValid) => {
@@ -106,6 +117,19 @@ const Carrito = () => {
       return;
     }
     setActiveSection(section);
+  };
+
+  // Payment error styles
+  const paymentErrorStyles = {
+    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+    border: '1px solid rgba(220, 53, 69, 0.2)',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '20px',
+    textAlign: 'center',
+    color: '#dc3545',
+    fontSize: '14px',
+    fontWeight: '500',
   };
 
   return (
@@ -278,7 +302,15 @@ const Carrito = () => {
               </Formik>
             </div>
             <div className={`pago-section ${activeSection === 'payment' ? 'active' : ''}`}>
-              <Cards />
+              {paymentError && (
+                <div style={paymentErrorStyles}>
+                  {paymentError}
+                </div>
+              )}
+              <Cards 
+                facturaFormValues={facturaFormValues} 
+                onPaymentSubmit={handlePaymentSubmit}
+              />
             </div>
           </div>
         </div>

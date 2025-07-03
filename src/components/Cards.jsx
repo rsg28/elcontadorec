@@ -118,18 +118,22 @@ const cardsDummy = {
     "result_size": 3
 }
 
-const Cards = ({facturaFormValues}) => {
-    const { loading, error, getAllCards, deleteCard } = usePaymentez();
+const Cards = ({ facturaFormValues, onPaymentSubmit }) => {
+    const { loading, error, getAllCards, deleteCard, debitPaymentWithToken } = usePaymentez();
     const [selectedCardToken, setSelectedCardToken] = useState(null);
     const [cards, setCards] = useState({cards: []});
     const [localError, setLocalError] = useState(null);
-
+    const [loadingNewCard, setLoadingNewCard] = useState(false);
+    const [loadingCards, setLoadingCards] = useState(false);
+    
     const loadCards = async () => {
         try {
+            console.log("Loading cards...");
             setLocalError(null);
             const response = await getAllCards();
             // Ensure we always have a valid cards object structure
             setCards(response && typeof response === 'object' ? response : { cards: [] });
+            console.log("Cards loaded:", response);
         } catch (err) {
             console.error('Error loading cards:', err);
             setLocalError('Error al cargar las tarjetas. Por favor, intente nuevamente.');
@@ -157,18 +161,92 @@ const Cards = ({facturaFormValues}) => {
         return CARD_BRANDS[type] || CARD_BRANDS.default;
     };
 
-    const handlePay = () => {
-        // Payment logic will be implemented here
-        console.log('Payment initiated with card token:', selectedCardToken);
+    const handlePay = async () => {
+        if (!selectedCardToken) {
+            setLocalError('Por favor seleccione una tarjeta');
+            return;
+        }
+
+        
+        try {
+            // in theis section create a new item in the order table 
+            // and get the id of the new item
+
+
+            // Payment logic will be implemented here
+            console.log('Payment initiated with card token:', selectedCardToken);
+            console.log('Using form data:', facturaFormValues);
+            const order = {
+                
+                description: facturaFormValues.description,
+                dev_reference: "dummy value, create ordeer item",
+                vat: parseFloat((facturaFormValues.amount * 0.15).toFixed(2)),
+                installments: "value, create list of installments",
+                amount: facturaFormValues.amount,
+                tax_percentage: 12, //check with nuvei
+            };
+
+            const card = {
+                token: selectedCardToken,
+            }
+
+            const response = await debitPaymentWithToken(order, card);
+
+            console.log("Payment response:", response);
+
+            // in this section create a new item in the 
+            // payments table
+
+            // in this section update the payment status of the order item
+            
+            // Here you would make the actual API call to process the payment
+            // For now, simulate success
+            if (onPaymentSubmit) {
+                onPaymentSubmit({
+                    success: true,
+                    token: selectedCardToken,
+                    data: facturaFormValues
+                });
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            setLocalError('Error al procesar el pago. Por favor, intente nuevamente.');
+            
+            if (onPaymentSubmit) {
+                onPaymentSubmit({
+                    success: false,
+                    error: 'Error al procesar el pago'
+                });
+            }
+        }
     };
 
+    // Load cards when loadingCards state changes
     useEffect(() => {
-        loadCards();
+        if (loadingCards) {
+            loadCards()
+                .then(() => {
+                    setLoadingCards(false);
+                })
+                .catch(err => {
+                    console.error("Error loading cards:", err);
+                    setLoadingCards(false);
+                    setLocalError('Error al cargar las tarjetas. Por favor, intente nuevamente.');
+                });
+        }
+    }, [loadingCards]);
+
+    // Load cards on component mount
+    useEffect(() => {
+        loadCards().catch(err => {
+            console.error("Error during initial card load:", err);
+            setLocalError('Error al cargar las tarjetas. Por favor, intente nuevamente.');
+        });
     }, []);
 
     return (
         <div style={styles.container}>
-            {loading && <LoadingAnimation />}
+            {(loading || loadingNewCard) && <LoadingAnimation />}
             {(error || localError) && (
                 <div style={styles.errorContainer}>
                     <p style={styles.errorText}>{error || localError}</p>
@@ -230,7 +308,10 @@ const Cards = ({facturaFormValues}) => {
                     )}
                 </div>
             </div>
-            <TokenizationForm />
+            <TokenizationForm 
+                setLoadingNewCard={setLoadingNewCard} 
+                setLoadCards={setLoadingCards}
+                />
             <div style={styles.paymentButtonContainer}>
                 <button 
                     onClick={handlePay}
