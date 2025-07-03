@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faSearch, faDollarSign, faFilter } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faSearch, faDollarSign, faFilter, faSignInAlt, faUserPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
 import useSubcategorias from '../hooks/useSubcategorias';
 import useNotifications from '../hooks/useNotifications';
+import useAuth from '../hooks/useAuth';
 import LoadingAnimation from '../components/loadingAnimation';
 import './CategoriaPage.css';
 import displayDefault from '../assets/display1.jpeg';
@@ -15,9 +16,13 @@ const CategoriaPage = () => {
   const { categoriaId } = useParams(); // Obtiene el ID de la categoría de la URL
   const navigate = useNavigate();
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
+  const { isAuthenticated } = useAuth();
   
   // Add state for button loading
   const [isNavigating, setIsNavigating] = useState(false);
+  
+  // State for auth modal
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Hooks for data
   const { 
@@ -166,6 +171,40 @@ const CategoriaPage = () => {
     return parseFloat(price || 0).toFixed(2);
   };
   
+  // Handle add to cart click
+  const handleAddToCart = (servicioId) => {
+    if (!isAuthenticated()) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    // Check if price is selected for authenticated users
+    if (!selectedPrices[servicioId] || selectedPrices[servicioId] <= 0) {
+      showError('Por favor seleccione una subcategoría para obtener el precio');
+      return;
+    }
+    
+    // TODO: Implement actual add to cart logic
+    success('Producto agregado al carrito');
+  };
+  
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    setShowAuthModal(false);
+    navigate('/login');
+  };
+  
+  // Handle register redirect
+  const handleRegisterRedirect = () => {
+    setShowAuthModal(false);
+    navigate('/register');
+  };
+  
+  // Handle close auth modal
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+  };
+  
   // Initialize prices to 0 only when the category changes
   useEffect(() => {
     const initialPrices = {};
@@ -306,24 +345,24 @@ const CategoriaPage = () => {
             <div key={servicio.id_servicio} className="service-card">
               {/* Column 1: Image */}
               <div className="service-card-image">
-                {serviceInfo.imagen_url ? (
-                  <img 
-                    src={serviceInfo.imagen_url} 
-                    alt={serviceInfo.nombre} 
-                    className="service-card-img"
-                    onError={(e) => {
-                      e.target.src = displayDefault;
-                      e.target.alt = "Imagen por defecto";
-                    }}
-                  />
-                ) : (
-                  <img 
-                    src={displayDefault} 
-                    alt="Imagen por defecto" 
-                    className="service-card-img" 
-                  />
-                )}
-              </div>
+                  {serviceInfo.imagen_url ? (
+                    <img 
+                      src={serviceInfo.imagen_url} 
+                      alt={serviceInfo.nombre} 
+                      className="service-card-img"
+                      onError={(e) => {
+                        e.target.src = displayDefault;
+                        e.target.alt = "Imagen por defecto";
+                      }}
+                    />
+                  ) : (
+                    <img 
+                      src={displayDefault} 
+                      alt="Imagen por defecto" 
+                      className="service-card-img" 
+                    />
+                  )}
+                </div>
               
               {/* Column 2: Details */}
               <div className="service-card-details">
@@ -364,14 +403,46 @@ const CategoriaPage = () => {
                   </div>
                   <span>declaración(es)</span>
                 </div>
-                <button className="service-card-cart-btn">
-                  Agregar al carrito <i className="fa fa-shopping-cart"></i>
-                </button>
+                <button 
+                  className="service-card-cart-btn"
+                  onClick={() => handleAddToCart(servicio.id_servicio)}
+                  disabled={isAuthenticated() && (!selectedPrices[servicio.id_servicio] || selectedPrices[servicio.id_servicio] <= 0)}
+                >
+                    Agregar al carrito <i className="fa fa-shopping-cart"></i>
+                  </button>
               </div>
             </div>
           ))
         )}
       </div>
+      
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="auth-modal-overlay" onClick={handleCloseAuthModal}>
+          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="auth-modal-header">
+              <h2>Iniciar Sesión Requerido</h2>
+              <button className="auth-modal-close" onClick={handleCloseAuthModal}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="auth-modal-content">
+              <p>Para agregar productos al carrito necesitas tener una cuenta en nuestra plataforma.</p>
+              <div className="auth-modal-buttons">
+                <button className="auth-modal-btn login-btn" onClick={handleLoginRedirect}>
+                  <FontAwesomeIcon icon={faSignInAlt} />
+                  Iniciar Sesión
+                </button>
+                <button className="auth-modal-btn register-btn" onClick={handleRegisterRedirect}>
+                  <FontAwesomeIcon icon={faUserPlus} />
+                  Registrarse
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <ToastContainer />
     </div>
   );

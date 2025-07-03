@@ -118,7 +118,7 @@ export const useAdminPanelState = () => {
     categoria: null,
     isLoading: false
   });
-
+  
   // Change category icon modal state
   const [changeCategoryIconState, setChangeCategoryIconState] = useState({
     show: false,

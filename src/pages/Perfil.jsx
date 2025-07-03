@@ -111,14 +111,14 @@ const Perfil = () => {
     setIsEditMode(false);
     // Reset all fields to original values
     if (fullUserProfile) {
-      setEditData({
+    setEditData({
         nombres: fullUserProfile.nombres || '',
         apellidos: fullUserProfile.apellidos || '',
         telefono: fullUserProfile.telefono || '',
         correo: fullUserProfile.correo || '',
         numero_documento: fullUserProfile.numero_documento || '',
         ciudad: fullUserProfile.ciudad || ''
-      });
+    });
     }
   };
 
@@ -132,7 +132,7 @@ const Perfil = () => {
 
   const handleSave = async () => {
     try {
-      setEditing(true);
+    setEditing(true);
       setErrorMessage('');
       
       const token = localStorage.getItem('authToken');
@@ -240,7 +240,7 @@ const Perfil = () => {
                   <FontAwesomeIcon icon={faTools} />
                 </div>
                 Cerrar sesión
-              </button>
+                  </button>
             </li>
             {isUserAdmin && (
               <li className="sidebar-admin">
