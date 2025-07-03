@@ -1,648 +1,60 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faChevronDown, faChevronRight, faSearch, faDollarSign, faFilter, faTimes, faSave, faCheck, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faPlus, faEdit, faTrash, faChevronDown, faChevronRight, 
+  faSearch, faDollarSign, faFilter, faTimes, faSave, 
+  faSpinner, faExclamationTriangle, faPalette, faListAlt, 
+  faLink, faFolder, faFileInvoice, faPaperPlane, faLock, 
+  faShieldAlt, faUsers, faCalculator, faChartLine, 
+  faMoneyBill, faReceipt, faHandHoldingDollar, faWallet, 
+  faCoins, faCreditCard, faPercentage, faCheck, faStar, 
+  faHeart, faThumbsUp, faBell, faImage
+} from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+
+// Import custom hooks
 import useItems from '../hooks/useItems';
 import { useAllServicios } from '../hooks/useServicios';
 import useSubcategorias from '../hooks/useSubcategorias';
 import useCategorias from '../hooks/useCategorias';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
+import useCaracteristicas from '../hooks/useCaracteristicas';
+
+// Import extracted components and utilities
+import { useAdminPanelState } from '../components/admin/hooks/useAdminPanelState';
+import { useItemOperations } from '../components/admin/hooks/useItemOperations';
+import { useServiceOperations } from '../components/admin/hooks/useServiceOperations';
+import { useCategoryOperations } from '../components/admin/hooks/useCategoryOperations';
+import { 
+  ItemFormModal, 
+  CreateCategoryModal, 
+  DeleteServiceModal,
+  ColorPickerModal,
+  DeleteCategoryModal,
+  DeleteItemModal,
+  CreateCaracteristicaModal,
+  AssignCaracteristicaModal,
+  DeleteCaracteristicaModal,
+  VerCaracteristicasModal,
+  EditServiceDescriptionModal,
+  ServiceImageModal,
+  ChangeCategoryIconModal
+} from '../components/admin/modals';
+import BannerUploadModal from '../components/admin/modals/BannerUploadModal';
+import { filterItems, isFilterActive, highlightText, formatPrice } from '../components/admin/utils/filterUtils.jsx';
+import { commonIcons, DEFAULT_CATEGORY_COLOR } from '../components/admin/utils/commonIcons.jsx';
+
+// Import styles and other components
 import 'react-toastify/dist/ReactToastify.css';
 import styles from './AdminPanel.module.css';
-
-// Item form modal component
-const ItemFormModal = ({ show, onClose, onSave, servicios, allSubcategorias, allCategorias, editItem = null }) => {
-  // Initialize form state
-  const [formData, setFormData] = useState({
-    precio: '',
-    servicio: '',
-    subcategoria: '',
-    categoria: '' // Add categoria field
-  });
-
-  // State for filtered services based on selected category
-  const [filteredServicios, setFilteredServicios] = useState([]);
-
-  // State for autocomplete suggestions
-  const [suggestions, setSuggestions] = useState({
-    servicios: [],
-    subcategorias: []
-  });
-
-  // References for input elements
-  const servicioInputRef = React.useRef(null);
-  const subcategoriaInputRef = React.useRef(null);
-  
-  // Reset form when modal is opened/closed or editItem changes
-  useEffect(() => {
-    if (show) {
-      if (editItem) {
-        // Find service to get its category
-        const service = servicios.find(s => s.servicio_nombre === editItem.servicio_nombre);
-        const categoryId = service ? service.id_categoria : '';
-        
-        // Fill form with existing item data if editing
-        setFormData({
-          precio: editItem.precio?.toString() || '',
-          servicio: editItem.servicio_nombre || '',
-          subcategoria: editItem.subcategoria_nombre || '',
-          categoria: categoryId?.toString() || ''
-        });
-        
-        // Filter services by the selected category
-        if (categoryId) {
-          const filtered = servicios.filter(s => s.id_categoria === categoryId);
-          setFilteredServicios(filtered);
-        } else {
-          setFilteredServicios([]);
-        }
-      } else {
-        // Reset form for new item
-        setFormData({
-          precio: '',
-          servicio: '',
-          subcategoria: '',
-          categoria: ''
-        });
-        setFilteredServicios([]);
-      }
-      // Clear suggestions
-      setSuggestions({
-        servicios: [],
-        subcategorias: []
-      });
-    }
-  }, [show, editItem, servicios]);
-
-  // Update filtered services when category changes
-  useEffect(() => {
-    if (formData.categoria) {
-      const categoryId = parseInt(formData.categoria);
-      const filtered = servicios.filter(s => s.id_categoria === categoryId);
-      setFilteredServicios(filtered);
-      
-      // Clear servicio if the selected servicio doesn't belong to the new category
-      if (formData.servicio) {
-        const servicioExists = filtered.some(s => 
-          s.nombre.toLowerCase() === formData.servicio.toLowerCase()
-        );
-        
-        if (!servicioExists) {
-          setFormData(prev => ({ ...prev, servicio: '' }));
-        }
-      }
-    } else {
-      setFilteredServicios([]);
-      
-      // Clear servicio when no category is selected
-      if (formData.servicio) {
-        setFormData(prev => ({ ...prev, servicio: '' }));
-      }
-    }
-  }, [formData.categoria, servicios]);
-
-  // Handle click outside for suggestion dropdowns
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (servicioInputRef.current && !servicioInputRef.current.contains(event.target)) {
-        setSuggestions(prev => ({ ...prev, servicios: [] }));
-      }
-      if (subcategoriaInputRef.current && !subcategoriaInputRef.current.contains(event.target)) {
-        setSuggestions(prev => ({ ...prev, subcategorias: [] }));
-      }
-    }
-
-    // Handle ESC key press
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setSuggestions({ servicios: [], subcategorias: [] });
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-  
-  // Handle form input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    // Special validation for precio (only numbers and decimal point)
-    if (name === 'precio') {
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setFormData(prev => ({ ...prev, [name]: value }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-
-      // Update suggestions for servicio and subcategoria inputs
-      if (name === 'servicio') {
-        // Get filtered suggestions based on the selected category
-        const servicioSuggestions = filteredServicios
-          .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
-          .map(s => ({
-            id: s.id_servicio,
-            nombre: s.nombre,
-            categoria: s.id_categoria
-          }));
-        
-        // Check if we have services with same name in other categories
-        if (value.trim() !== '') {
-          // Find services with same name in other categories
-          const servicesInOtherCategories = servicios
-            .filter(s => 
-              s.nombre.toLowerCase().includes(value.toLowerCase()) && 
-              s.id_categoria !== parseInt(formData.categoria)
-            )
-            .map(s => {
-              // Find category name
-              const cat = allCategorias.find(c => c.id_categoria === s.id_categoria);
-              return {
-                id: s.id_servicio,
-                nombre: s.nombre,
-                categoria: s.id_categoria,
-                categoriaName: cat ? cat.nombre : 'Otra categoría'
-              };
-            });
-          
-          // Add warning for duplicate names in other categories
-          if (servicesInOtherCategories.length > 0) {
-            console.log('Servicios con mismo nombre en otras categorías:', servicesInOtherCategories);
-          }
-        }
-        
-        setSuggestions(prev => ({ ...prev, servicios: servicioSuggestions }));
-      } else if (name === 'subcategoria') {
-        const filteredSubcategorias = allSubcategorias
-          .filter(s => s.nombre.toLowerCase().includes(value.toLowerCase()))
-          .map(s => s.nombre);
-        setSuggestions(prev => ({ ...prev, subcategorias: filteredSubcategorias }));
-      }
-    }
-  };
-
-  // Handle selection from suggestions
-  const handleSuggestionSelect = (type, value) => {
-    if (type === 'servicio') {
-      // Find the service and ensure it matches the selected category
-      const selectedService = filteredServicios.find(s => s.nombre === value);
-      if (selectedService) {
-        setFormData(prev => ({ ...prev, [type]: value }));
-      } else {
-        // If not found in current category, check if it exists in another category
-        const serviceInOtherCategory = servicios.find(s => 
-          s.nombre === value && s.id_categoria !== parseInt(formData.categoria)
-        );
-        
-        if (serviceInOtherCategory) {
-          // Warn user about duplicate service name in another category
-          alert(`Nota: "${value}" ya existe en otra categoría. Creando nuevo servicio en la categoría actual.`);
-        }
-        setFormData(prev => ({ ...prev, [type]: value }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [type]: value }));
-    }
-    
-    setSuggestions(prev => ({ ...prev, [type + 's']: [] }));
-    
-    // Focus on the next field
-    if (type === 'servicio' && subcategoriaInputRef.current) {
-      subcategoriaInputRef.current.querySelector('input').focus();
-    }
-  };
-  
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validar que tengamos datos requeridos
-    if (!formData.categoria) {
-      alert('Por favor seleccione una categoría');
-      return;
-    }
-    
-    if (!formData.servicio || !formData.servicio.trim()) {
-      alert('Por favor ingrese un servicio');
-      return;
-    }
-    
-    if (!formData.subcategoria || !formData.subcategoria.trim()) {
-      alert('Por favor ingrese una subcategoría');
-      return;
-    }
-    
-    if (!formData.precio || isNaN(parseFloat(formData.precio)) || parseFloat(formData.precio) < 0) {
-      alert('Por favor ingrese un precio válido');
-      return;
-    }
-    
-    // Find or create servicio ID
-    let servicioId = null;
-    const existingServicio = servicios.find(s => 
-      s.nombre.toLowerCase() === formData.servicio.toLowerCase() &&
-      s.id_categoria === parseInt(formData.id_categoria || formData.categoria)
-    );
-    
-    if (existingServicio) {
-      servicioId = existingServicio.id_servicio;
-      console.log(`Usando servicio existente: ${existingServicio.nombre} (ID: ${servicioId})`);
-    } else {
-      // We'll need to create a new servicio on the backend
-      // For now, we'll pass the name and handle creation in the backend
-      servicioId = formData.servicio;
-      console.log(`Se creará un nuevo servicio: ${formData.servicio}`);
-    }
-    
-    // Find or create subcategoria ID
-    let subcategoriaId = null;
-    const existingSubcategoria = allSubcategorias.find(s => 
-      s.nombre.toLowerCase() === formData.subcategoria.toLowerCase()
-    );
-    
-    if (existingSubcategoria) {
-      subcategoriaId = existingSubcategoria.id_subcategoria;
-      console.log(`Usando subcategoría existente: ${existingSubcategoria.nombre} (ID: ${subcategoriaId})`);
-    } else {
-      // We'll need to create a new subcategoria on the backend
-      // For now, we'll pass the name and handle creation in the backend
-      subcategoriaId = formData.subcategoria;
-      console.log(`Se creará una nueva subcategoría: ${formData.subcategoria}`);
-    }
-    
-    // Convert precio to number and process data
-    const processedData = {
-      nombre: formData.subcategoria, // Use subcategoria as the nombre
-      precio: parseFloat(formData.precio) || 0,
-      id_servicio: servicioId,
-      id_subcategoria: subcategoriaId,
-      servicio_nombre: formData.servicio,
-      subcategoria_nombre: formData.subcategoria,
-      id_categoria: formData.categoria // Pass the selected category ID
-    };
-    
-    console.log('Enviando datos de ítem para guardar:', processedData);
-    onSave(processedData, editItem?.id_item);
-  };
-
-  // Handle key event for navigating between fields
-  const handleKeyDown = (e, fieldName) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      
-      if (fieldName === 'categoria') {
-        if (servicioInputRef.current) {
-          servicioInputRef.current.querySelector('input').focus();
-        }
-      } else if (fieldName === 'servicio' && subcategoriaInputRef.current) {
-        subcategoriaInputRef.current.querySelector('input').focus();
-      } else if (fieldName === 'subcategoria') {
-        // Trigger form submission
-        handleSubmit(e);
-      }
-    }
-  };
-  
-  // Inside ItemFormModal component, add an effect for keydown events
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
-    // Only add the event listener when the modal is shown
-    if (show) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [show, onClose]);
-  
-  // Render the modal
-  if (!show) return null;
-  
-  return (
-    <div className="modal-overlay" onClick={(e) => {
-      // Prevent closing when clicking outside
-      // Commented out to prevent modal from closing when clicking outside
-      // if (e.target === e.currentTarget) {
-      //   onClose();
-      // }
-    }}>
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>{editItem ? 'Editar Ítem' : 'Agregar Nuevo Ítem'}</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-layout">
-            <div className="form-group">
-              <label htmlFor="categoria">
-                Categoría <span className="required-mark">*</span>
-              </label>
-              <select
-                id="categoria"
-                name="categoria"
-                value={formData.categoria}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, 'categoria')}
-                required
-                className="form-control"
-              >
-                <option value="">Seleccione una categoría</option>
-                {allCategorias.map(categoria => (
-                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="servicio">
-                Servicio <span className="required-mark">*</span>
-              </label>
-              <div className="autocomplete-container" ref={servicioInputRef}>
-                <input
-                  id="servicio"
-                  type="text"
-                  name="servicio"
-                  value={formData.servicio}
-                  onChange={handleChange}
-                  onKeyDown={(e) => handleKeyDown(e, 'servicio')}
-                  required
-                  placeholder={formData.categoria ? "Escriba para buscar o agregar servicio" : "Seleccione primero una categoría"}
-                  className="form-control"
-                  disabled={!formData.categoria}
-                  autoComplete="off"
-                />
-                {suggestions.servicios.length > 0 && (
-                  <ul className="suggestions-list">
-                    {suggestions.servicios.map((suggestion, index) => (
-                      <li 
-                        key={index}
-                        onClick={() => handleSuggestionSelect('servicio', suggestion.nombre)}
-                      >
-                        {suggestion.nombre}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {!formData.categoria && (
-                <div className="field-description">Primero seleccione una categoría para ver servicios disponibles</div>
-              )}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="subcategoria">
-                Subcategoría <span className="required-mark">*</span>
-              </label>
-              <div className="autocomplete-container" ref={subcategoriaInputRef}>
-                <input
-                  id="subcategoria"
-                  type="text"
-                  name="subcategoria"
-                  value={formData.subcategoria}
-                  onChange={handleChange}
-                  onKeyDown={(e) => handleKeyDown(e, 'subcategoria')}
-                  required
-                  placeholder="Escriba para buscar o agregar subcategoría"
-                  className="form-control"
-                  autoComplete="off"
-                />
-                {suggestions.subcategorias.length > 0 && (
-                  <ul className="suggestions-list">
-                    {suggestions.subcategorias.map((suggestion, index) => (
-                      <li 
-                        key={index}
-                        onClick={() => handleSuggestionSelect('subcategoria', suggestion)}
-                      >
-                        {suggestion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="precio">
-                Precio <span className="required-mark">*</span>
-              </label>
-              <div className="enhanced-price-input">
-                <span className="currency-symbol">$</span>
-                <input
-                  id="precio"
-                  type="text"
-                  name="precio"
-                  value={formData.precio}
-                  onChange={handleChange}
-                  required
-                  placeholder="0.00"
-                  inputMode="decimal"
-                  className="form-control price-control"
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="form-actions">
-            <button type="button" className="cancel-button" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="save-button">
-              <FontAwesomeIcon icon={faSave} /> {editItem ? 'Actualizar' : 'Guardar'} Ítem
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Modal para confirmar la eliminación de un servicio
-const DeleteServiceModal = ({ show, onClose, onConfirm, servicioName, itemCount, subcategoriaCount }) => {
-  // Add effect for escape key
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
-    // Only add the event listener when the modal is shown
-    if (show) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [show, onClose]);
-  
-  if (!show) return null;
-  
-  return (
-    <div className="modal-overlay" onClick={(e) => {
-      // Prevent closing when clicking outside
-      // if (e.target === e.currentTarget) {
-      //   onClose();
-      // }
-    }}>
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Eliminar Servicio</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
-        </div>
-        
-        <div className="modal-body">
-          <div className="warning-icon">
-            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
-          </div>
-          <p className="warning-message">
-            Está a punto de eliminar el servicio <strong>{servicioName}</strong> y todos sus elementos asociados.
-          </p>
-          <p className="warning-details">
-            Esta acción eliminará:
-          </p>
-          <ul className="warning-items">
-            <li>{subcategoriaCount} subcategoría(s)</li>
-            <li>{itemCount} ítem(s)</li>
-          </ul>
-          <p className="warning-permanent">
-            Esta acción no se puede deshacer. ¿Está seguro que desea continuar?
-          </p>
-        </div>
-        
-        <div className="modal-footer">
-          <button 
-            className="cancel-button" 
-            onClick={onClose}
-          >
-            Cancelar
-          </button>
-          <button 
-            className="delete-button" 
-            onClick={onConfirm}
-          >
-            <FontAwesomeIcon icon={faTrash} /> Eliminar Servicio
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Add DeleteItemModal component after DeleteServiceModal
-const DeleteItemModal = ({ show, onClose, onConfirm, itemName, isLastItem }) => {
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
-    if (show) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [show, onClose]);
-  
-  if (!show) return null;
-  
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Eliminar Ítem</h2>
-          <button className="close-button" onClick={onClose} aria-label="Cerrar">×</button>
-        </div>
-        
-        <div className="modal-body">
-          <div className="warning-icon">
-            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" color="#e74c3c" />
-          </div>
-          <p className="warning-message">
-            ¿Está seguro que desea eliminar este ítem?
-          </p>
-          {isLastItem && (
-            <div className="warning-details">
-              <p className="warning-text">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="warning-icon-small" />
-                Este es el último ítem de este servicio. Al eliminarlo, también se eliminará el servicio completo.
-              </p>
-            </div>
-          )}
-          <p className="warning-permanent">
-            Esta acción no se puede deshacer.
-          </p>
-        </div>
-        
-        <div className="modal-footer">
-          <button 
-            className="cancel-button" 
-            onClick={onClose}
-          >
-            Cancelar
-          </button>
-          <button 
-            className="delete-button" 
-            onClick={onConfirm}
-          >
-            <FontAwesomeIcon icon={faTrash} /> Eliminar {isLastItem ? 'Servicio' : 'Ítem'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Add a function to get color based on category
-const getCategoryColor = (categoryId) => {
-  // Map category IDs to specific colors - you can customize these colors
-  const colorMap = {
-    1: '#4285F4', // Blue for Empresas
-    2: '#EA4335', // Red for Personas
-    3: '#FBBC05', // Yellow/Orange for Contabilidad
-    4: '#34A853', // Green for Impuestos
-    5: '#9C27B0', // Purple for Asesoría
-    6: '#FF9800', // Orange for Capacitación
-    7: '#795548', // Brown for Otros servicios
-    8: '#00BCD4', // Cyan for another category
-    9: '#607D8B', // Blue Grey for another category
-    10: '#009688', // Teal for another category
-  };
-  
-  // If category ID is not in the map, generate a color based on the ID
-  if (!colorMap[categoryId]) {
-    // Generate a color based on the category ID
-    const hue = (categoryId * 137) % 360; // Use golden ratio to spread colors
-    return `hsl(${hue}, 70%, 45%)`; // Good saturation and lightness for readability
-  }
-  
-  return colorMap[categoryId] || '#757575'; // Default gray if category is null
-};
+import LoadingAnimation from '../components/loadingAnimation';
 
 const AdminPanel = () => {
   const { isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
+  
+  // Data hooks
   const { 
     items: itemsWithDetails, 
     loading: itemsLoading, 
@@ -652,98 +64,197 @@ const AdminPanel = () => {
     updateItem,
     refreshItems,
     updateLocalItems,
-    setItemsWithDetails
   } = useItems();
+  
   const { 
     servicios: allServicios, 
     loading: serviciosLoading, 
     error: serviciosError, 
     createServicio, 
-    createSubcategoria,
     deleteServicio,
     updateServicio,
     fetchAllServicios,
     setServicios: setAllServicios 
   } = useAllServicios();
-  const { subcategorias: allSubcategorias, loading: subcategoriasLoading, error: subcategoriasError } = useSubcategorias();
-  const { categorias: allCategorias, loading: categoriasLoading, error: categoriasError } = useCategorias();
+  
+  const { 
+    subcategorias: allSubcategorias, 
+    loading: subcategoriasLoading, 
+    error: subcategoriasError,
+    createSubcategoria,
+    deleteSubcategoria
+  } = useSubcategorias();
+  
+  const { 
+    categorias: allCategorias, 
+    loading: categoriasLoading, 
+    error: categoriasError, 
+    updateCategoria,
+    createCategoria,
+    deleteCategoria
+  } = useCategorias();
+  
+  const { 
+    caracteristicas: allCaracteristicas, 
+    loading: caracteristicasLoading, 
+    error: caracteristicasError,
+    createCaracteristica,
+    assignCaracteristicaToServicio,
+    deleteCaracteristica,
+    addCaracteristicaToServicio,
+    updateCaracteristica,
+    removeCaracteristicaFromServicio
+  } = useCaracteristicas();
+  
   const { success, error: showError, warning, info, ToastContainer } = useNotifications();
   
-  const [adminChecking, setAdminChecking] = useState(true);
-  const [isAdminUser, setIsAdminUser] = useState(false);
-  const [expandedItems, setExpandedItems] = useState({});
-  const [showItemForm, setShowItemForm] = useState(false);
-  const [currentEditItem, setCurrentEditItem] = useState(null);
-  const [filters, setFilters] = useState({
-    searchTerm: '',
-    minPrice: '',
-    maxPrice: '',
-    servicioId: 'all',
-    categoriaId: 'all'
+  // Use extracted state management hook
+  const {
+    adminChecking,
+    setAdminChecking,
+    isAdminUser,
+    setIsAdminUser,
+    expandedItems,
+    setExpandedItems,
+    expandedServices,
+    setExpandedServices,
+    updatedServiceNames,
+    showItemForm,
+    setShowItemForm,
+    currentEditItem,
+    setCurrentEditItem,
+    filters,
+    setFilters,
+    deleteServiceState,
+    setDeleteServiceState,
+    deleteItemState,
+    setDeleteItemState,
+    createCategoryState,
+    setCreateCategoryState,
+    colorPickerState,
+    setColorPickerState,
+    deleteCategoryState,
+    setDeleteCategoryState,
+    createCaracteristicaState,
+    setCreateCaracteristicaState,
+    assignCaracteristicaState,
+    setAssignCaracteristicaState,
+    deleteCaracteristicaState,
+    setDeleteCaracteristicaState,
+    verCaracteristicasState,
+    setVerCaracteristicasState,
+    editDescriptionState,
+    setEditDescriptionState,
+    serviceImageState,
+    setServiceImageState,
+    isInitialLoadRef,
+    changeCategoryIconState,
+    setChangeCategoryIconState,
+    bannerUploadState,
+    setBannerUploadState
+  } = useAdminPanelState();
+  
+  // Use extracted business logic hooks
+  const { handleSaveItem, confirmDeleteItem, forceRefresh, cleanupUnusedSubcategorias } = useItemOperations({
+    addItem,
+    updateItem,
+    deleteItem,
+    refreshItems,
+    updateLocalItems,
+    allServicios,
+    allSubcategorias,
+    itemsWithDetails,
+    createServicio,
+    createSubcategoria,
+    deleteSubcategoria,
+    deleteServicio,
+    fetchAllServicios,
+    expandedServices,
+    setExpandedServices,
+    filters,
+    setFilters,
+    success,
+    showError,
+    warning
+  });
+
+  const { handleDeleteService, confirmDeleteService, cancelDeleteService } = useServiceOperations({
+    deleteServicio,
+    fetchAllServicios,
+    refreshItems,
+    allServicios,
+    itemsWithDetails,
+    expandedServices,
+    setExpandedServices,
+    cleanupUnusedSubcategorias,
+    success,
+    showError
+  });
+
+  const { 
+    handleCreateCategory, 
+    handleOpenColorPicker, 
+    handleSaveColor, 
+    handleDeleteCategory, 
+    confirmDeleteCategory, 
+    cancelDeleteCategory,
+    handleOpenIconPicker,
+    handleSaveIcon
+  } = useCategoryOperations({
+    createCategoria,
+    updateCategoria,
+    deleteCategoria,
+    deleteServicio,
+    refreshItems,
+    itemsWithDetails,
+    allServicios,
+    cleanupUnusedSubcategorias,
+    success,
+    showError
   });
   
-  // Estado para manejar la eliminación de servicios
-  const [deleteServiceState, setDeleteServiceState] = useState({
-    show: false,
-    servicioId: null,
-    servicioName: '',
-    itemCount: 0,
-    subcategoriaCount: 0,
-    isLoading: false
-  });
+  // Loading and error states
+  const loading = itemsLoading || 
+                 caracteristicasLoading ||
+                 ((!itemsWithDetails || itemsWithDetails.length === 0) && !itemsError) || 
+                 (allServicios.length === 0 && !serviciosError) ||
+                 (allCategorias.length === 0 && !categoriasError);
+  const error = itemsError || serviciosError || subcategoriasError || categoriasError || caracteristicasError;
   
-  // Add state for tracking which field is being edited
-  const [editingState, setEditingState] = useState({
-    itemId: null,
-    field: null,
-    value: '',
-    isLoading: false
-  });
+  // Use extracted filter utility
+  const filteredItems = useMemo(() => {
+    try {
+      // Ensure we have valid data before filtering
+      if (!Array.isArray(itemsWithDetails) || !Array.isArray(allServicios)) {
+        return [];
+      }
+      
+      return filterItems(itemsWithDetails, filters, allServicios);
+    } catch (error) {
+      console.error('Error filtering items:', error);
+      return itemsWithDetails || [];
+    }
+  }, [itemsWithDetails, filters, allServicios]);
   
-  // Add a new state to track expanded services
-  const [expandedServices, setExpandedServices] = useState({});
-  
-  // Add a state to track the most recently updated service names
-  const [updatedServiceNames, setUpdatedServiceNames] = useState({});
-  
-  // Add states to track updated subcategory names and prices
-  const [updatedSubcategoryNames, setUpdatedSubcategoryNames] = useState({});
-  const [updatedPrices, setUpdatedPrices] = useState({});
-  
-  // Add a ref to track if this is the initial load
-  const isInitialLoadRef = useRef(true);
-  
-  // Loading and error states - be less restrictive to prevent infinite loading
-  const loading = itemsLoading && (!itemsWithDetails || itemsWithDetails.length === 0);
-  const error = itemsError || serviciosError || subcategoriasError || categoriasError;
-  
-  // Check if user is authenticated and admin
+  // Check if user is authenticated and admin - run only once on mount
   useEffect(() => {
-    let isMounted = true; // Flag to prevent state updates after unmount
+    let isMounted = true;
 
     const checkAccess = async () => {
       try {
-        // Check authentication first
         if (!isAuthenticated()) {
-          console.log('User not authenticated, redirecting');
           alert('Acceso restringido. Debe iniciar sesión.');
           navigate('/');
           return;
         }
 
-        console.log('User authenticated, checking admin status...');
-        
-        // Now check admin status (properly awaiting the async function)
         const adminStatus = await isAdmin();
-        console.log('Admin check result:', adminStatus);
         
         if (isMounted) {
           if (!adminStatus) {
-            console.log('User is not an admin, redirecting');
             alert('Acceso restringido. Solo los administradores pueden acceder a esta página.');
             navigate('/');
           } else {
-            console.log('Admin access granted');
             setIsAdminUser(true);
           }
           setAdminChecking(false);
@@ -762,69 +273,36 @@ const AdminPanel = () => {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isAdmin, navigate]);
+  }, []); // Empty dependency array - run only once on mount
 
-  // Use useMemo to calculate filtered items based on new filter structure
-  const filteredItems = useMemo(() => {
-    return itemsWithDetails.filter(item => {
-      // If no filters are applied, show all items
-      if (filters.searchTerm === '' && filters.minPrice === '' && filters.maxPrice === '' && 
-          filters.servicioId === 'all' && filters.categoriaId === 'all') {
-        return true;
-      }
-      
-      const searchTermLower = filters.searchTerm.toLowerCase().trim();
-      
-      // Filter by service name
-      const matchesServiceName = item.servicio_nombre?.toLowerCase().includes(searchTermLower);
-      
-      // Filter by subcategory name
-      const matchesSubcategoryName = item.subcategoria_nombre?.toLowerCase().includes(searchTermLower);
-      
-      // Filter by price
-      const price = parseFloat(item.precio || 0);
-      const minPrice = filters.minPrice !== '' ? parseFloat(filters.minPrice) : 0;
-      const maxPrice = filters.maxPrice !== '' ? parseFloat(filters.maxPrice) : Infinity;
-      const matchesPrice = price >= minPrice && price <= maxPrice;
-      
-      // Filter by selected service
-      const matchesSelectedService = filters.servicioId === 'all' || 
-                                    item.id_servicio === parseInt(filters.servicioId);
-      
-      // Filter by selected categoria
-      let matchesSelectedCategoria = true;
-      if (filters.categoriaId !== 'all') {
-        // Find the service for this item
-        const service = allServicios.find(s => s.id_servicio === item.id_servicio);
-        // Check if the service's categoria matches the selected one
-        matchesSelectedCategoria = service && service.id_categoria === parseInt(filters.categoriaId);
-      }
-      
-      // Combine all filters
-      const matchesSearch = searchTermLower === '' || 
-                           matchesServiceName || 
-                           matchesSubcategoryName;
-      
-      return matchesSearch && matchesPrice && matchesSelectedService && matchesSelectedCategoria;
-    });
-  }, [itemsWithDetails, filters, allServicios]);
+  // Initialize expanded services based on allServicios data - only on first load
+  useEffect(() => {
+    if (isInitialLoadRef.current && allServicios.length > 0) {
+      setExpandedServices({});
+      isInitialLoadRef.current = false;
+    }
+  }, [allServicios]);
 
   // Auto-expand first few items when search term is applied
   useEffect(() => {
     if (filters.searchTerm.trim() !== '') {
-      // Expand first 3 items in search results if not already expanded
-      const newExpandedItems = { ...expandedItems };
-      
-      filteredItems.slice(0, 3).forEach(item => {
-        const itemId = item.id_items || item.id_item;
-        if (itemId && !newExpandedItems[itemId]) {
-          newExpandedItems[itemId] = true;
-        }
+      setExpandedItems(prevExpandedItems => {
+        const newExpandedItems = { ...prevExpandedItems };
+        let hasChanges = false;
+        
+        filteredItems.slice(0, 3).forEach(item => {
+          const itemId = item.id_items || item.id_item;
+          if (itemId && !newExpandedItems[itemId]) {
+            newExpandedItems[itemId] = true;
+            hasChanges = true;
+          }
+        });
+        
+        // Only update if there are actual changes
+        return hasChanges ? newExpandedItems : prevExpandedItems;
       });
-      
-      setExpandedItems(newExpandedItems);
     }
-  }, [filters.searchTerm, filteredItems]);
+  }, [filters.searchTerm, filteredItems]); // Removed expandedItems from dependencies to prevent infinite loop
 
   // Toggle item expansion
   const toggleItemExpansion = (itemId) => {
@@ -836,11 +314,22 @@ const AdminPanel = () => {
 
   // Handle real-time filter change
   const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    try {
+      const { name, value } = e.target;
+      
+      // Validate input
+      if (typeof name !== 'string' || typeof value !== 'string') {
+        console.error('Invalid filter input:', { name, value });
+        return;
+      }
+      
+      setFilters(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } catch (error) {
+      console.error('Error in handleFilterChange:', error);
+    }
   };
 
   // Debounced price filter to avoid too many re-renders when typing numbers
@@ -871,28 +360,33 @@ const AdminPanel = () => {
   const totalCount = itemsWithDetails.length;
 
   // Handler for adding a new item
-  const handleAddItem = async () => {
+  const handleAddItem = () => {
     try {
-      // Save current expanded services state
-      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-      console.log('Saving expanded state before add item:', currentExpandedState);
-      
-      // Asegurarse de que tenemos los datos más actualizados
-      console.log('Actualizando listas antes de mostrar el formulario de ítem');
-      
-      // Actualizar la lista de servicios primero
-      await fetchAllServicios();
-      
-      // Restore the expanded services state exactly as it was
-      console.log('Restoring expanded state after fetch:', currentExpandedState);
-      setExpandedServices(currentExpandedState);
-      
-      // Luego configurar el estado para mostrar el formulario
+      // First, set the form state to show the modal immediately
       setCurrentEditItem(null);
       setShowItemForm(true);
+      
+      // Then optionally refresh data (removed await to prevent blocking)
+      
+      
+      // Save current expanded state
+      const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
+      
+      // Update services list in the background
+      fetchAllServicios()
+        .then(() => {
+          // Restore expanded state after fetch
+          setExpandedServices(currentExpandedState);
+        })
+        .catch(error => {
+          console.error('Error fetching services:', error);
+          // Don't hide the form if this fails
+        });
     } catch (error) {
       console.error('Error al preparar formulario de ítem:', error);
       alert('Hubo un problema al preparar el formulario. Por favor, intente nuevamente.');
+      // Ensure form shows even if there's an error
+      setShowItemForm(true);
     }
   };
   
@@ -901,7 +395,7 @@ const AdminPanel = () => {
     if (type === 'item') {
       try {
         // Refrescar datos primero
-        console.log('Actualizando listas antes de editar ítem');
+        
         await fetchAllServicios();
         
         // Buscar el ítem después de refrescar los datos
@@ -922,334 +416,185 @@ const AdminPanel = () => {
     }
   };
 
-  // Add a function to force refresh filteredItems
-  const forceRefresh = () => {
-    // Force a recomputation of filteredItems by toggling a filter value back and forth
-    // This is a workaround to ensure newly added items are included in search results
-    if (filters.searchTerm) {
-      const currentSearch = filters.searchTerm;
-      // Add a space to the search term to force a change
-      setFilters(prev => ({...prev, searchTerm: currentSearch + ' '}));
-      // Then quickly revert back to the original search term
-      setTimeout(() => {
-        setFilters(prev => ({...prev, searchTerm: currentSearch}));
-      }, 10);
-    } else {
-      // If no search term, briefly toggle min price
-      const currentMinPrice = filters.minPrice;
-      setFilters(prev => ({...prev, minPrice: '0'}));
-      setTimeout(() => {
-        setFilters(prev => ({...prev, minPrice: currentMinPrice}));
-      }, 10);
-    }
-  };
-
-  // Handler for saving or updating an item
-  const handleSaveItem = async (itemData, itemId) => {
-    try {
-      console.log('Guardando ítem con datos:', itemData);
-      
-      // Validar que tengamos datos básicos
-      if (!itemData.id_categoria) {
-        alert('Por favor seleccione una categoría');
-        return;
-      }
-      
-      if (!itemData.servicio_nombre || !itemData.subcategoria_nombre) {
-        alert('Por favor complete todos los campos requeridos');
-        return;
-      }
-      
-      // If new service needs to be created
-      if (typeof itemData.id_servicio === 'string' && isNaN(parseInt(itemData.id_servicio))) {
-        console.log('Creando nuevo servicio:', itemData.servicio_nombre);
-        
-        try {
-          // Check if service with same name already exists in this category
-          const existingService = allServicios.find(s => 
-            s.nombre.toLowerCase() === itemData.id_servicio.toLowerCase() && 
-            s.id_categoria === parseInt(itemData.id_categoria)
-          );
-          
-          if (existingService) {
-            // We'll use the existing service instead of creating a new one
-            warning(`Ya existe un servicio con el nombre "${itemData.id_servicio}" en esta categoría. Se usará el servicio existente.`);
-            itemData.id_servicio = existingService.id_servicio;
-          } else {
-            // Create the new service
-            const result = await createServicio({ 
-              nombre: itemData.id_servicio,
-              id_categoria: parseInt(itemData.id_categoria) // Use the selected category ID
-            });
-            
-            if (result.success) {
-              // Update the item data with the new service ID
-              itemData.id_servicio = result.data.id_servicio;
-              console.log('Servicio creado con ID:', result.data.id_servicio);
-            } else {
-              showError(`Error al crear servicio: ${result.error}`);
-              return;
-            }
-          }
-        } catch (serviceError) {
-          console.error('Error al crear servicio:', serviceError);
-          showError(`Error al crear servicio: ${serviceError.message}`);
-          return;
-        }
-      }
-      
-      // If new subcategory needs to be created
-      if (typeof itemData.id_subcategoria === 'string' && isNaN(parseInt(itemData.id_subcategoria))) {
-        // Validar que el servicio exista antes de crear la subcategoría
-        if (!itemData.id_servicio || isNaN(parseInt(itemData.id_servicio))) {
-          showError('Error: El servicio no existe o no es válido');
-          return;
-        }
-        
-        console.log('Creando nueva subcategoría:', itemData.subcategoria_nombre);
-        
-        try {
-          // Check if subcategory with same name already exists for this service
-          const existingSubcategory = allSubcategorias.find(s => 
-            s.nombre.toLowerCase() === itemData.id_subcategoria.toLowerCase() &&
-            s.id_servicio === itemData.id_servicio
-          );
-          
-          if (existingSubcategory) {
-            // Use existing subcategory
-            warning(`Ya existe una subcategoría con el nombre "${itemData.id_subcategoria}" para este servicio. Se usará la subcategoría existente.`);
-            itemData.id_subcategoria = existingSubcategory.id_subcategoria;
-            itemData.subcategoria_nombre = existingSubcategory.nombre;
-          } else {
-            // Try to create the subcategory
-            const result = await createSubcategoria({ 
-              nombre: itemData.id_subcategoria,
-              id_servicio: itemData.id_servicio
-            });
-            
-            if (result.success) {
-              // Update the item data with the new subcategory ID
-              itemData.id_subcategoria = result.data.id_subcategoria;
-              // Ensure the subcategoria_nombre is set
-              itemData.subcategoria_nombre = result.data.nombre;
-              console.log('Subcategoría creada con ID:', result.data.id_subcategoria);
-            } else {
-              showError(`Error al crear subcategoría: ${result.error}`);
-              return;
-            }
-          }
-        } catch (subcatError) {
-          console.error('Error al crear subcategoría:', subcatError);
-          showError(`Error al crear subcategoría: ${subcatError.message}`);
-          return;
-        }
-      }
-      
-      // Check if an item with this combination already exists
-      const existingItem = itemsWithDetails.find(item => 
-        item.id_servicio === itemData.id_servicio &&
-        item.id_subcategoria === itemData.id_subcategoria &&
-        (itemId ? (item.id_items !== itemId && item.id_item !== itemId) : true)
-      );
-      
-      if (existingItem) {
-        // Show an error message about the duplicate
-        warning(`Ya existe un ítem con este servicio (${itemData.servicio_nombre}) y subcategoría (${itemData.subcategoria_nombre}). No se puede crear un duplicado.`);
-        return;
-      }
-      
-      // Now proceed with item creation/update
-      if (itemId) {
-        console.log('Actualizando ítem existente con ID:', itemId);
-        const result = await updateItem(itemId, itemData);
-        if (result.success) {
-          setShowItemForm(false);
-          setCurrentEditItem(null);
-          
-          // Save current expanded state with deep copy
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh items to show changes immediately
-          await refreshItems();
-          
-          // Force a refresh of the filtered items
-          forceRefresh();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          console.log('Item actualizado correctamente');
-          success('Item actualizado correctamente');
-        } else {
-          showError(`Error al actualizar ítem: ${result.error}`);
-        }
-      } else {
-        console.log('Creando nuevo ítem');
-        const result = await addItem(itemData);
-        if (result.success) {
-          setShowItemForm(false);
-          
-          // Store the new item's service name for immediate display
-          if (result.data && result.data.id_servicio) {
-            // Update updatedServiceNames to ensure the UI shows the correct name immediately
-            setUpdatedServiceNames(prev => ({
-              ...prev,
-              [result.data.id_servicio]: itemData.servicio_nombre
-            }));
-            
-            // Also update the local items immediately instead of waiting for refresh
-            const newItem = {
-              ...result.data,
-              servicio_nombre: itemData.servicio_nombre,
-              subcategoria_nombre: itemData.subcategoria_nombre,
-              // Ensure these fields exist for search functionality
-              id_items: result.data.id_items || result.data.id_item,
-              id_item: result.data.id_items || result.data.id_item,
-              id_categoria: parseInt(itemData.id_categoria)
-            };
-            
-            // Update local items to include this new item with correct service name
-            updateLocalItems(items => [...items, newItem]);
-            
-            // Expand the service group for the new item
+  // Toggle service expansion
+  const toggleServiceExpansion = (serviceId) => {
             setExpandedServices(prev => ({
               ...prev,
-              [result.data.id_servicio]: true
-            }));
-            
-            // If there's a search term that should match this item, refresh filters to show it
-            const searchTerm = filters.searchTerm.toLowerCase().trim();
-            if (searchTerm && (
-                enrichedNewItem.servicio_nombre.toLowerCase().includes(searchTerm) ||
-                enrichedNewItem.subcategoria_nombre.toLowerCase().includes(searchTerm)
-            )) {
-              // Force a re-application of filters by slightly changing and restoring the search term
-              const currentSearch = filters.searchTerm;
-              setFilters(prev => ({...prev, searchTerm: currentSearch + ' '}));
-              setTimeout(() => {
-                setFilters(prev => ({...prev, searchTerm: currentSearch}));
-              }, 50);
-            }
-          }
-          
-          // Save current expanded state with deep copy
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh items to show the new item immediately
-          await refreshItems();
-          
-          // Force a refresh of the filtered items to ensure the new item is searchable
-          forceRefresh();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          console.log('Item creado correctamente');
-          success('Item creado correctamente');
-        } else {
-          showError(`Error al agregar ítem: ${result.error}`);
-        }
+      [serviceId]: !prev[serviceId]
+    }));
+  };
+
+  // Caracteristica handlers
+  const handleCreateCaracteristica = async (caracteristicaDataOrId, caracteristicaData = null) => {
+    try {
+      let result;
+      
+      // Check if we're editing (two parameters) or creating (one parameter)
+      if (caracteristicaData !== null) {
+        // Editing: first param is ID, second is data
+        result = await updateCaracteristica(caracteristicaDataOrId, caracteristicaData);
+      } else {
+        // Creating: first param is data
+        result = await createCaracteristica(caracteristicaDataOrId);
+      }
+      
+      if (result.success) {
+        const action = caracteristicaData !== null ? 'actualizada' : 'creada';
+        success(`Característica ${action} correctamente`);
+        setCreateCaracteristicaState({
+          show: false,
+          isLoading: false,
+          editingCaracteristica: null
+        });
+        // Refresh characteristics list
+        // await fetchCaracteristicas();
+      } else {
+        showError(`Error al ${caracteristicaData !== null ? 'actualizar' : 'crear'} característica: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error in handleSaveItem:', error);
-      showError(`Error inesperado: ${error.message}`);
+      console.error('Error with caracteristica:', error);
+      showError(`Error inesperado al ${caracteristicaData !== null ? 'actualizar' : 'crear'} la característica`);
     }
   };
 
-  // Handler for deleting a service
-  const handleDeleteService = (servicioId) => {
-    // Encontrar el servicio que queremos eliminar
-    const servicioToDelete = allServicios.find(s => s.id_servicio === servicioId);
-    if (!servicioToDelete) return;
-    
-    // Contar ítems relacionados con este servicio
-    const relatedItems = itemsWithDetails.filter(item => item.id_servicio === servicioId);
-    
-    // Contar subcategorías relacionadas
-    const relatedSubcategorias = servicioToDelete.subcategorias || [];
-    
-    // Mostrar el modal de confirmación
-    setDeleteServiceState({
+  const handleEditCaracteristica = (caracteristica) => {
+    setCreateCaracteristicaState({
       show: true,
-      servicioId: servicioId,
-      servicioName: servicioToDelete.nombre,
-      itemCount: relatedItems.length,
-      subcategoriaCount: relatedSubcategorias.length,
+      isLoading: false,
+      editingCaracteristica: caracteristica
+    });
+    
+    // Close the VerCaracteristicasModal
+    setVerCaracteristicasState({ show: false });
+  };
+
+  const handleAssignCaracteristica = async (servicioId, caracteristicaId) => {
+    try {
+      const result = await addCaracteristicaToServicio(servicioId, caracteristicaId);
+      
+      if (result.success) {
+        success('Característica asignada correctamente al servicio');
+        setAssignCaracteristicaState({
+          show: false,
+          isLoading: false
+        });
+        await fetchAllServicios();
+      } else {
+        showError(`Error al asignar característica: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error assigning caracteristica:', error);
+      showError('Error inesperado al asignar la característica');
+    }
+  };
+
+  const handleDeleteCaracteristica = (caracteristicaId, caracteristicaName) => {
+    setDeleteCaracteristicaState({
+      show: true,
+      caracteristicaId,
+      caracteristicaName,
+      serviciosCount: 0,
       isLoading: false
     });
   };
-  
-  // Confirmar eliminación de servicio
-  const confirmDeleteService = async () => {
+
+  const confirmDeleteCaracteristica = async () => {
     try {
-      setDeleteServiceState(prev => ({ ...prev, isLoading: true }));
+      setDeleteCaracteristicaState(prev => ({ ...prev, isLoading: true }));
       
-      console.log('Eliminando servicio con ID:', deleteServiceState.servicioId);
-      const result = await deleteServicio(deleteServiceState.servicioId);
-      
-      // Cerrar el modal primero para mejorar la experiencia del usuario
-      setDeleteServiceState({
-        show: false,
-        servicioId: null,
-        servicioName: '',
-        itemCount: 0,
-        subcategoriaCount: 0,
-        isLoading: false
-      });
+      const { caracteristicaId } = deleteCaracteristicaState;
+      const result = await deleteCaracteristica(caracteristicaId);
       
       if (result.success) {
-        // Save current expanded state with deep copy
-        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-        
-        // Refresh the lists to reflect the changes
-        await fetchAllServicios();
-        await refreshItems();
-        
-        // Restore expanded state exactly as it was
-        setExpandedServices(currentExpandedState);
-        
-        // Generate success message based on backend response
-        let successMessage = 'Servicio eliminado con éxito';
-        if (result.data) {
-          const { itemsDeleted, subcategoriasDeleted } = result.data;
-          if (itemsDeleted !== undefined && subcategoriasDeleted !== undefined) {
-            successMessage += ` junto con ${subcategoriasDeleted} subcategorías y ${itemsDeleted} ítems.`;
-          }
-        }
-        
-        success(successMessage);
+        success('Característica eliminada correctamente');
       } else {
-        console.error('Error en la operación:', result.error);
-        showError(`Error al eliminar servicio: ${result.error}`);
+        showError(`Error al eliminar característica: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error inesperado en confirmDeleteService:', error);
+      console.error('Error in confirmDeleteCaracteristica:', error);
       showError(`Error inesperado: ${error.message}`);
-      
-      // Ensure the state of the modal is reset in case of error
-      setDeleteServiceState({ 
-        show: false, 
-        servicioId: null,
-        servicioName: '',
-        itemCount: 0,
-        subcategoriaCount: 0,
-        isLoading: false 
+    } finally {
+      setDeleteCaracteristicaState({
+        show: false,
+        caracteristicaId: null,
+        caracteristicaName: '',
+        serviciosCount: 0,
+        isLoading: false
       });
     }
   };
-  
-  // Cancelar eliminación de servicio
-  const cancelDeleteService = () => {
-    setDeleteServiceState({
+
+  const cancelDeleteCaracteristica = () => {
+    setDeleteCaracteristicaState({
       show: false,
-      servicioId: null,
-      servicioName: '',
-      itemCount: 0,
-      subcategoriaCount: 0,
+      caracteristicaId: null,
+      caracteristicaName: '',
+      serviciosCount: 0,
       isLoading: false
     });
   };
-  
+
+  // Service description handler
+  const handleSaveServiceDescription = async (serviceData) => {
+    try {
+      const { servicioId } = editDescriptionState;
+      const result = await updateServicio(servicioId, serviceData);
+      
+      if (result.success) {
+        setAllServicios(prev => prev.map(s => 
+          s.id_servicio === servicioId 
+            ? { ...s, ...serviceData }
+            : s
+        ));
+        
+        success('Servicio actualizado correctamente');
+        setEditDescriptionState({
+          show: false,
+          servicioId: null,
+          servicioName: '',
+          currentDescription: '',
+          isLoading: false
+        });
+      } else {
+        showError(`Error al actualizar servicio: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving service:', error);
+      showError('Error inesperado al guardar el servicio');
+    }
+  };
+
+  // Service image handlers
+  const handleOpenServiceImageModal = (servicio, categoria) => {
+    setServiceImageState({
+      show: true,
+      servicio,
+      categoria,
+      isLoading: false
+    });
+  };
+
+  const handleServiceImageUpdated = (servicioId, imageUrl) => {
+    // Update the local servicios state
+    setAllServicios(prev => prev.map(s => 
+      s.id_servicio === servicioId 
+        ? { ...s, imagen: imageUrl }
+        : s
+    ));
+    
+    // Update the serviceImageState
+    setServiceImageState(prev => ({
+      ...prev,
+      servicio: prev.servicio ? { ...prev.servicio, imagen: imageUrl } : null
+    }));
+    
+    if (imageUrl) {
+      success('Imagen del servicio actualizada correctamente');
+    } else {
+      success('Imagen del servicio eliminada correctamente');
+    }
+  };
+
   // Handler for deleting an item
   const handleDelete = (type, id) => {
     if (type === 'item') {
@@ -1282,614 +627,51 @@ const AdminPanel = () => {
         isLoading: false
       });
     } else if (type === 'servicio') {
-      handleDeleteService(id);
+      handleDeleteService(id, setDeleteServiceState);
     } else {
       showError(`Operación no soportada: eliminar ${type} con ID: ${id}`);
     }
   };
 
-  // Add confirmDeleteItem function
-  const confirmDeleteItem = async () => {
+  // Check if any filter is active - use imported function
+  const isAnyFilterActive = isFilterActive(filters);
+
+  const handleUnlinkCaracteristica = async (servicioId, caracteristicaId) => {
     try {
-      setDeleteItemState(prev => ({ ...prev, isLoading: true }));
-      
-      const { itemId, isLastItem, servicioId } = deleteItemState;
-      
-      if (isLastItem) {
-        // If it's the last item, delete the entire service
-        const result = await deleteServicio(servicioId);
-        if (result.success) {
-          success('Servicio y todos sus ítems eliminados correctamente');
-              } else {
-                showError(`Error al eliminar servicio: ${result.error}`);
-              }
-        } else {
-        // Just delete the single item
-        const result = await deleteItem(itemId);
-              if (result.success) {
-                success('Ítem eliminado correctamente');
-              } else {
-                showError(`Error al eliminar ítem: ${result.error}`);
-              }
-      }
-      
-      // Close the modal
-      setDeleteItemState({
-        show: false,
-        itemId: null,
-        servicioId: null,
-        itemName: '',
-        isLastItem: false,
-        isLoading: false
-      });
-                
-      // Save current expanded state
-                const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-                
-      // Refresh the data
-      await refreshItems();
-      if (isLastItem) {
-        await fetchAllServicios();
-      }
-      
-      // Restore expanded state
-                    setExpandedServices(currentExpandedState);
-      
-    } catch (error) {
-      console.error('Error in confirmDeleteItem:', error);
-              showError(`Error inesperado: ${error.message}`);
-      setDeleteItemState(prev => ({ ...prev, isLoading: false }));
-        }
-  };
-
-  // Add cancelDeleteItem function
-  const cancelDeleteItem = () => {
-    setDeleteItemState({
-      show: false,
-      itemId: null,
-      servicioId: null,
-      itemName: '',
-      isLastItem: false,
-      isLoading: false
-    });
-  };
-
-  // Filter is active if any filter has a value
-  const isFilterActive = filters.searchTerm !== '' || 
-                         filters.minPrice !== '' || 
-                         filters.maxPrice !== '' || 
-                         filters.servicioId !== 'all' ||
-                         filters.categoriaId !== 'all';
-
-  // Check if we need to highlight text in search results
-  const highlightText = (text) => {
-    if (!filters.searchTerm.trim()) return text;
-    
-    try {
-      const searchTerm = filters.searchTerm.trim();
-      // Escape special regex characters
-      const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
-      
-      // Split into parts but keep the original spacing
-      const parts = [];
-      let lastIndex = 0;
-      let match;
-      
-      // Using exec to iterate through all matches while preserving positions
-      while ((match = regex.exec(text)) !== null) {
-        // Add text before this match if exists
-        if (match.index > lastIndex) {
-          parts.push({
-            text: text.substring(lastIndex, match.index),
-            highlight: false
-          });
-        }
-        
-        // Add the matched text
-        parts.push({
-          text: match[0], // Use the exact matched text to preserve original case and spacing
-          highlight: true
-        });
-        
-        lastIndex = match.index + match[0].length;
-      }
-      
-      // Add any remaining text after the last match
-      if (lastIndex < text.length) {
-        parts.push({
-          text: text.substring(lastIndex),
-          highlight: false
-        });
-      }
-      
-      // Return the array of parts with proper highlights
-      return (
-        <>
-          {parts.map((part, i) => 
-            part.highlight 
-              ? <span key={i} className="highlight-text">{part.text}</span> 
-              : part.text
-          )}
-        </>
-      );
-    } catch (e) {
-      // If there's any error with regex or otherwise, return the original text
-      console.error("Error highlighting text:", e);
-      return text;
-    }
-  };
-
-  // Format price with 2 decimal places
-  const formatPrice = (price) => {
-    return parseFloat(price || 0).toFixed(2);
-  };
-
-  // Add state for dropdowns
-  const [inlineEditOptions, setInlineEditOptions] = useState([]);
-
-  // Update handleDoubleClick to allow free-text entry for services
-  const handleDoubleClick = (itemId, field, value) => {
-    // For service field, we'll use text input instead of dropdown
-    if (field === 'servicio') {
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false,
-        originalValue: value // Store the original value for comparison
-      });
-    } 
-    // For subcategoria, we still use dropdown
-    else if (field === 'subcategoria') {
-      const options = allSubcategorias.map(s => ({
-        id: s.id_subcategoria,
-        name: s.nombre
-      }));
-      
-      setInlineEditOptions(options);
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false
-      });
-    }
-    // For price, we use the existing text input
-    else {
-      setEditingState({
-        itemId,
-        field,
-        value: value || '',
-        isLoading: false
-      });
-    }
-  };
-
-  // Update handleDropdownChange for subcategory selection
-  const handleDropdownChange = (e) => {
-    const newValue = e.target.value;
-    
-    // Update the state
-    setEditingState({
-      ...editingState,
-      value: newValue
-    });
-    
-    // Only auto-save for subcategory dropdown, not for service (which is now a text input)
-    if (editingState.field === 'subcategoria') {
-      setEditingState(prev => ({
-        ...prev,
-        value: newValue,
-        isLoading: true
-      }));
-      
-      // Auto-save after a brief delay to allow state update
-      setTimeout(() => {
-        handleInlineEditSave();
-      }, 100);
-    }
-  };
-
-  // Update handleInlineEditSave to track all updated fields
-  const handleInlineEditSave = async () => {
-    const { itemId, field, value, originalValue } = editingState;
-    if (!value.trim()) return;
-    
-    setEditingState({
-      ...editingState,
-      isLoading: true
-    });
-    
-    try {
-      const itemToUpdate = itemsWithDetails.find(item => item.id_items === itemId || item.id_item === itemId);
-      if (!itemToUpdate) return;
-      
-      // Handle service name editing
-      if (field === 'servicio') {
-        // Only proceed if the name has changed
-        if (value === originalValue) {
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Find the service to get its ID and category
-        const currentService = allServicios.find(s => s.id_servicio === itemToUpdate.id_servicio);
-        if (!currentService) {
-          showError('No se pudo encontrar el servicio actual');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        const categoryId = currentService.id_categoria;
-        const servicioId = currentService.id_servicio;
-        
-        // Check if another service with the same name exists in this category
-        const serviceWithSameNameInCategory = allServicios.find(s => 
-          s.nombre.toLowerCase() === value.toLowerCase() && 
-          s.id_categoria === categoryId &&
-          s.id_servicio !== servicioId
-        );
-        
-        if (serviceWithSameNameInCategory) {
-          warning(`Ya existe un servicio con el nombre "${value}" en esta categoría.`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Update the service name in the backend
-        const updateResult = await updateServicio(servicioId, value);
-        
-        if (updateResult.success) {
-          // Update UI state
-          setUpdatedServiceNames(prev => ({
-            ...prev,
-            [servicioId]: value
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if (item.id_servicio === servicioId) {
-                return { 
-                  ...item, 
-                  servicio_nombre: value,
-                  servicio: value
-                };
-              }
-              return item;
-            });
-          });
-          
-          // Update services list
-          const updatedServicios = allServicios.map(s => {
-            if (s.id_servicio === servicioId) {
-              return { ...s, nombre: value };
-            }
-            return s;
-          });
-          setAllServicios(updatedServicios);
-          
-          // Clear editing state
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          
-          // Save current expanded state
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh services from server
-          await fetchAllServicios();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          success('Nombre de servicio actualizado correctamente');
-        } else {
-          showError(`Error al actualizar servicio: ${updateResult.error}`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-        }
-        
-        return;
-      }
-      
-      // Handle subcategory editing
-      if (field === 'subcategoria') {
-        const selectedSubcategory = allSubcategorias.find(s => s.nombre === value || s.id_subcategoria.toString() === value);
-        
-        if (!selectedSubcategory) {
-          warning('Por favor seleccione una subcategoría válida');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Check if this item already has this subcategory name
-        if (itemToUpdate.subcategoria_nombre === selectedSubcategory.nombre) {
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Check if another item in the same service already has this subcategory
-        const itemsWithSameService = itemsWithDetails.filter(item => 
-          item.id_servicio === itemToUpdate.id_servicio &&
-          (item.id_items !== itemId && item.id_item !== itemId)
-        );
-        
-        const duplicateSubcategory = itemsWithSameService.find(item => 
-          item.subcategoria_nombre.toLowerCase() === selectedSubcategory.nombre.toLowerCase()
-        );
-        
-        if (duplicateSubcategory) {
-          warning(`La subcategoría "${selectedSubcategory.nombre}" ya está en uso en este servicio.`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        // Update the item with the new subcategory
-        const updatedItem = { 
-          ...itemToUpdate,
-          subcategoria_nombre: selectedSubcategory.nombre,
-          id_subcategoria: selectedSubcategory.id_subcategoria
-        };
-        
-        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
+      const result = await removeCaracteristicaFromServicio(servicioId, caracteristicaId);
       
       if (result.success) {
-          // Update UI state
-          setUpdatedSubcategoryNames(prev => ({
-            ...prev,
-            [itemId]: selectedSubcategory.nombre
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if ((item.id_items === itemId) || (item.id_item === itemId)) {
-                return { 
-                  ...item, 
-                  subcategoria_nombre: selectedSubcategory.nombre,
-                  id_subcategoria: selectedSubcategory.id_subcategoria 
-                };
-              }
-              return item;
-            });
-          });
-          
-          // Clear editing state
-          setEditingState({
-            itemId: null,
-            field: null,
-            value: '',
-            isLoading: false
-          });
-          
-          // Save current expanded state
-          const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-          
-          // Refresh items
-          await refreshItems();
-          
-          // Restore expanded state
-          setExpandedServices(currentExpandedState);
-          
-          success('Subcategoría actualizada correctamente');
-        } else {
-          showError(`Error al actualizar subcategoría: ${result.error}`);
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-        }
-        
-        return;
-      }
-      
-      // Handle price editing
-      if (field === 'precio') {
-        // Validate that the price is a valid number
-        const price = parseFloat(value);
-        if (isNaN(price) || price < 0) {
-          warning('Por favor ingrese un precio válido (número mayor o igual a 0)');
-          setEditingState({
-            ...editingState,
-            isLoading: false
-          });
-          return;
-        }
-        
-        const updatedItem = { 
-          ...itemToUpdate,
-          precio: price
-        };
-        
-        const result = await updateItem(itemToUpdate.id_items || itemToUpdate.id_item, updatedItem);
-        
-        if (result.success) {
-          // Update UI state
-          setUpdatedPrices(prev => ({
-            ...prev,
-            [itemId]: value
-          }));
-          
-          // Update local items
-          updateLocalItems(items => {
-            return items.map(item => {
-              if ((item.id_items === itemId) || (item.id_item === itemId)) {
-                return { ...item, precio: price };
-              }
-              return item;
-            });
-          });
-        
-          // Clear editing state
-        setEditingState({
-          itemId: null,
-          field: null,
-          value: '',
+        success('Característica desasignada correctamente del servicio');
+        setAssignCaracteristicaState({
+          show: false,
           isLoading: false
         });
-        
-          // Save current expanded state
-        const currentExpandedState = JSON.parse(JSON.stringify(expandedServices));
-        
-          // Refresh items
-        await refreshItems();
-        
-        // Restore expanded state
-        setExpandedServices(currentExpandedState);
-        
-          success('Precio actualizado correctamente');
+        await fetchAllServicios();
       } else {
-          showError(`Error al actualizar precio: ${result.error}`);
-        setEditingState({
-          ...editingState,
-          isLoading: false
-        });
-        }
+        showError(`Error al desasignar característica: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error saving inline edit:', error);
-      setEditingState({
-        ...editingState,
-        isLoading: false
-      });
-      showError('Error al guardar los cambios');
+      console.error('Error unlinking caracteristica:', error);
+      showError('Error inesperado al desasignar la característica');
     }
   };
 
-  // Update handleInlineEditCancel to clear options
-  const handleInlineEditCancel = () => {
-    setEditingState({
-      itemId: null,
-      field: null,
-      value: '',
-      isLoading: false
-    });
-    setInlineEditOptions([]);
+  // Banner upload handlers
+  const handleOpenBannerUpload = () => {
+    setBannerUploadState({ show: true, isLoading: false });
   };
 
-  // Add a function to toggle service expansion
-  const toggleServiceExpansion = (serviceId) => {
-    setExpandedServices(prev => {
-      // Create a copy of the previous state
-      const newState = { ...prev };
-      
-      // Toggle the state for this service
-      newState[serviceId] = !newState[serviceId];
-      
-      // For debugging
-      console.log(`Toggled service ${serviceId} to ${newState[serviceId] ? 'expanded' : 'collapsed'}`);
-      
-      return newState;
-    });
+  const handleCloseBannerUpload = () => {
+    setBannerUploadState({ show: false, isLoading: false });
   };
 
-  // Initialize expanded services based on allServicios data - only on first load
-  useEffect(() => {
-    // Initialize with all services collapsed - empty object
-    if (isInitialLoadRef.current && allServicios.length > 0) {
-      // Don't expand any services by default
-      setExpandedServices({});
-      
-      // Set the ref to false so this effect doesn't run again
-      isInitialLoadRef.current = false;
-    }
-  }, [allServicios]);
-
-  // Restore the keydown handler
-  const handleInlineEditKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleInlineEditSave();
-    } else if (e.key === 'Escape') {
-      handleInlineEditCancel();
-    }
+  const handleBannerUploadSuccess = (data) => {
+    success('Banner subido exitosamente');
+    handleCloseBannerUpload();
   };
-
-  // Add back handleInlineEditChange for price editing
-  const handleInlineEditChange = (e) => {
-    // Special handling for price - only allow numbers and decimal point
-    if (editingState.field === 'precio') {
-      const value = e.target.value;
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setEditingState({
-          ...editingState,
-          value: value
-        });
-      }
-    } else {
-      setEditingState({
-        ...editingState,
-        value: e.target.value
-      });
-    }
-  };
-
-  // Add a useEffect to handle clicks outside the edit field
-  useEffect(() => {
-    // Only add the handler if we're in edit mode
-    if (editingState.itemId) {
-      function handleClickOutside(event) {
-        const editField = document.querySelector('.inline-edit-field');
-        if (editField && !editField.contains(event.target)) {
-          // If we clicked outside and it's not the price field (which needs manual save),
-          // cancel editing
-          if (editingState.field !== 'precio') {
-            handleInlineEditCancel();
-          }
-        }
-      }
-      
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [editingState.itemId, editingState.field]);
-
-  // Add deleteItemState to state declarations
-  const [deleteItemState, setDeleteItemState] = useState({
-    show: false,
-    itemId: null,
-    servicioId: null,
-    itemName: '',
-    isLastItem: false,
-    isLoading: false
-  });
 
   if (adminChecking) {
-    return (
-      <div className="admin-panel-container">
-        <div className="loading-indicator">Verificando permisos de administrador...</div>
-      </div>
-    );
+    return <LoadingAnimation />;
   }
 
   if (!isAdminUser) {
@@ -1898,6 +680,7 @@ const AdminPanel = () => {
 
   return (
     <div className={styles['admin-panel-container']}>
+      {(deleteCategoryState.isLoading || loading || serviciosLoading || categoriasLoading) && <LoadingAnimation />}
       <h1 className={styles['admin-panel-title']}>Panel de Administración</h1>
       
       <div className={styles['search-filters']}>
@@ -1990,7 +773,6 @@ const AdminPanel = () => {
                   Precio mínimo
                 </label>
                 <div className={styles['price-input-container']}>
-                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="minPrice"
@@ -2011,7 +793,6 @@ const AdminPanel = () => {
                   Precio máximo
                 </label>
                 <div className={styles['price-input-container']}>
-                  <span className={styles['price-symbol']}>$</span>
                   <input
                     type="text"
                     name="maxPrice"
@@ -2028,9 +809,9 @@ const AdminPanel = () => {
             <div className={styles['search-field']} style={{ width: '100%' }}>
               <div className={styles['actions-row']}>
                 <button 
-                  className={`${styles['clear-filters-btn']} ${isFilterActive ? styles['active'] : ''}`}
+                  className={`${styles['clear-filters-btn']} ${isAnyFilterActive ? styles['active'] : ''}`}
                   onClick={clearFilters}
-                  disabled={!isFilterActive}
+                  disabled={!isAnyFilterActive}
                 >
                   <FontAwesomeIcon icon={faTimes} /> Limpiar filtros
                 </button>
@@ -2039,7 +820,7 @@ const AdminPanel = () => {
           </div>
         </div>
         
-        {isFilterActive && (
+        {isAnyFilterActive && (
           <div className={styles['search-results-info']}>
             Mostrando {filteredCount} de {totalCount} ítems
           </div>
@@ -2048,263 +829,345 @@ const AdminPanel = () => {
       
       <div className={styles['admin-content']}>
         <div className={styles['admin-header']}>
+                    <div className={styles['admin-actions']}>
           <button 
             className={styles['add-button']}
             onClick={handleAddItem}
           >
             <FontAwesomeIcon icon={faPlus} /> Agregar Item
           </button>
+            <button 
+              className={styles['add-category-button']}
+              onClick={() => setCreateCategoryState({ show: true, isLoading: false })}
+            >
+              <FontAwesomeIcon icon={faPlus} /> Nueva Categoría
+            </button>
+            <button 
+              className={styles['assign-caracteristica-button']}
+              onClick={() => setAssignCaracteristicaState({ show: true, isLoading: false })}
+            >
+              <FontAwesomeIcon icon={faLink} /> Asignar Característica
+            </button>
+            <button 
+              className={styles['manage-caracteristicas-button']}
+              onClick={() => setVerCaracteristicasState({ show: true })}
+            >
+              <FontAwesomeIcon icon={faListAlt} /> Gestionar Características
+            </button>
+            <button 
+              className={styles['banner-upload-button']}
+              onClick={handleOpenBannerUpload}
+            >
+              <FontAwesomeIcon icon={faImage} /> Subir Banner
+            </button>
+          </div>
         </div>
         
-        {loading ? (
-          <div className={styles['loading-indicator']}>Cargando...</div>
-        ) : error ? (
+        {error ? (
           <div className={styles['error-message']}>{error}</div>
         ) : (
           <div className={styles['items-list']}>
-            {filteredItems.length === 0 ? (
+            {filteredItems.length === 0 && filters.categoriaId === 'all' ? (
               <p className={styles['no-data']}>No hay ítems que coincidan con los criterios de búsqueda</p>
             ) : (
-              // Reorganize to group by category first, then by service
-              Object.values(
-                // First, group all services by category ID
-                allServicios.reduce((categories, service) => {
-                  // Skip services that don't match our filters
-                  if (filters.servicioId !== 'all' && service.id_servicio !== parseInt(filters.servicioId)) {
-                    return categories;
-                  }
-                  
-                  // Skip if no items match this service
-                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
-                  if (!hasMatchingItems) {
-                    return categories;
-                  }
-                  
-                  // Get category info
-                  const categoryId = service.id_categoria;
-                  const category = allCategorias.find(c => c.id_categoria === categoryId);
-                  
+              // Start with all categories and add their services
+              allCategorias
+                .filter(categoria => {
                   // Skip if we're filtering by category and this doesn't match
-                  if (filters.categoriaId !== 'all' && categoryId !== parseInt(filters.categoriaId)) {
-                    return categories;
+                  if (filters.categoriaId !== 'all' && categoria.id_categoria !== parseInt(filters.categoriaId)) {
+                    return false;
                   }
-                  
-                  // Add category if it doesn't exist yet
-                  if (!categories[categoryId]) {
-                    categories[categoryId] = {
-                      id: categoryId,
-                      name: category ? category.nombre : 'Sin categoría',
-                      color: getCategoryColor(categoryId),
-                      services: []
-                    };
-                  }
-                  
-                  // Add this service to the category
-                  categories[categoryId].services.push(service);
-                  return categories;
-                }, {})
-              ).map(category => (
-                <div key={`category-${category.id}`} className={styles['category-group']}>
-                  <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
-                    <h2 className={styles['category-name']}>{category.name}</h2>
-                    <div className={styles['category-stats']}>
-                      {category.services.length} servicio(s)
-                    </div>
-                  </div>
-                  
-                  <div className={styles['category-services']}>
-                    {category.services.map(servicio => {
-                      // Get items for this service
-                      const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
+                  return true;
+                })
+                .map(categoria => {
+                  // Find services for this category
+                  const categoryServices = allServicios
+                    .filter(service => {
+                      // Match service to this category
+                      if (service.id_categoria !== categoria.id_categoria) {
+                        return false;
+                      }
                       
-                      return (
-                        <div key={servicio.id_servicio} className={styles['service-group']}>
-                          <div 
-                            className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
-                            style={{ borderLeft: `4px solid ${category.color}` }}
-                            onClick={() => toggleServiceExpansion(servicio.id_servicio)}
+                      // Skip services that don't match service filter
+                  if (filters.servicioId !== 'all' && service.id_servicio !== parseInt(filters.servicioId)) {
+                        return false;
+                  }
+                  
+                      // Check if it has matching items (only apply this filter if not filtering by categoria)
+                      if (filters.categoriaId === 'all') {
+                  const hasMatchingItems = filteredItems.some(item => item.id_servicio === service.id_servicio);
+                        if (!hasMatchingItems) return false;
+                  }
+                  
+                      return true;
+                    });
+                  
+                  return {
+                    id: categoria.id_categoria,
+                    name: categoria.nombre,
+                    color: categoria.color || DEFAULT_CATEGORY_COLOR,
+                    icon: categoria.imagen || 'folder',
+                    services: categoryServices
+                  };
+                })
+                .map(category => {
+                  return (
+                    <div key={`category-${category.id}`} className={styles['category-group']}>
+                      <div className={styles['category-header']} style={{ backgroundColor: category.color }}>
+                        <h2 className={styles['category-name']}>{category.name}</h2>
+                        <div className={styles['category-stats']}>
+                          {category.services.length} servicio(s)
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className={styles['icon-picker-button']}
+                            onClick={(e) => handleOpenIconPicker(e, category.id, category.name, category.icon, setChangeCategoryIconState)}
+                            title="Cambiar icono de la categoría"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
                           >
-                            <FontAwesomeIcon 
-                              icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
-                              className={styles['expand-icon']} 
-                            />
-                            <div className={styles['service-info']}>
-                              <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
-                              <div className={styles['service-category']}>{category.name}</div>
-                            </div>
-                            <div className={styles['service-stats']}>
-                              <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
-                            </div>
-                            <div className={styles['service-actions']}>
-                              <button 
-                                className={styles['action-button']}
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent triggering the header click
-                                  handleDelete('servicio', servicio.id_servicio);
-                                }}
-                                title="Eliminar servicio completo"
-                              >
-                                <FontAwesomeIcon icon={faTrash} />
-                              </button>
-                            </div>
-                          </div>
+                            <FontAwesomeIcon icon={faImage} />
+                          </button>
+                          <button 
+                            className={styles['color-picker-button']}
+                            onClick={(e) => handleOpenColorPicker(e, category.id, category.name, category.color, setColorPickerState)}
+                            title="Cambiar color de la categoría"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faPalette} />
+                          </button>
+                          <button 
+                            className={styles['delete-category-button']}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(category.id, category.name, category.services.length, setDeleteCategoryState);
+                            }}
+                            title="Eliminar categoría y todos sus servicios"
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 0, 0, 0.7)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className={styles['category-services']}>
+                        {category.services.map((servicio, serviceIndex) => {
+                          // Get items for this service
+                          const servicioItems = filteredItems.filter(item => item.id_servicio === servicio.id_servicio);
                           
-                          <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
-                            {servicioItems.map(item => (
-                              <div key={item.id_items || item.id_item} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
-                                <div className={styles['item-header']}>
-                                  <div className={styles['item-main-info']}>
-                                    <div className={styles['item-service']}>
-                                      <span className={styles['service-label']}>Servicio:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'servicio' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <input
-                                            type="text"
-                                            value={editingState.value}
-                                            onChange={(e) => setEditingState({...editingState, value: e.target.value})}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') handleInlineEditSave();
-                                              if (e.key === 'Escape') handleInlineEditCancel();
-                                            }}
-                                            className={styles['inline-edit-input']}
-                                            autoFocus
-                                            placeholder="Nombre del servicio"
-                                          />
-                                          {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['service-name']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'servicio', updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
-                                          title="Doble clic para editar"
-                                        >
-                                          {highlightText(updatedServiceNames[item.id_servicio] || item.servicio_nombre)}
-                                        </span>
-                                      )}
-                                    </div>
-                                    
-                                    <div className={styles['item-subcategory']}>
-                                      <span className={styles['subcategory-label']}>Subcategoría:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'subcategoria' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <select
-                                            value={editingState.value}
-                                            onChange={handleDropdownChange}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Escape') handleInlineEditCancel();
-                                            }}
-                                            className={styles['inline-edit-select']}
-                                            autoFocus
+                          return (
+                            <div key={`service-${servicio.id_servicio}-${category.id}-${serviceIndex}`} className={styles['service-group']}>
+                              <div 
+                                className={`${styles['service-header']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}
+                                style={{ borderLeft: `4px solid ${category.color}` }}
+                                onClick={() => toggleServiceExpansion(servicio.id_servicio)}
+                              >
+                                <FontAwesomeIcon 
+                                  icon={expandedServices[servicio.id_servicio] ? faChevronDown : faChevronRight} 
+                                  className={styles['expand-icon']} 
+                                />
+                                <div className={styles['service-info']}>
+                                  <h3 className={styles['service-name']}>{updatedServiceNames[servicio.id_servicio] || servicio.nombre}</h3>
+                                  {servicio.caracteristicas && servicio.caracteristicas.length > 0 && (
+                                    <div className={styles['caracteristicas-container']} style={{ marginTop: '8px' }}>
+                                      {servicio.caracteristicas.map(caract => (
+                                        <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']}>
+                                          <div 
+                                            className={styles['caracteristica-icon-container']} 
+                                            style={{ backgroundColor: caract.color || '#4285F4' }}
                                           >
-                                            <option value="">Seleccione una subcategoría</option>
-                                            {inlineEditOptions.map(option => (
-                                              <option key={option.id} value={option.name}>
-                                                {option.name}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          {editingState.isLoading && (
-                                            <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
-                                          )}
+                                            <FontAwesomeIcon 
+                                              icon={commonIcons.find(item => item.name === caract.imagen)?.icon || faStar} 
+                                            />
+                                          </div>
+                                          <span>{caract.nombre}</span>
                                         </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['subcategory-name']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'subcategoria', updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
-                                          title="Doble clic para editar"
-                                        >
-                                          {highlightText(updatedSubcategoryNames[item.id_item] || item.subcategoria_nombre)}
-                                        </span>
-                                      )}
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className={styles['service-stats']}>
+                                  <span className={styles['service-items-count']}>{servicioItems.length} ítem(s)</span>
+                                </div>
+                                <div className={styles['service-actions']}>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditDescriptionState({
+                                        show: true,
+                                        servicioId: servicio.id_servicio,
+                                        servicioName: servicio.nombre,
+                                        currentDescription: servicio.descripcion || '',
+                                        isLoading: false
+                                      });
+                                    }}
+                                    title="Editar servicio (nombre y descripción)"
+                                  >
+                                    <FontAwesomeIcon icon={faEdit} />
+                                  </button>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenServiceImageModal(servicio, category);
+                                    }}
+                                    title="Gestionar imagen del servicio"
+                                  >
+                                    <FontAwesomeIcon icon={faImage} />
+                                  </button>
+                                  <button 
+                                    className={styles['action-button']}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete('servicio', servicio.id_servicio);
+                                    }}
+                                    title="Eliminar servicio completo"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className={`${styles['service-items']} ${expandedServices[servicio.id_servicio] ? styles['expanded'] : ''}`}>
+                                {servicioItems.map((item, itemIndex) => (
+                                  <div key={`item-${item.id_items || item.id_item}-${servicio.id_servicio}-${itemIndex}`} className={styles['item-card']} style={{ borderLeft: `4px solid ${category.color}` }}>
+                                    <div className={styles['item-header']}>
+                                      <div className={styles['item-main-info']}>
+                                        <div className={styles['item-service']}>
+                                          <span className={styles['service-label']}>Servicio:</span>
+                                          <span className={styles['service-name']}>
+                                            {(() => {
+                                              try {
+                                                return highlightText(item.servicio_nombre, filters.searchTerm, styles);
+                                              } catch (error) {
+                                                console.error('Error highlighting service name:', error);
+                                                return item.servicio_nombre;
+                                              }
+                                            })()}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className={styles['item-subcategory']}>
+                                          <span className={styles['subcategory-label']}>Subcategoría:</span>
+                                          <span className={styles['subcategory-name']}>
+                                            {(() => {
+                                              try {
+                                                return highlightText(item.subcategoria_nombre, filters.searchTerm, styles);
+                                              } catch (error) {
+                                                console.error('Error highlighting subcategory name:', error);
+                                                return item.subcategoria_nombre;
+                                              }
+                                            })()}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className={styles['item-price-display']}>
+                                          <span className={styles['price-label']}>Precio:</span>
+                                          <span className={styles['price-value']}>
+                                            ${formatPrice(item.precio)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className={styles['item-controls']}>
+                                        <div className={styles['item-actions']}>
+                                          <button 
+                                            className={styles['action-button']}
+                                            onClick={() => {
+                                              setCurrentEditItem(item);
+                                              setShowItemForm(true);
+                                            }}
+                                            title="Editar ítem"
+                                          >
+                                            <FontAwesomeIcon icon={faEdit} />
+                                          </button>
+                                          <button 
+                                            className={styles['action-button']}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDelete('item', item.id_items || item.id_item);
+                                            }}
+                                            title="Eliminar ítem"
+                                          >
+                                            <FontAwesomeIcon icon={faTrash} />
+                                          </button>
+                                        </div>
+                                      </div>
                                     </div>
                                     
-                                    <div className={styles['item-price-display']}>
-                                      <span className={styles['price-label']}>Precio:</span>
-                                      {editingState.itemId === item.id_item && editingState.field === 'precio' ? (
-                                        <div className={styles['inline-edit-field']}>
-                                          <div className={styles['price-edit-container']}>
-                                            <span className={styles['price-edit-symbol']}>$</span>
-                                            <input
-                                              type="text"
-                                              value={editingState.value}
-                                              onChange={handleInlineEditChange}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleInlineEditSave();
-                                                if (e.key === 'Escape') handleInlineEditCancel();
-                                              }}
-                                              className={styles['inline-edit-input']}
-                                              autoFocus
-                                              placeholder="0.00"
-                                            />
-                                            {editingState.isLoading && (
-                                              <FontAwesomeIcon icon={faSpinner} spin className={styles['inline-edit-icon']} />
+                                    {(item.descripcion || item.opciones) && (
+                                      <div className={`${styles['item-details']} ${expandedItems[item.id_items || item.id_item] ? styles['expanded'] : ''}`}>
+                                        <div className={styles['item-section']}>
+                                          <div className={styles['item-section-row']}>
+                                            {item.descripcion && (
+                                              <div className={styles['item-detail']}>
+                                                <span className={styles['detail-label']}>Descripción:</span>
+                                                <span className={styles['detail-value']}>{item.descripcion}</span>
+                                              </div>
+                                            )}
+                                            
+                                            {item.opciones && (
+                                              <div className={styles['item-detail']}>
+                                                <span className={styles['detail-label']}>Opciones:</span>
+                                                <span className={styles['detail-value']}>{item.opciones}</span>
+                                              </div>
                                             )}
                                           </div>
                                         </div>
-                                      ) : (
-                                        <span 
-                                          className={styles['price-value']}
-                                          onDoubleClick={() => handleDoubleClick(item.id_item, 'precio', updatedPrices[item.id_item] || item.precio)}
-                                          title="Doble clic para editar"
-                                        >
-                                          ${formatPrice(updatedPrices[item.id_item] || item.precio)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  <div className={styles['item-category-indicator']} 
-                                    style={{ backgroundColor: category.color }}
-                                    title={`Categoría: ${category.name}`}
-                                  >
-                                    {category.name}
-                                  </div>
-                                  
-                                  <div className={styles['item-controls']}>
-                                    <div className={styles['item-actions']}>
-                                      <button 
-                                        className={styles['action-button']}
-                                        onClick={() => handleDelete('item', item.id_items || item.id_item)}
-                                        title="Eliminar ítem"
-                                      >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {(item.descripcion || item.opciones) && (
-                                  <div className={`${styles['item-details']} ${expandedItems[item.id_items || item.id_item] ? styles['expanded'] : ''}`}>
-                                    <div className={styles['item-section']}>
-                                      <div className={styles['item-section-row']}>
-                                        {item.descripcion && (
-                                          <div className={styles['item-detail']}>
-                                            <span className={styles['detail-label']}>Descripción:</span>
-                                            <span className={styles['detail-value']}>{item.descripcion}</span>
-                                          </div>
-                                        )}
-                                        
-                                        {item.opciones && (
-                                          <div className={styles['item-detail']}>
-                                            <span className={styles['detail-label']}>Opciones:</span>
-                                            <span className={styles['detail-value']}>{item.opciones}</span>
-                                          </div>
-                                        )}
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
-                                )}
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
             )}
           </div>
         )}
@@ -2317,7 +1180,13 @@ const AdminPanel = () => {
             setShowItemForm(false);
             setCurrentEditItem(null);
           }}
-          onSave={handleSaveItem}
+          onSave={async (itemData, itemId) => {
+            const result = await handleSaveItem(itemData, itemId);
+            if (result && result.success) {
+              setShowItemForm(false);
+              setCurrentEditItem(null);
+            }
+          }}
           servicios={allServicios}
           allSubcategorias={allSubcategorias}
           allCategorias={allCategorias}
@@ -2328,8 +1197,8 @@ const AdminPanel = () => {
       {deleteServiceState.show && (
         <DeleteServiceModal
           show={deleteServiceState.show}
-          onClose={cancelDeleteService}
-          onConfirm={confirmDeleteService}
+          onClose={() => cancelDeleteService(setDeleteServiceState)}
+          onConfirm={() => confirmDeleteService(deleteServiceState, setDeleteServiceState)}
           servicioName={deleteServiceState.servicioName}
           itemCount={deleteServiceState.itemCount}
           subcategoriaCount={deleteServiceState.subcategoriaCount}
@@ -2339,10 +1208,171 @@ const AdminPanel = () => {
       {deleteItemState.show && (
         <DeleteItemModal
           show={deleteItemState.show}
-          onClose={cancelDeleteItem}
-          onConfirm={confirmDeleteItem}
+          onClose={() => {
+            setDeleteItemState({
+              show: false,
+              itemId: null,
+              servicioId: null,
+              itemName: '',
+              isLastItem: false,
+              isLoading: false
+            });
+          }}
+          onConfirm={() => confirmDeleteItem(deleteItemState, setDeleteItemState)}
           itemName={deleteItemState.itemName}
           isLastItem={deleteItemState.isLastItem}
+        />
+      )}
+      
+      {colorPickerState.show && (
+        <ColorPickerModal
+          show={colorPickerState.show}
+          onClose={() => setColorPickerState({
+            show: false,
+            categoriaId: null,
+            categoriaName: '',
+            currentColor: '',
+            isLoading: false
+          })}
+          onSave={(categoriaId, colorData) => handleSaveColor(categoriaId, colorData, setColorPickerState)}
+          categoriaId={colorPickerState.categoriaId}
+          initialColor={colorPickerState.currentColor}
+          categoriaName={colorPickerState.categoriaName}
+        />
+      )}
+      
+      {createCategoryState.show && (
+        <CreateCategoryModal
+          show={createCategoryState.show}
+          onClose={() => setCreateCategoryState({ 
+            show: false, 
+            isLoading: false 
+          })}
+          onSave={async (categoryData) => {
+            const result = await handleCreateCategory(categoryData);
+            if (result && result.success) {
+              setCreateCategoryState({ show: false, isLoading: false });
+            }
+          }}
+          allCategorias={allCategorias}
+        />
+      )}
+      
+      {deleteCategoryState.show && (
+        <DeleteCategoryModal
+          show={deleteCategoryState.show}
+          onClose={() => cancelDeleteCategory(setDeleteCategoryState)}
+          onConfirm={() => confirmDeleteCategory(deleteCategoryState, setDeleteCategoryState)}
+          categoryName={deleteCategoryState.categoryName}
+          serviceCount={deleteCategoryState.serviceCount}
+        />
+      )}
+      
+      {createCaracteristicaState.show && (
+        <CreateCaracteristicaModal
+          show={createCaracteristicaState.show}
+          onClose={() => setCreateCaracteristicaState({ 
+            show: false, 
+            isLoading: false,
+            editingCaracteristica: null
+          })}
+          onSave={handleCreateCaracteristica}
+          caracteristica={createCaracteristicaState.editingCaracteristica}
+        />
+      )}
+      
+      {assignCaracteristicaState.show && (
+        <AssignCaracteristicaModal
+          show={assignCaracteristicaState.show}
+          onClose={() => setAssignCaracteristicaState({ 
+            show: false, 
+            isLoading: false 
+          })}
+          onSave={handleAssignCaracteristica}
+          onUnlink={handleUnlinkCaracteristica}
+          allServicios={allServicios}
+          allCaracteristicas={allCaracteristicas}
+        />
+      )}
+      
+      {verCaracteristicasState.show && (
+        <VerCaracteristicasModal
+          show={verCaracteristicasState.show}
+          onClose={() => setVerCaracteristicasState({ show: false })}
+          caracteristicas={allCaracteristicas}
+          onDelete={handleDeleteCaracteristica}
+          onCreateNew={() => {
+            setVerCaracteristicasState({ show: false });
+            setCreateCaracteristicaState({ show: true, isLoading: false });
+          }}
+          onEdit={handleEditCaracteristica}
+        />
+      )}
+      
+      {deleteCaracteristicaState.show && (
+        <DeleteCaracteristicaModal
+          show={deleteCaracteristicaState.show}
+          onClose={cancelDeleteCaracteristica}
+          onConfirm={confirmDeleteCaracteristica}
+          caracteristicaName={deleteCaracteristicaState.caracteristicaName}
+          serviciosCount={deleteCaracteristicaState.serviciosCount}
+        />
+      )}
+      
+      {editDescriptionState.show && (
+        <EditServiceDescriptionModal
+          show={editDescriptionState.show}
+          onClose={() => setEditDescriptionState({
+            show: false,
+            servicioId: null,
+            servicioName: '',
+            currentDescription: '',
+            isLoading: false
+          })}
+          onSave={handleSaveServiceDescription}
+          servicioName={editDescriptionState.servicioName}
+          initialDescription={editDescriptionState.currentDescription}
+        />
+      )}
+      
+      {serviceImageState.show && (
+        <ServiceImageModal
+          show={serviceImageState.show}
+          onClose={() => setServiceImageState({
+            show: false,
+            servicio: null,
+            categoria: null,
+            isLoading: false
+          })}
+          onImageUpdated={handleServiceImageUpdated}
+          servicio={serviceImageState.servicio}
+          categoria={serviceImageState.categoria}
+        />
+      )}
+      
+      {changeCategoryIconState.show && (
+        <ChangeCategoryIconModal
+          show={changeCategoryIconState.show}
+          onClose={() => setChangeCategoryIconState({
+            show: false,
+            categoriaId: null,
+            categoriaName: '',
+            currentIcon: '',
+            isLoading: false
+          })}
+          onSave={(categoriaId, iconData) => handleSaveIcon(categoriaId, iconData, setChangeCategoryIconState)}
+          categoriaId={changeCategoryIconState.categoriaId}
+          categoriaName={changeCategoryIconState.categoriaName}
+          currentIcon={changeCategoryIconState.currentIcon}
+          isLoading={changeCategoryIconState.isLoading}
+        />
+      )}
+      
+      {bannerUploadState.show && (
+        <BannerUploadModal
+          isOpen={bannerUploadState.show}
+          onClose={handleCloseBannerUpload}
+          onSuccess={handleBannerUploadSuccess}
         />
       )}
       

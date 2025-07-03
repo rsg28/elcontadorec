@@ -1,3 +1,5 @@
+// Verificado
+
 import { useState, useEffect } from 'react';
 
 // URL base de la API

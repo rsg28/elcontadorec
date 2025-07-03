@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 import defaultImage from '../assets/empresas/display1.jpeg';
-import useSubcategorias from '../hooks/useSubcategorias';
+import { useSubcategoriasByServicio } from '../hooks/useSubcategorias';
 import useItems from '../hooks/useItems';
 
 const ServiceCard = ({ 
@@ -18,7 +18,7 @@ const ServiceCard = ({
 }) => {
   const navigate = useNavigate();
   const { items } = useItems();
-  const { subcategorias, loading: loadingSubcategorias, error: subcategoriasError } = useSubcategorias(servicioId);
+  const { subcategorias, loading: loadingSubcategorias, error: subcategoriasError } = useSubcategoriasByServicio(servicioId);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState('');
 
   // Find the price from items for the selected service and subcategory

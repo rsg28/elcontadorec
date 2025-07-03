@@ -49,7 +49,7 @@ const TokenizationForm = ({setLoadingNewCard, setLoadCards}) => {
     script.charset = 'UTF-8';
     
     script.onload = () => {
-      console.log('Paymentez script loaded');
+      // Paymentez script loaded successfully
       setState(prev => ({ ...prev, loaded: true }));
     };
     

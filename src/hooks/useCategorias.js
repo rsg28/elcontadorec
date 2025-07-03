@@ -1,3 +1,5 @@
+// Verificado
+
 import { useState, useEffect } from 'react';
 
 // URL base de la API
@@ -23,7 +25,18 @@ const useCategorias = () => {
         }
         
         const data = await response.json();
-        setCategorias(data);
+        // If any category doesn't have a color property, add default black
+        const dataWithColors = data.map(categoria => {
+          if (!categoria.color) {
+            return {
+              ...categoria,
+              color: '#000000' // Default black color
+            };
+          }
+          return categoria;
+        });
+        
+        setCategorias(dataWithColors);
         setError(null);
       } catch (err) {
         console.error('Error fetching categorias:', err);
@@ -52,6 +65,11 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
+      // If no color is provided, use default black
+      if (!categoriaData.color) {
+        categoriaData.color = '#000000'; // Default black color
+      }
+      
       const response = await fetch(`${API_BASE_URL}/categorias`, {
         method: 'POST',
         headers: {
@@ -66,6 +84,11 @@ const useCategorias = () => {
       }
       
       const newCategoria = await response.json();
+      
+      // Ensure the new categoria has a color
+      if (!newCategoria.color) {
+        newCategoria.color = '#000000'; // Default black color
+      }
       
       // Actualizar la lista de categorías localmente
       setCategorias(prevCategorias => [...prevCategorias, newCategoria]);
@@ -96,6 +119,16 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
+      // If not updating color, keep the existing one
+      if (!categoriaData.color) {
+        const existingCategoria = categorias.find(c => c.id_categoria === id);
+        if (existingCategoria && existingCategoria.color) {
+          categoriaData.color = existingCategoria.color;
+        } else {
+          categoriaData.color = '#000000'; // Default black color
+        }
+      }
+      
       const response = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: 'PUT',
         headers: {
@@ -110,6 +143,11 @@ const useCategorias = () => {
       }
       
       const updatedCategoria = await response.json();
+      
+      // Ensure the updated categoria has a color
+      if (!updatedCategoria.color) {
+        updatedCategoria.color = '#000000'; // Default black color
+      }
       
       // Actualizar la lista de categorías localmente
       setCategorias(prevCategorias => 
@@ -143,7 +181,13 @@ const useCategorias = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      const response = await fetch(`${API_BASE_URL}/categorias/${id}`, {
+      // Ensure ID is a number
+      const categoryId = parseInt(id);
+      if (isNaN(categoryId)) {
+        throw new Error('ID de categoría inválido');
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/categorias/${categoryId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -151,7 +195,28 @@ const useCategorias = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
+        // Try to get more detailed error information from the response
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.text();
+          if (errorData) {
+            // Try to parse as JSON first
+            try {
+              const jsonError = JSON.parse(errorData);
+              if (jsonError.error) {
+                errorMessage = jsonError.error;
+              } else if (jsonError.message) {
+                errorMessage = jsonError.message;
+              }
+            } catch {
+              // If not JSON, use the text as is
+              errorMessage = errorData;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing server response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
       
       // Actualizar la lista de categorías localmente

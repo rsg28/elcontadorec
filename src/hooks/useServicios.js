@@ -57,35 +57,37 @@ export const useAllServicios = () => {
     try {
       setLoading(true);
       
-      // Get all services
+      // Get all services (already includes Items with Subcategoria data)
       const serviciosResponse = await fetch(`${API_BASE_URL}/servicios`);
       if (!serviciosResponse.ok) {
         throw new Error(`Error fetching services: ${serviciosResponse.status}`);
       }
       const serviciosData = await serviciosResponse.json();
       
-      // Add subcategories to each service
-      const serviciosWithDetails = await Promise.all(serviciosData.map(async (servicio) => {
-        // Get subcategories for this service
-        try {
-          const subcategoriasResponse = await fetch(`${API_BASE_URL}/subcategorias/servicio/${servicio.id_servicio}`);
-          if (subcategoriasResponse.ok) {
-            const subcategoriasData = await subcategoriasResponse.json();
-            return { 
-              ...servicio, 
-              subcategorias: subcategoriasData
-            };
-          }
-        } catch (err) {
-          console.error(`Error fetching subcategories for service ${servicio.id_servicio}:`, err);
+      // Process services to extract subcategories from Items
+      const serviciosWithDetails = serviciosData.map((servicio) => {
+        // Extract unique subcategories from the Items array
+        const subcategorias = [];
+        const seenSubcategoryIds = new Set();
+        
+        if (servicio.Items && Array.isArray(servicio.Items)) {
+          servicio.Items.forEach(item => {
+            if (item.Subcategoria && !seenSubcategoryIds.has(item.Subcategoria.id_subcategoria)) {
+              subcategorias.push({
+                id_subcategoria: item.Subcategoria.id_subcategoria,
+                nombre: item.Subcategoria.nombre,
+                id_servicio: servicio.id_servicio
+              });
+              seenSubcategoryIds.add(item.Subcategoria.id_subcategoria);
+            }
+          });
         }
         
-        // Return service with empty subcategories if error
         return { 
           ...servicio, 
-          subcategorias: []
+          subcategorias: subcategorias
         };
-      }));
+      });
       
       setServicios(serviciosWithDetails);
       setError(null);
@@ -153,59 +155,6 @@ export const useAllServicios = () => {
   };
 
   /**
-   * Crear una nueva subcategoría (requiere autenticación de administrador)
-   * @param {Object} subcategoriaData - Datos de la subcategoría a crear
-   * @returns {Promise<Object>} - Resultado de la operación
-   */
-  const createSubcategoria = async (subcategoriaData) => {
-    try {
-      setLoading(true);
-      
-      // Get authentication token
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/subcategorias`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(subcategoriaData),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-      
-      const newSubcategoria = await response.json();
-      
-      // Actualizar la lista de servicios localmente añadiendo la subcategoría
-      setServicios(prevServicios => {
-        return prevServicios.map(servicio => {
-          if (servicio.id_servicio == subcategoriaData.id_servicio) {
-            return {
-              ...servicio,
-              subcategorias: [...servicio.subcategorias, newSubcategoria]
-            };
-          }
-          return servicio;
-        });
-      });
-      
-      return { success: true, data: newSubcategoria };
-    } catch (err) {
-      console.error('Error creating subcategoria:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
    * Eliminar un servicio y todas sus subcategorías e ítems relacionados
    * @param {number} servicioId - ID del servicio a eliminar
    * @returns {Promise<Object>} - Resultado de la operación
@@ -221,7 +170,6 @@ export const useAllServicios = () => {
       }
       
       // Call the backend to delete the service and all related records in a transaction
-      console.log(`Eliminando servicio: ${servicioId}`);
       const deleteResponse = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'DELETE',
         headers: {
@@ -235,7 +183,6 @@ export const useAllServicios = () => {
       }
       
       const result = await deleteResponse.json();
-      console.log('Respuesta del servidor:', result);
       
       // Update local state ONLY when server deletion was successful
       setServicios(prevServicios => prevServicios.filter(servicio => servicio.id_servicio !== servicioId));
@@ -262,12 +209,12 @@ export const useAllServicios = () => {
   };
 
   /**
-   * Actualizar el nombre de un servicio existente
+   * Actualizar un servicio existente
    * @param {number} servicioId - ID del servicio a actualizar
-   * @param {string} newName - Nuevo nombre para el servicio
+   * @param {Object} updateData - Datos a actualizar (nombre y/o descripcion)
    * @returns {Promise<Object>} - Resultado de la operación
    */
-  const updateServicio = async (servicioId, newName) => {
+  const updateServicio = async (servicioId, updateData) => {
     try {
       setLoading(true);
       
@@ -277,14 +224,14 @@ export const useAllServicios = () => {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
       
-      // First update the service in the backend
+      // Update the service in the backend
       const response = await fetch(`${API_BASE_URL}/servicios/${servicioId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ nombre: newName }),
+        body: JSON.stringify(updateData),
       });
       
       if (!response.ok) {
@@ -293,59 +240,19 @@ export const useAllServicios = () => {
       
       const updatedServicio = await response.json();
       
-      // Now we need to update all items that reference this service
-      // Get all items first
-      const itemsResponse = await fetch(`${API_BASE_URL}/items`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!itemsResponse.ok) {
-        console.warn('Could not fetch items to update service references');
-      } else {
-        const allItems = await itemsResponse.json();
-        
-        // Filter items that use this service
-        const itemsToUpdate = allItems.filter(item => item.id_servicio === servicioId);
-        
-        // Update each item's service_nombre field
-        for (const item of itemsToUpdate) {
-          try {
-            const itemId = item.id_items || item.id_item;
-            
-            await fetch(`${API_BASE_URL}/items/${itemId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ 
-                ...item,
-                servicio_nombre: newName
-              }),
-            });
-          } catch (itemError) {
-            console.warn(`Could not update item ${item.id_items || item.id_item} with new service name:`, itemError);
-          }
-        }
-      }
-      
-      // Actualizar la lista de servicios localmente
+      // Update local state
       setServicios(prevServicios => 
-        prevServicios.map(servicio => {
-          if (servicio.id_servicio === servicioId) {
-            return { ...servicio, nombre: newName };
-          }
-          return servicio;
-        })
+        prevServicios.map(s => 
+          s.id_servicio === servicioId 
+            ? { ...s, ...updateData }
+            : s
+        )
       );
       
       return { success: true, data: updatedServicio };
-    } catch (err) {
-      console.error('Error updating servicio:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (error) {
+      console.error('Error updating service:', error);
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
@@ -356,7 +263,6 @@ export const useAllServicios = () => {
     loading, 
     error, 
     createServicio, 
-    createSubcategoria,
     deleteServicio,
     updateServicio,
     fetchAllServicios,

@@ -5,6 +5,9 @@
   --gray-light: #f5f5f5;
   --gray: #e0e0e0;
   --gray-dark: #717171;
+  --gray-lighter: #f8f9fa;
+  --gray-medium: #6b7280;
+  --gray-border: #e1e5e9;
   
   /* Brand colors */
   --primary: #003b71;
@@ -17,29 +20,75 @@
   --accent: #00b9f2;
   --accent-dark: #0096c2;
   
+  /* Additional brand variations */
+  --primary-alt: #2563eb;
+  --primary-alt-dark: #1741a6;
+  --blue-teal: #21707b;
+  --blue-border: #b0c4cc;
+  --blue-light-bg: #fafbfc;
+  
   /* Cart button colors */
   --cart-btn: #c00;
   --cart-btn-hover: #a00;
   
   /* UI colors */
   --background: #f7fafd;
+  --background-alt: #f5f6fa;
   --nav-bg: #8cb7e0;
   --success: #28a745;
+  --success-alt: #4caf50;
+  --success-dark: #2e7d32;
   --error: #dc3545;
+  --error-alt: #f44336;
+  --error-dark: #c62828;
   --warning: #ffc107;
+  --warning-dark: #ffb300;
+  --info: #ff9800;
   
   /* Text colors */
   --text-dark: #001833;
+  --text-color: #333333;
+  --text-color-alt: #222;
   --text-light: #ffffff;
   --text-muted: #717171;
+  --text-medium: #555;
+  --text-light-gray: #888;
+  --text-lighter: #999;
+  --text-very-light: #bbb;
+  --text-placeholder: #666;
+  --text-subtle: #7a7a7a;
+  
+  /* Border colors */
+  --border-color: #e0e0e0;
+  --border-light: #e9ecef;
+  --border-gray: #ddd;
+  
+  /* Background variations */
+  --bg-surface: #fff;
+  --bg-hover: #e5e7eb;
+  --bg-selected: #e8f5e9;
+  --bg-error: #ffebee;
+  --bg-warning: #fff3cd;
+  --bg-info: #f9f9f9;
+  
+  /* Special colors */
+  --hover-color: rgba(255, 255, 255, 0.1);
+  --overlay: rgba(0, 0, 0, 0.7);
+  --transparent-white: rgba(255, 255, 255, 0.95);
   
   /* Shadows */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.2);
   
   /* Border radius */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 24px;
+  
+  /* Focus ring colors */
+  --focus-ring-primary: rgba(37, 99, 235, 0.1);
+  --focus-ring-accent: rgba(0, 185, 242, 0.1);
 } 

@@ -14,10 +14,17 @@ const useItems = () => {
   const [itemsWithDetails, setItemsWithDetails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
-  const { subcategorias: allSubcategorias } = useSubcategorias();
+  const { 
+    servicios: allServicios, 
+    loading: serviciosLoading,
+    createServicio 
+  } = useAllServicios();
+  const { 
+    subcategorias: allSubcategorias,
+    createSubcategoria 
+  } = useSubcategorias();
 
-  // Function to fetch items that can be called on demand
+  // Function to fetch items into the items state
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -28,7 +35,6 @@ const useItems = () => {
       }
       
       const data = await response.json();
-      console.log('Items refreshed successfully', data.length);
       setItems(data);
       setError(null);
       
@@ -46,10 +52,11 @@ const useItems = () => {
     }
   }, []);
 
+  
   // Obtener todos los items cuando el componente se monta
   useEffect(() => {
     fetchItems();
-  }, [fetchItems]);
+  }, []); // fetchItems is stable due to useCallback with empty deps
 
   // Whenever items or servicios change, update the itemsWithDetails
   // This ensures we have the most up-to-date information
@@ -113,53 +120,26 @@ const useItems = () => {
       
       // If servicio is a string (name), create a new servicio
       if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
-        try {
-          const servicioResponse = await fetch(`${API_BASE_URL}/servicios`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ nombre: servicioId }),
-          });
-          
-          if (!servicioResponse.ok) {
-            throw new Error(`Error creating servicio: ${servicioResponse.status}`);
-          }
-          
-          const newServicio = await servicioResponse.json();
-          servicioId = newServicio.id_servicio;
-        } catch (err) {
-          console.error('Error creating new servicio:', err);
-          throw new Error(`No se pudo crear el servicio: ${err.message}`);
+        const servicioResult = await createServicio({ nombre: servicioId });
+        
+        if (!servicioResult.success) {
+          throw new Error(`No se pudo crear el servicio: ${servicioResult.error}`);
         }
+        
+        servicioId = servicioResult.data.id_servicio;
       }
       
       // If subcategoria is a string (name), create a new subcategoria
       if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
-        try {
-          const subcategoriaResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ 
-              nombre: subcategoriaId,
-              id_servicio: servicioId
-            }),
-          });
-          
-          if (!subcategoriaResponse.ok) {
-            throw new Error(`Error creating subcategoria: ${subcategoriaResponse.status}`);
-          }
-          
-          const newSubcategoria = await subcategoriaResponse.json();
-          subcategoriaId = newSubcategoria.id_subcategoria;
-        } catch (err) {
-          console.error('Error creating new subcategoria:', err);
-          throw new Error(`No se pudo crear la subcategoría: ${err.message}`);
+        const subcategoriaResult = await createSubcategoria({ 
+          nombre: subcategoriaId
+        });
+        
+        if (!subcategoriaResult.success) {
+          throw new Error(`No se pudo crear la subcategoría: ${subcategoriaResult.error}`);
         }
+        
+        subcategoriaId = subcategoriaResult.data.id_subcategoria;
       }
       
       // Crear una copia del objeto con los IDs actualizados
@@ -220,90 +200,41 @@ const useItems = () => {
 
       // If servicio is a string (name), check if exists or create new
       if (typeof servicioId === 'string' && isNaN(parseInt(servicioId))) {
-        try {
-          // First check if servicio exists
-          const serviciosResponse = await fetch(`${API_BASE_URL}/servicios`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+        // Check if servicio exists in current data
+        const existingServicio = allServicios.find(s => s.nombre.toLowerCase() === servicioId.toLowerCase());
+
+        if (existingServicio) {
+          servicioId = existingServicio.id_servicio;
+        } else {
+          // Create new servicio if not found
+          const servicioResult = await createServicio({ nombre: servicioId });
           
-          if (!serviciosResponse.ok) {
-            throw new Error(`Error fetching servicios: ${serviciosResponse.status}`);
+          if (!servicioResult.success) {
+            throw new Error(`Error con el servicio: ${servicioResult.error}`);
           }
-
-          const servicios = await serviciosResponse.json();
-          const existingServicio = servicios.find(s => s.nombre.toLowerCase() === servicioId.toLowerCase());
-
-          if (existingServicio) {
-            servicioId = existingServicio.id_servicio;
-          } else {
-            // Create new servicio if not found
-            const servicioResponse = await fetch(`${API_BASE_URL}/servicios`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ nombre: servicioId }),
-            });
-            
-            if (!servicioResponse.ok) {
-              throw new Error(`Error creating servicio: ${servicioResponse.status}`);
-            }
-            
-            const newServicio = await servicioResponse.json();
-            servicioId = newServicio.id_servicio;
-          }
-        } catch (err) {
-          console.error('Error handling servicio:', err);
-          throw new Error(`Error con el servicio: ${err.message}`);
+          
+          servicioId = servicioResult.data.id_servicio;
         }
       }
       
       // If subcategoria is a string (name), check if exists or create new
       if (typeof subcategoriaId === 'string' && isNaN(parseInt(subcategoriaId))) {
-        try {
-          // First check if subcategoria exists
-          const subcategoriasResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
+        // Check if subcategoria exists in current data
+        const existingSubcategoria = allSubcategorias.find(s => s.nombre.toLowerCase() === subcategoriaId.toLowerCase());
+
+        if (existingSubcategoria) {
+          subcategoriaId = existingSubcategoria.id_subcategoria;
+        } else {
+          // Create new subcategoria if not found
+          const subcategoriaResult = await createSubcategoria({ 
+            nombre: subcategoriaId
           });
           
-          if (!subcategoriasResponse.ok) {
-            throw new Error(`Error fetching subcategorias: ${subcategoriasResponse.status}`);
+          if (!subcategoriaResult.success) {
+            throw new Error(`Error con la subcategoría: ${subcategoriaResult.error}`);
           }
-
-          const subcategorias = await subcategoriasResponse.json();
-          const existingSubcategoria = subcategorias.find(s => s.nombre.toLowerCase() === subcategoriaId.toLowerCase());
-
-          if (existingSubcategoria) {
-            subcategoriaId = existingSubcategoria.id_subcategoria;
-          } else {
-            // Create new subcategoria if not found
-            const subcategoriaResponse = await fetch(`${API_BASE_URL}/subcategorias`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ 
-                nombre: subcategoriaId,
-                id_servicio: servicioId
-              }),
-            });
-            
-            if (!subcategoriaResponse.ok) {
-              throw new Error(`Error creating subcategoria: ${subcategoriaResponse.status}`);
-            }
-            
-            const newSubcategoria = await subcategoriaResponse.json();
-            subcategoriaId = newSubcategoria.id_subcategoria;
-          }
-        } catch (err) {
-          console.error('Error handling subcategoria:', err);
-          throw new Error(`Error con la subcategoría: ${err.message}`);
+          
+          subcategoriaId = subcategoriaResult.data.id_subcategoria;
         }
       }
       
@@ -360,9 +291,6 @@ const useItems = () => {
       if (!token) {
         throw new Error('No hay token de autenticación. Inicie sesión como administrador.');
       }
-      
-      // Log the itemId for debugging
-      console.log('Deleting item with ID:', itemId);
       
       const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: 'DELETE',
