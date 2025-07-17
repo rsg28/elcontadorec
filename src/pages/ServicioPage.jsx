@@ -35,6 +35,11 @@ const ServicioPage = () => {
   const [error, setError] = useState(null);
   const [bannerImage, setBannerImage] = useState(null);
 
+  // Handle adding item to cart
+  const handleAddItem = () => {
+    // TODO: Implement add to cart functionality
+  };
+
   // Fetch all servicios and categorias
   const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
   const { categorias: allCategorias, loading: categoriasLoading } = useCategorias();
@@ -235,8 +240,8 @@ const ServicioPage = () => {
                     </div>
                   </div>
                 )}
-                <button className="add-to-cart-button">
-                  Agregar al carrito <FontAwesomeIcon icon={faShoppingCart} />
+                <button className="add-to-cart-button" onClick={handleAddItem}>
+                  Agregar al carrito <FontAwesomeIcon icon={faShoppingCart}  />
                 </button>
               </>
             ) : (
