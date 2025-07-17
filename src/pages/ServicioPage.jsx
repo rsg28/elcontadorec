@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faFolderOpen, faFileAlt, faPaperPlane, faLock, 
   faPlus, faMinus, faShoppingCart, faFolder, 
-  faFileInvoice, faShieldAlt, faUsers, faCalculator 
+  faFileInvoice, faShieldAlt, faUsers, faCalculator,
+  faSignInAlt, faUserPlus, faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import { useAllServicios } from '../hooks/useServicios';
 import useCategorias from '../hooks/useCategorias';
+import useAuth from '../hooks/useAuth';
+import useNotifications from '../hooks/useNotifications';
 import LoadingAnimation from '../components/loadingAnimation';
 import './ServicioPage.css';
 
@@ -27,6 +30,10 @@ const iconMap = {
 
 const ServicioPage = () => {
   const { id_servicio } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { success, error: showError, ToastContainer } = useNotifications();
+  
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [caracteristicas, setCaracteristicas] = useState([]);
@@ -34,11 +41,7 @@ const ServicioPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bannerImage, setBannerImage] = useState(null);
-
-  // Handle adding item to cart
-  const handleAddItem = () => {
-    // TODO: Implement add to cart functionality
-  };
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Fetch all servicios and categorias
   const { servicios: allServicios, loading: serviciosLoading } = useAllServicios();
@@ -132,6 +135,40 @@ const ServicioPage = () => {
     return iconMap[iconName] || faFileAlt; // default icon if not found
   };
 
+  // Handle add to cart click
+  const handleAddToCart = () => {
+    if (!isAuthenticated()) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    // Check if subcategory is selected for authenticated users
+    if (!selectedSubcategory) {
+      showError('Por favor seleccione una subcategoría');
+      return;
+    }
+    
+    // TODO: Implement actual add to cart logic
+    success('Producto agregado al carrito');
+  };
+
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    setShowAuthModal(false);
+    navigate('/login');
+  };
+
+  // Handle register redirect
+  const handleRegisterRedirect = () => {
+    setShowAuthModal(false);
+    navigate('/register');
+  };
+
+  // Handle close auth modal
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+  };
+
   // Loading state
   if (serviciosLoading || categoriasLoading || loading) {
     return (
@@ -192,8 +229,8 @@ const ServicioPage = () => {
             </div>
             {servicioItems.length > 0 ? (
               <>
-                <select 
-                  className="price-select"
+            <select 
+              className="price-select"
                   value={selectedSubcategory ? selectedSubcategory.id_items : ''} 
                   onChange={e => {
                     const selectedItem = servicioItems.find(item => 
@@ -201,35 +238,35 @@ const ServicioPage = () => {
                     );
                     setSelectedSubcategory(selectedItem);
                   }}
-                >
+            >
                   {servicioItems.map((item) => (
                     <option key={item.id_items} value={item.id_items}>
                       {item.Subcategoria?.nombre || 'Sin subcategoría'}
                     </option>
                   ))}
-                </select>
-                <div className="quantity-container">
-                  <span className="quantity-text">necesito</span>
-                  <button 
-                    className="quantity-button" 
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  >
-                    <FontAwesomeIcon icon={faMinus} />
-                  </button>
-                  <input 
-                    className="quantity-input"
-                    type="text" 
-                    value={quantity} 
-                    readOnly 
-                  />
-                  <button 
-                    className="quantity-button" 
-                    onClick={() => setQuantity(q => q + 1)}
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </button>
-                  <span className="quantity-text">declaración(es)</span>
-                </div>
+            </select>
+            <div className="quantity-container">
+              <span className="quantity-text">necesito</span>
+              <button 
+                className="quantity-button" 
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              >
+                <FontAwesomeIcon icon={faMinus} />
+              </button>
+              <input 
+                className="quantity-input"
+                type="text" 
+                value={quantity} 
+                readOnly 
+              />
+              <button 
+                className="quantity-button" 
+                onClick={() => setQuantity(q => q + 1)}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </button>
+              <span className="quantity-text">declaración(es)</span>
+            </div>
                 {selectedSubcategory && (
                   <div className="price-display">
                     <div className="selected-price">
@@ -240,9 +277,13 @@ const ServicioPage = () => {
                     </div>
                   </div>
                 )}
-                <button className="add-to-cart-button" onClick={handleAddItem}>
-                  Agregar al carrito <FontAwesomeIcon icon={faShoppingCart}  />
-                </button>
+            <button 
+              className="add-to-cart-button"
+              onClick={handleAddToCart}
+              disabled={isAuthenticated() && !selectedSubcategory}
+            >
+              Agregar al carrito <FontAwesomeIcon icon={faShoppingCart} />
+            </button>
               </>
             ) : (
               <div className="no-subcategories-message">
@@ -285,6 +326,36 @@ const ServicioPage = () => {
           />
         </div>
       )}
+      
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="auth-modal-overlay" onClick={handleCloseAuthModal}>
+          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="auth-modal-header">
+              <h2>Iniciar Sesión Requerido</h2>
+              <button className="auth-modal-close" onClick={handleCloseAuthModal}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="auth-modal-content">
+              <p>Para agregar productos al carrito necesitas tener una cuenta en nuestra plataforma.</p>
+              <div className="auth-modal-buttons">
+                <button className="auth-modal-btn login-btn" onClick={handleLoginRedirect}>
+                  <FontAwesomeIcon icon={faSignInAlt} />
+                  Iniciar Sesión
+                </button>
+                <button className="auth-modal-btn register-btn" onClick={handleRegisterRedirect}>
+                  <FontAwesomeIcon icon={faUserPlus} />
+                  Registrarse
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Toast Container for notifications */}
+      <ToastContainer />
     </div>
   );
 };

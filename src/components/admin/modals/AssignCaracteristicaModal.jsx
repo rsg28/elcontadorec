@@ -491,8 +491,8 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
               <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>
-                    Características actuales del servicio:
-                  </div>
+                  Características actuales del servicio:
+                </div>
                   <div style={{ 
                     fontSize: '13px', 
                     fontWeight: '600',
@@ -505,26 +505,26 @@ const AssignCaracteristicaModal = ({ show, onClose, onSave, onUnlink, allServici
                   </div>
                 </div>
                 {servicioCaracteristicas.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {servicioCaracteristicas.map(caract => (
-                      <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']} style={{ fontSize: '13px', padding: '8px 12px' }}>
-                        <div 
-                          className={styles['caracteristica-icon-container']} 
-                          style={{ 
-                            backgroundColor: caract.color || '#4285F4',
-                            width: '24px',
-                            height: '24px'
-                          }}
-                        >
-                          <FontAwesomeIcon 
-                            icon={getIconComponent(caract.imagen)} 
-                            style={{ fontSize: '12px', color: 'white' }}
-                          />
-                        </div>
-                        <span>{caract.nombre}</span>
+                    <div key={caract.id_caracteristicas} className={styles['caracteristica-tag']} style={{ fontSize: '13px', padding: '8px 12px' }}>
+                      <div 
+                        className={styles['caracteristica-icon-container']} 
+                        style={{ 
+                          backgroundColor: caract.color || '#4285F4',
+                          width: '24px',
+                          height: '24px'
+                        }}
+                      >
+                        <FontAwesomeIcon 
+                          icon={getIconComponent(caract.imagen)} 
+                          style={{ fontSize: '12px', color: 'white' }}
+                        />
                       </div>
-                    ))}
-                  </div>
+                      <span>{caract.nombre}</span>
+                    </div>
+                  ))}
+                </div>
                 ) : (
                   <div style={{ fontSize: '14px', color: '#999', fontStyle: 'italic' }}>
                     No hay características asignadas a este servicio
