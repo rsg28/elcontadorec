@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import LoadingAnimation from './loadingAnimation';
 
-const TokenizationForm = () => {
+const TokenizationForm = ({setLoadingNewCard, setLoadCards}) => {
   // Refs
   const scriptRef = useRef(null);
   const submitBtnRef = useRef(null);
@@ -13,6 +13,7 @@ const TokenizationForm = () => {
   // State management
   const [state, setState] = useState({
     loaded: false,
+    scriptError: false,
     paymentGateway: null,
     responseText: '',
     loading: false,
@@ -34,10 +35,10 @@ const TokenizationForm = () => {
   };
 
   const userStr = localStorage.getItem('user');
-  const user = JSON.parse(userStr);
+  const user = userStr ? JSON.parse(userStr) : null;
   
-  const userId = user.id;
-  const userEmail = user.correo;
+  const userId = user?.id || 'guest';
+  const userEmail = user?.correo || 'guest@example.com';
 
   // Load Paymentez script
   const loadScript = async () => {
@@ -52,7 +53,10 @@ const TokenizationForm = () => {
       setState(prev => ({ ...prev, loaded: true }));
     };
     
-    script.onerror = () => console.error('Failed to load Paymentez script.');
+    script.onerror = () => {
+      console.error('Failed to load Paymentez script.');
+      setState(prev => ({ ...prev, scriptError: true }));
+    };
     
     document.body.appendChild(script);
     scriptRef.current = script;
@@ -87,62 +91,101 @@ const TokenizationForm = () => {
     }
   };
 
-  const handleTokenizationResponse = (response) => {
+  const handleTokenizationResponse = async (response) => {
     try {
-      const status = response.card.status;
+      console.log("Tokenization response:", response);
       
-      if (status === 'valid') {
-        alert("Tarjeta guardada correctamente");
-      } else if (status === "review") {
-        // Card under review - handle appropriately
-        setState(prev => ({
-          ...prev,
-          responseText: 'Tarjeta en revisión. Por favor, intente con otra tarjeta.',
-          loading: false,
-          ui: {
-            ...prev.ui,
-            isSubmitBtnDisabled: false
-          }
-        }));
-        
-        if (submitBtnRef.current) {
-          submitBtnRef.current.innerText = 'Guardar tarjeta';
-        }
-      } else if (status === 403 || status === 404) {
-        alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
-      } else {
+      // First check if response exists at all
+      if (!response) {
+        console.log("Error: Response is undefined");
         alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
+        return;
       }
+      
+      // Check for valid card response
+      if (response.card && typeof response.card === 'object') {
+        try {
+          const status = response.card.status;
+          
+          if (status === 'valid') {
+            console.log("Card saved successfully");
+            alert("Tarjeta guardada correctamente");
+            setLoadCards(true);
+            return;
+          } else if (status === "review") {
+            console.log("Tarjeta en revisión");
+            alert("Tarjeta en revisión");
+            setLoadCards(true);
+            return;
+          } else if (status === "rejected") {
+            console.log("Tarjeta inválida");
+            alert("Tarjeta inválida, porfavor intente con otra tarjeta");
+            setLoadCards(true);
+            return;
+          } else {
+            console.log("Unrecognized card status:", status);
+          }
+        } catch (cardErr) {
+          console.error("Error processing card response:", cardErr);
+        }
+      }
+      
+      // Check for error response
+      if (response.error && typeof response.error === 'object') {
+        try {
+          console.log("Error in response:", response.error);
+          alert(response.error.type);
+          if (response.error.type.includes("already added")) {
+            
+            //alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
+            return;
+          } 
+        } catch (errorErr) {
+          console.error("Error processing error response:", errorErr);
+        }
+      }
+      
+      // Default fallback if no specific condition was met
+      console.log("Unhandled response structure:", response);
+      alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
+
     } catch (error) {
       console.error('Error processing tokenization response:', error);
-      if (error.status === 403 || error.status === 404) {
-        alert("La tarjeta de crédito no es válida o ya se encuentra registrada.");
-      } else {
-        alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
-      }
+      alert('Ha ocurrido un error en el servidor. Por favor, inténtelo de nuevo más tarde.');
     } finally {
       setState(prev => ({ ...prev, loading: false }));
       removeTokenizationForm();
-      window.location.reload();
+      setLoadingNewCard(false);
+      setLoadCards(true);
     }
   };
 
   // Initialize payment gateway
   useEffect(() => {   
-    if (!state.loaded || state.paymentGateway !== null) return;
-       
-    const pg = new PaymentGateway(
-      CONFIG.environment,
-      CONFIG.application_code,
-      CONFIG.application_key
-    );
+    if (!state.loaded || state.paymentGateway !== null || state.scriptError) return;
     
-    setState(prev => ({ ...prev, paymentGateway: pg }));
-  }, [state.loaded, state.paymentGateway]);
+    try {   
+      const pg = new PaymentGateway(
+        CONFIG.environment,
+        CONFIG.application_code,
+        CONFIG.application_key
+      );
+      
+      setState(prev => ({ ...prev, paymentGateway: pg }));
+    } catch (error) {
+      console.error('Failed to initialize payment gateway:', error);
+      setState(prev => ({ 
+        ...prev, 
+        scriptError: true, 
+        responseText: 'Error al inicializar el procesador de pagos'
+      }));
+    }
+  }, [state.loaded, state.paymentGateway, state.scriptError]);
 
   // Button click handlers
   const handleSubmitClick = async (e) => {
     e.preventDefault();
+    setLoadingNewCard(true);
     setState(prev => ({
       ...prev,
       responseText: '',
@@ -157,9 +200,13 @@ const TokenizationForm = () => {
     if (state.paymentGateway) {
       try {
         await state.paymentGateway.tokenize();
-        // Tokenization successful - handled by callback
+        console.log("Tokenization successful");
+        setLoadingNewCard(false);
+        console.log("Setting loadCards to true from handleSubmitClick");
+        setLoadCards(true);
       } catch (error) {
         console.error('Tokenization error:', error);
+        setLoadingNewCard(false);
         setState(prev => ({
           ...prev,
           responseText: error.message || 'Error al procesar la tarjeta. Intente nuevamente.',
@@ -259,6 +306,11 @@ const TokenizationForm = () => {
     <>
       {state.loading && <LoadingAnimation />}
       <div style={{...styles.container, ...styles.paymentExampleDiv}} id="payment_example_div">
+        {state.scriptError && (
+          <div style={styles.errorMessage}>
+            Error al cargar el procesador de pagos. Por favor, recargue la página o intente más tarde.
+          </div>
+        )}
         <div 
           id="tokenize_container" 
           className="tokenize_container" 
@@ -336,6 +388,11 @@ const styles = {
     alignItems: 'center', 
     justifyContent: 'center', 
     width: '100%'
+  },
+  errorMessage: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: '10px',
   },
 };
 

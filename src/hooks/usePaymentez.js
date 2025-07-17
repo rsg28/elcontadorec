@@ -98,6 +98,36 @@ const usePaymentez = () => {
     }
   };
 
+  const debitPaymentWithToken = async (order, card) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { user, token } = loadUserToken();
+
+      const response = await fetch(`${API_BASE_URL}/debitWithToken`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ order: order, user: user, card: card })
+      });
+
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (err) {
+      setError(err.message || 'An error occurred submitting the payment');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   
 
   return {
@@ -105,7 +135,7 @@ const usePaymentez = () => {
     error,
     getAllCards,
     deleteCard,
-    cards
+    debitPaymentWithToken
   };
 };
 
