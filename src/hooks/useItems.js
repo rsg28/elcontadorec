@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAllServicios } from './useServicios';
 import useSubcategorias from './useSubcategorias';
-
-// URL base de la API
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '../config/api.js';
 
 /**
  * Hook personalizado para obtener items con información relacionada

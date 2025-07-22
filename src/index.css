@@ -47,7 +47,7 @@ button {
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background: linear-gradient(to right, var(--primary-dark), var(--primary));
+  background: #0c1b47;
   color: var(--text-light);
   box-shadow: var(--shadow-md);
   position: sticky;
@@ -58,6 +58,7 @@ button {
 .logo-container {
   display: flex;
   align-items: center;
+  margin-left: 82px;
   margin-right: 20px;
 }
 
@@ -71,8 +72,8 @@ button {
 }
 
 .full-logo {
-  height: 60px;
-  max-width: 300px;
+  height: 80px;
+  max-width: 400px;
   object-fit: contain;
 }
 

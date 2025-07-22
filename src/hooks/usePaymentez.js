@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-
-// URL base de la API
-
+import { API_BASE_URL as BASE_URL } from '../config/api.js';
 
 /**
  * Hook personalizado para manejar autenticación de usuarios
  * @returns {Object} - Objeto con funciones y estados de autenticación
  */
 const usePaymentez = () => {
-  const API_BASE_URL = '/api/cards';
+  const API_BASE_URL = `${BASE_URL}/cards`;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [cards, setCards] = useState([]);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '../config/api.js';
 
 /**
  * Hook personalizado para obtener todas las subcategorías

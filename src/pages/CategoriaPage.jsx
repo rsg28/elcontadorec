@@ -24,6 +24,10 @@ const CategoriaPage = () => {
   // State for auth modal
   const [showAuthModal, setShowAuthModal] = useState(false);
   
+  // State for image loading
+  const [imagesLoading, setImagesLoading] = useState(true);
+  const [loadedImages, setLoadedImages] = useState(new Set());
+  
   // Hooks for data
   const { 
     items: itemsWithDetails, 
@@ -61,7 +65,7 @@ const CategoriaPage = () => {
   const [quantities, setQuantities] = useState({});
   
   // Loading and error states
-  const loading = itemsLoading || serviciosLoading || categoriasLoading || subcategoriasLoading;
+  const loading = itemsLoading || serviciosLoading || categoriasLoading || subcategoriasLoading || imagesLoading;
   const error = itemsError || serviciosError || categoriasError || subcategoriasError;
   
   // Get current category
@@ -205,14 +209,85 @@ const CategoriaPage = () => {
     setShowAuthModal(false);
   };
   
-  // Initialize prices to 0 only when the category changes
+  // Function to preload images
+  const preloadImages = async (imageUrls) => {
+    const imagePromises = imageUrls.map((url) => {
+      return new Promise((resolve, reject) => {
+        if (!url || loadedImages.has(url)) {
+          resolve(url);
+          return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+          setLoadedImages(prev => new Set([...prev, url]));
+          resolve(url);
+        };
+        img.onerror = () => {
+          // Even if image fails to load, resolve to continue
+          // The component will handle fallback in the onError event
+          resolve(url);
+        };
+        img.src = url;
+      });
+    });
+
+    try {
+      await Promise.all(imagePromises);
+    } catch (error) {
+      console.error('Error preloading images:', error);
+    }
+  };
+
+  // Initialize prices to 0 and reset image loading when category changes
   useEffect(() => {
     const initialPrices = {};
     categoryServices.forEach(servicio => {
       initialPrices[servicio.id_servicio] = 0;
     });
     setSelectedPrices(initialPrices);
+    
+    // Reset image loading state for new category
+    setImagesLoading(true);
+    setLoadedImages(new Set());
   }, [categoriaId]);
+
+  // Preload images when services data is ready
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (!serviciosLoading && categoryServices.length > 0) {
+      const imageUrls = [];
+      
+      // Add default image
+      imageUrls.push(displayDefault);
+      
+      // Add service images
+      categoryServices.forEach(servicio => {
+        if (servicio.imagen) {
+          imageUrls.push(servicio.imagen);
+        }
+      });
+
+      // Remove duplicates
+      const uniqueImageUrls = [...new Set(imageUrls)];
+      
+      preloadImages(uniqueImageUrls).then(() => {
+        if (isMounted) {
+          setImagesLoading(false);
+        }
+      });
+    } else if (!serviciosLoading && categoryServices.length === 0) {
+      // If no services, don't wait for images
+      if (isMounted) {
+        setImagesLoading(false);
+      }
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviciosLoading, categoryServices]);
   
   // Load data when component mounts or category changes
   useEffect(() => {

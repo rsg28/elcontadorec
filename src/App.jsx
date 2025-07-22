@@ -29,7 +29,7 @@ import {
   faCircle
 } from '@fortawesome/free-solid-svg-icons';
 // Import logo
-import fullLogoImage from './assets/EL CONTADOR TEXTO A LA DERECHA.png';
+import fullLogoImage from './assets/el contador logo-05.png';
 // Import pages
 
 import AdminPanel from './pages/AdminPanel';
